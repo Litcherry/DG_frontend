@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A5 景区导览服务 AI 数字人</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <section id="authView" class="auth-view">
+      <div class="auth-hero">
+        <div class="brand-row">
+          <div class="brand-mark">DG</div>
+          <div>
+            <strong>景区导览服务 AI 数字人</strong>
+            <span>游客智能导览与景区运营后台</span>
+          </div>
+        </div>
+        <div class="hero-copy">
+          <p class="eyebrow">A5 Competition Prototype</p>
+          <h1>会讲解、会规划、会反馈的景区 AI 导游</h1>
+          <p>面向软件杯 A5 赛题，覆盖游客问答、语音输入、数字人播报、路线推荐、知识库维护、形象配置和游客感受度分析。</p>
+        </div>
+        <div class="hero-metrics">
+          <div><strong>24h</strong><span>在线导览</span></div>
+          <div><strong>RAG</strong><span>知识增强</span></div>
+          <div><strong>&lt;5s</strong><span>交互目标</span></div>
+        </div>
+      </div>
+
+      <div class="auth-panel">
+        <div class="api-box">
+          <label for="apiBase">后端服务地址</label>
+          <input id="apiBase" type="url" value="http://localhost:8000" />
+        </div>
+        <div class="role-switch">
+          <button id="visitorRoleBtn" class="active" type="button">游客入口</button>
+          <button id="adminRoleBtn" type="button">管理后台</button>
+        </div>
+        <form id="visitorLoginForm" class="login-card active">
+          <h2>开始智能导览</h2>
+          <p>游客无需账号。输入昵称后即可创建本次导览会话。</p>
+          <label>游客昵称
+            <input id="visitorNameInput" type="text" placeholder="例如：小王、游客001" />
+          </label>
+          <button class="primary wide" type="submit">进入游客交互端</button>
+        </form>
+        <form id="adminLoginForm" class="login-card">
+          <h2>管理员登录</h2>
+          <p>用于维护知识库、景点路线、数字人配置，并查看运营数据。</p>
+          <label>账号
+            <input id="username" type="text" value="admin" autocomplete="username" />
+          </label>
+          <label>密码
+            <input id="password" type="password" placeholder="默认 admin123" autocomplete="current-password" />
+          </label>
+          <button class="primary wide" type="submit">登录管理后台</button>
+        </form>
+      </div>
+    </section>
+
+    <div id="appShell" class="app-shell hidden">
+      <aside id="sidebar" class="sidebar">
+        <button id="sidebarToggle" class="sidebar-toggle" type="button" title="收起侧栏" aria-label="收起侧栏">
+          <span class="panel-toggle-icon"></span>
+        </button>
+        <div class="brand-row compact">
+          <div class="brand-mark">DG</div>
+          <div class="sidebar-text">
+            <strong>AI 数字人导览</strong>
+            <span id="sessionLabel">未登录</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" data-view="visitor" type="button"><span class="nav-icon">游</span><span class="nav-label">游客交互端</span></button>
+          <button class="nav-item" data-view="routeMap" type="button"><span class="nav-icon">线</span><span class="nav-label">游览路径规划</span></button>
+          <button class="nav-item" data-view="feedbackPage" type="button"><span class="nav-icon">评</span><span class="nav-label">体验反馈打分</span></button>
+          <button class="nav-item" data-view="admin" type="button"><span class="nav-icon">管</span><span class="nav-label">管理后台</span></button>
+        </nav>
+        <button id="logoutBtn" class="ghost wide" type="button">退出当前身份</button>
+      </aside>
+
+      <main class="main-area">
+        <section id="visitorView" class="view active">
+          <div class="visitor-layout">
+            <section class="guide-column">
+              <div class="human-panel">
+                <div class="stage-glow"></div>
+                <div id="digitalHuman" class="digital-human neutral modern">
+                  <div class="halo"></div>
+                  <div class="head">
+                    <div class="hair"></div>
+                    <div class="face">
+                      <span class="brow left"></span>
+                      <span class="brow right"></span>
+                      <span class="eye left"></span>
+                      <span class="eye right"></span>
+                      <span class="cheek left"></span>
+                      <span class="cheek right"></span>
+                      <span class="mouth"></span>
+                    </div>
+                  </div>
+                  <div class="neck"></div>
+                  <div class="body">
+                    <span class="collar"></span>
+                    <span class="sash"></span>
+                    <span class="badge">AI</span>
+                  </div>
+                </div>
+                <div class="human-meta">
+                  <strong id="humanName">小导</strong>
+                  <span id="humanState">在线待命</span>
+                </div>
+              </div>
+
+              <div class="tool-panel">
+                <div class="section-title">
+                  <div>
+                    <h2>兴趣偏好</h2>
+                    <span>影响讲解重点与路线推荐</span>
+                  </div>
+                </div>
+                <div id="interestChips" class="chips"></div>
+              </div>
+
+            </section>
+
+            <section class="chat-shell">
+              <div class="chat-head">
+                <div class="guide-status">
+                  <span class="guide-live-dot"></span>
+                  <strong>小导在线</strong>
+                  <span id="conversationBadge">未创建会话</span>
+                </div>
+              </div>
+              <div id="chatMessages" class="chat-messages"></div>
+              <div class="quick-questions">
+                <button type="button" data-question="有什么景点推荐">热门景点</button>
+                <button type="button" data-question="我对历史文化感兴趣，帮我规划一条路线">历史路线</button>
+                <button type="button" data-question="适合亲子游的路线怎么走">亲子游</button>
+                <button type="button" data-question="附近有哪些服务设施需要注意">服务设施</button>
+              </div>
+              <div class="composer">
+                <textarea id="chatInput" rows="3" placeholder="问我景区历史、文化、路线、服务设施..."></textarea>
+                <div class="composer-actions">
+                  <button id="voiceBtn" class="icon-button" title="语音输入" type="button"><span class="mic-icon"></span></button>
+                  <button id="sendBtn" class="primary" type="button">发送</button>
+                </div>
+              </div>
+            </section>
+
+            <aside id="historyPanel" class="history-panel">
+              <div class="history-head">
+                <div>
+                  <strong>导览会话</strong>
+                  <span>最近记录</span>
+                </div>
+                <button id="historyCloseBtn" class="panel-toggle" type="button" title="收起会话栏" aria-label="收起会话栏">
+                  <span class="panel-toggle-icon"></span>
+                </button>
+              </div>
+              <button id="newConversationBtn" class="new-chat-btn" type="button">
+                <span class="new-chat-icon"></span>
+                <span>新聊天</span>
+              </button>
+              <div class="history-section-title">最近</div>
+              <div id="historyList" class="history-list"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section id="routeMapView" class="view">
+          <div class="route-map-layout">
+            <section class="map-workspace">
+              <div class="map-toolbar">
+                <div>
+                  <strong>游览路径规划</strong>
+                  <span>选择兴趣和时长，小导会在地图上生成推荐路线</span>
+                </div>
+                <button id="recommendBtn" class="primary" type="button">开始规划</button>
+              </div>
+
+              <div class="scenic-map" aria-label="景区路线地图">
+                <svg class="map-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  <path class="map-base-line" d="M12 72 C24 58, 34 64, 43 48 S62 31, 74 42 S88 54, 88 25" />
+                  <path id="activeRouteLine" class="map-active-line" d="M12 72 C24 58, 34 64, 43 48 S62 31, 74 42 S88 54, 88 25" />
+                </svg>
+                <button class="map-node active" data-spot-name="东门" style="left: 11%; top: 70%;" type="button"><span>1</span><strong>东门</strong></button>
+                <button class="map-node" data-spot-name="九龙灌浴" style="left: 34%; top: 56%;" type="button"><span>2</span><strong>九龙灌浴</strong></button>
+                <button class="map-node" data-spot-name="灵山梵宫" style="left: 52%; top: 35%;" type="button"><span>3</span><strong>灵山梵宫</strong></button>
+                <button class="map-node" data-spot-name="太湖观景台" style="left: 72%; top: 43%;" type="button"><span>4</span><strong>太湖观景</strong></button>
+                <button class="map-node" data-spot-name="服务中心" style="left: 86%; top: 23%;" type="button"><span>5</span><strong>服务中心</strong></button>
+                <div class="map-water">湖区</div>
+                <div class="map-legend"><span></span> 推荐路线</div>
+              </div>
+
+              <div class="route-planner-panel">
+                <div class="route-form">
+                  <label>游览时长
+                    <input id="availableHours" type="number" min="0.5" step="0.5" value="2" />
+                  </label>
+                  <label>当前位置
+                    <input id="currentArea" type="text" placeholder="如：东门、湖区" />
+                  </label>
+                </div>
+                <div id="routeResult" class="route-result">选择兴趣后点击“开始规划”，地图会高亮推荐游览路线。</div>
+              </div>
+            </section>
+
+            <aside class="route-guide-panel">
+              <div class="mini-human route-human-card">
+                <div class="route-human-figure" aria-hidden="true">
+                  <span class="route-hair"></span>
+                  <span class="route-eye left"></span>
+                  <span class="route-eye right"></span>
+                  <span class="route-mouth"></span>
+                  <span class="route-body"></span>
+                </div>
+                <div>
+                  <strong>小导路线助手</strong>
+                  <span>可继续询问路线细节</span>
+                </div>
+              </div>
+              <textarea id="routeGuideInput" rows="5" placeholder="例如：我带老人游玩，路线能轻松一点吗？"></textarea>
+              <button id="routeGuideBtn" class="primary wide" type="button">询问小导</button>
+              <p>回答会同步到“游客交互端”的对话记录里，方便继续追问。</p>
+            </aside>
+          </div>
+        </section>
+
+        <section id="feedbackPageView" class="view">
+          <div class="feedback-page">
+            <section class="feedback-card">
+              <span class="page-kicker">游客感受度</span>
+              <h1>为本次导览体验打分</h1>
+              <p>你的评分和补充反馈会进入管理后台的游客感受度报告，帮助景区优化讲解内容和服务设施。</p>
+              <div class="feedback-score">
+                <span>本次体验</span>
+                <div id="ratingButtons" class="rating-buttons"></div>
+              </div>
+              <textarea id="feedbackComment" rows="6" placeholder="补充反馈：比如讲解是否清楚、路线是否合适、还想了解哪些内容"></textarea>
+              <button id="feedbackBtn" class="primary" type="button">提交反馈</button>
+            </section>
+          </div>
+        </section>
+
+        <section id="adminView" class="view">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">管理后台</p>
+              <h1>景区运营与知识维护</h1>
+            </div>
+            <button id="refreshStatsBtn" type="button">刷新数据</button>
+          </header>
+
+          <div class="admin-tabs">
+            <button class="tab active" data-admin-tab="dashboard" type="button">数据大屏</button>
+            <button class="tab" data-admin-tab="knowledge" type="button">知识库</button>
+            <button class="tab" data-admin-tab="scenic" type="button">景点路线</button>
+            <button class="tab" data-admin-tab="human" type="button">数字人</button>
+          </div>
+
+          <section id="dashboardTab" class="admin-tab active">
+            <div id="statsCards" class="stats-grid"></div>
+            <div class="analytics-grid">
+              <div class="panel"><h2>满意度趋势</h2><div id="satisfactionTrend" class="bar-chart"></div></div>
+              <div class="panel"><h2>热门问答</h2><div id="hotQuestions" class="list"></div></div>
+              <div class="panel"><h2>游客兴趣分布</h2><div id="interestDistribution" class="tag-chart"></div></div>
+              <div class="panel"><h2>服务盲点</h2><div id="blindSpots" class="list"></div></div>
+            </div>
+          </section>
+
+          <section id="knowledgeTab" class="admin-tab">
+            <div class="two-col">
+              <div class="panel">
+                <h2>文档上传</h2>
+                <form id="docForm" class="stack-form">
+                  <input id="docFile" type="file" accept=".pdf,.txt,.docx" />
+                  <input id="docCategory" type="text" value="general" placeholder="分类，如 history / route" />
+                  <button class="primary" type="submit">上传文档</button>
+                </form>
+                <div id="documentsList" class="list"></div>
+              </div>
+              <div class="panel">
+                <h2>FAQ 维护</h2>
+                <form id="faqForm" class="stack-form">
+                  <input id="faqQuestion" type="text" placeholder="问题" />
+                  <textarea id="faqAnswer" rows="4" placeholder="答案"></textarea>
+                  <input id="faqCategory" type="text" value="general" placeholder="分类" />
+                  <button class="primary" type="submit">新增 FAQ</button>
+                </form>
+                <div id="faqList" class="list"></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="scenicTab" class="admin-tab">
+            <div class="two-col">
+              <div class="panel">
+                <h2>景点管理</h2>
+                <form id="spotForm" class="stack-form">
+                  <input id="spotName" type="text" placeholder="景点名称" />
+                  <textarea id="spotDesc" rows="3" placeholder="讲解简介"></textarea>
+                  <input id="spotTags" type="text" placeholder="标签，用逗号分隔" />
+                  <input id="spotDuration" type="number" value="30" />
+                  <button class="primary" type="submit">新增景点</button>
+                </form>
+                <div id="spotsList" class="list"></div>
+              </div>
+              <div class="panel">
+                <h2>路线管理</h2>
+                <form id="routeForm" class="stack-form">
+                  <input id="routeName" type="text" placeholder="路线名称" />
+                  <textarea id="routeDesc" rows="3" placeholder="路线简介"></textarea>
+                  <input id="routeTags" type="text" placeholder="目标兴趣标签" />
+                  <input id="routeHours" type="number" step="0.5" value="2" />
+                  <textarea id="routeSpots" rows="4" placeholder='景点序列 JSON，如 [{"spot_id":1,"name":"东门"}]'></textarea>
+                  <button class="primary" type="submit">新增路线</button>
+                </form>
+                <div id="routesList" class="list"></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="humanTab" class="admin-tab">
+            <div class="panel human-config">
+              <form id="humanForm" class="config-grid">
+                <label>名称<input id="cfgName" type="text" /></label>
+                <label>外观
+                  <select id="cfgAppearance">
+                    <option value="modern">现代导游</option>
+                    <option value="hanfu">汉服讲解员</option>
+                    <option value="nature">自然探索员</option>
+                  </select>
+                </label>
+                <label>声音
+                  <select id="cfgVoiceGender">
+                    <option value="female">女声</option>
+                    <option value="male">男声</option>
+                  </select>
+                </label>
+                <label>语速
+                  <select id="cfgVoiceSpeed">
+                    <option value="slow">慢速</option>
+                    <option value="medium">适中</option>
+                    <option value="fast">快速</option>
+                  </select>
+                </label>
+                <label>表情风格
+                  <select id="cfgExpression">
+                    <option value="lively">亲切活泼</option>
+                    <option value="calm">沉稳专业</option>
+                    <option value="warm">温暖治愈</option>
+                  </select>
+                </label>
+                <label>头像<input id="avatarFile" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" /></label>
+                <button class="primary" type="submit">保存配置</button>
+              </form>
+              <div class="avatar-preview">
+                <div id="avatarPreview" class="avatar-fallback">DG</div>
+                <strong>数字人形象配置</strong>
+                <p>当前前端使用 CSS 2D 数字人实现口型和情绪动画，后续可替换 Live2D 或 3D SDK。</p>
+              </div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>

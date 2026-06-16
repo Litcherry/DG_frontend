@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Local server logs
+server.out.log
+server.err.log
+*.log
+
+# Frontend dependencies/build outputs
+node_modules/
+dist/
+build/
+
+# Local env files
+.env
+.env.*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
