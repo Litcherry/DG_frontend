@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>A5 景区导览服务 AI 数字人</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -275,61 +281,66 @@
         </section>
 
         <section id="routeMapView" class="view">
-          <div class="route-map-layout">
-            <section class="map-workspace">
-              <div class="map-toolbar">
-                <div>
-                  <strong>游览路径规划</strong>
-                  <span>选择兴趣和时长，小导会在地图上生成推荐路线</span>
-                </div>
-                <button id="recommendBtn" class="primary" type="button">开始规划</button>
+          <div class="route-page">
+            <header class="route-page-header">
+              <div>
+                <span class="route-page-kicker">AI 智能规划</span>
+                <strong>游览路径规划</strong>
               </div>
+              <button id="recommendBtn" class="primary" type="button">生成推荐路线</button>
+            </header>
 
-              <div class="scenic-map" aria-label="景区路线地图">
-                <svg class="map-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                  <path class="map-base-line" d="M12 72 C24 58, 34 64, 43 48 S62 31, 74 42 S88 54, 88 25" />
-                  <path id="activeRouteLine" class="map-active-line" d="M12 72 C24 58, 34 64, 43 48 S62 31, 74 42 S88 54, 88 25" />
-                </svg>
-                <button class="map-node active" data-spot-name="东门" style="left: 11%; top: 70%;" type="button"><span>1</span><strong>东门</strong></button>
-                <button class="map-node" data-spot-name="九龙灌浴" style="left: 34%; top: 56%;" type="button"><span>2</span><strong>九龙灌浴</strong></button>
-                <button class="map-node" data-spot-name="灵山梵宫" style="left: 52%; top: 35%;" type="button"><span>3</span><strong>灵山梵宫</strong></button>
-                <button class="map-node" data-spot-name="太湖观景台" style="left: 72%; top: 43%;" type="button"><span>4</span><strong>太湖观景</strong></button>
-                <button class="map-node" data-spot-name="服务中心" style="left: 86%; top: 23%;" type="button"><span>5</span><strong>服务中心</strong></button>
-                <div class="map-water">湖区</div>
-                <div class="map-legend"><span></span> 推荐路线</div>
-              </div>
-
-              <div class="route-planner-panel">
+            <div class="route-map-layout">
+              <aside class="route-sidebar-panel">
                 <div class="route-form">
                   <label>游览时长
-                    <input id="availableHours" type="number" min="0.5" step="0.5" value="2" />
+                    <div class="route-input-unit">
+                      <input id="availableHours" type="number" min="0.5" step="0.5" value="2" />
+                      <span>小时</span>
+                    </div>
                   </label>
                   <label>当前位置
-                    <input id="currentArea" type="text" placeholder="如：东门、湖区" />
+                    <input id="currentArea" type="text" placeholder="如：景区东门" />
                   </label>
                 </div>
-                <div id="routeResult" class="route-result">选择兴趣后点击“开始规划”，地图会高亮推荐游览路线。</div>
-              </div>
-            </section>
 
-            <aside class="route-guide-panel">
-              <div class="mini-human route-human-card">
-                <div class="route-human-figure" aria-hidden="true">
-                  <span class="route-hair"></span>
-                  <span class="route-eye left"></span>
-                  <span class="route-eye right"></span>
-                  <span class="route-mouth"></span>
-                  <span class="route-body"></span>
+                <div id="routeResult" class="route-overview">
+                  <div class="route-empty-state">
+                    <span class="route-empty-icon" aria-hidden="true">⌁</span>
+                    <strong>还没有推荐路线</strong>
+                    <p>设置游览时长后生成路线，或先在导览对话中告诉小导你的偏好。</p>
+                  </div>
                 </div>
-                <div>
-                  <strong>小导路线助手</strong>
-                  <span>可继续询问路线细节</span>
+                <div id="routeSpotList" class="route-spot-list" aria-live="polite"></div>
+              </aside>
+
+              <section class="route-map-workspace">
+                <div id="leafletRouteMap" class="leaflet-route-map" aria-label="景区游览路线地图"></div>
+                <div id="routeMapError" class="route-map-error hidden">
+                  <strong>地图暂时无法加载</strong>
+                  <span>请检查网络连接后刷新页面，路线景点仍可在左侧查看。</span>
                 </div>
-              </div>
-              <textarea id="routeGuideInput" rows="5" placeholder="例如：我带老人游玩，路线能轻松一点吗？"></textarea>
-              <button id="routeGuideBtn" class="primary wide" type="button">询问小导</button>
-              <p>回答会同步到“游客交互端”的对话记录里，方便继续追问。</p>
-            </aside>
+
+                <div class="route-map-legend">
+                  <span class="legend-route-line"></span>
+                  <span>推荐游览顺序</span>
+                </div>
+
+                <aside class="route-guide-panel">
+                  <div class="mini-human route-human-card">
+                    <div class="route-human-avatar" aria-hidden="true">DG</div>
+                    <div>
+                      <strong>小导路线助手</strong>
+                      <span>告诉我同行人员和游览偏好</span>
+                    </div>
+                  </div>
+                  <div class="route-guide-composer">
+                    <textarea id="routeGuideInput" rows="1" placeholder="例如：带老人游玩，路线轻松一点"></textarea>
+                    <button id="routeGuideBtn" class="primary" type="button">询问</button>
+                  </div>
+                </aside>
+              </section>
+            </div>
           </div>
         </section>
 
@@ -473,6 +484,11 @@
     </div>
 
     <div id="toast" class="toast"></div>
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
     <script src="./app.js"></script>
   </body>
 </html>

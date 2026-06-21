@@ -34,10 +34,210 @@ const state = {
   humanConfig: null,
   visitorHumanConfig: JSON.parse(localStorage.getItem("dg_visitor_human_config") || "null"),
   history: JSON.parse(localStorage.getItem("dg_conversation_history") || "[]"),
+  routeMap: null,
+  routeMarkers: [],
+  routePolyline: null,
+  routeSpots: [],
+  selectedRouteSpot: -1,
+  latestRoutePlan: JSON.parse(localStorage.getItem("dg_latest_route_plan") || "null"),
+  routeCatalogLoaded: false,
+  routeCatalogLoading: null,
 };
 
 const $ = (id) => document.getElementById(id);
 const defaultInterests = ["历史文化", "自然风光", "休闲娱乐", "亲子游", "摄影打卡"];
+const scenicSpots = [
+  {
+    id: "lingshan_screen",
+    name: "灵山大照壁",
+    aliases: ["大照壁", "灵山照壁"],
+    lat: 31.41915,
+    lng: 120.091,
+    intro: "灵山胜境入口处的标志性景观，也是进入景区后的第一处文化序章。",
+    duration: "10分钟",
+    tags: ["入口景观", "佛教文化", "拍照打卡"],
+  },
+  {
+    id: "shengjing_square",
+    name: "胜境广场",
+    aliases: ["灵山胜境广场"],
+    lat: 31.41985,
+    lng: 120.09165,
+    intro: "开阔舒适的入园集散空间，适合整理行程并了解景区整体布局。",
+    duration: "10分钟",
+    tags: ["休闲漫步", "游客集散"],
+  },
+  {
+    id: "wuming_bridge",
+    name: "五明桥",
+    aliases: ["五明桥景点"],
+    lat: 31.4202,
+    lng: 120.09235,
+    intro: "五座汉白玉石拱桥并列横跨香水海，寓意佛教五种核心智慧。",
+    duration: "10分钟",
+    tags: ["佛教文化", "建筑艺术", "拍照打卡"],
+  },
+  {
+    id: "buddha_foot",
+    name: "佛足坛",
+    aliases: ["佛足印", "佛足坛景点"],
+    lat: 31.42075,
+    lng: 120.0922,
+    intro: "以佛足印为核心的文化景观，可在此感受庄重安宁的礼佛氛围。",
+    duration: "15分钟",
+    tags: ["佛教文化", "人文景观"],
+  },
+  {
+    id: "hundred_children_maitreya",
+    name: "百子戏弥勒",
+    aliases: ["百子弥勒", "弥勒佛"],
+    lat: 31.4213,
+    lng: 120.09275,
+    intro: "生动活泼的弥勒主题群像，寓意欢喜、包容与吉祥。",
+    duration: "15分钟",
+    tags: ["亲子游", "佛教文化", "雕塑艺术"],
+  },
+  {
+    id: "nine_dragons",
+    name: "九龙灌浴",
+    aliases: ["九龙灌浴广场", "九龙灌浴表演"],
+    lat: 31.42205,
+    lng: 120.0932,
+    intro: "大型动态音乐群雕景观，通过声光水景呈现佛陀诞生故事。",
+    duration: "25分钟",
+    tags: ["核心景点", "演艺景观", "亲子游"],
+  },
+  {
+    id: "bodhi_avenue",
+    name: "菩提大道",
+    aliases: ["菩提路"],
+    lat: 31.42305,
+    lng: 120.0936,
+    intro: "连接景区重要文化节点的景观步道，绿意舒展，适合慢行游览。",
+    duration: "20分钟",
+    tags: ["自然风光", "休闲漫步", "拍照打卡"],
+  },
+  {
+    id: "buddha_hand_square",
+    name: "佛手广场",
+    aliases: ["天下第一掌", "佛手"],
+    lat: 31.42395,
+    lng: 120.0938,
+    intro: "以大型佛手造像为核心的特色广场，是游客喜爱的互动打卡点。",
+    duration: "15分钟",
+    tags: ["拍照打卡", "佛教文化"],
+  },
+  {
+    id: "xiangfu_temple",
+    name: "祥符禅寺",
+    aliases: ["祥符寺", "禅寺"],
+    lat: 31.425,
+    lng: 120.0942,
+    intro: "历史悠久的佛教寺院建筑群，适合静心参访并了解寺院文化。",
+    duration: "30分钟",
+    tags: ["佛教文化", "历史建筑", "静心参访"],
+  },
+  {
+    id: "buddha_square",
+    name: "佛前广场",
+    aliases: ["大佛广场"],
+    lat: 31.42655,
+    lng: 120.0949,
+    intro: "仰望灵山大佛的主要观景空间，视野开阔，仪式感鲜明。",
+    duration: "15分钟",
+    tags: ["核心景点", "观景", "拍照打卡"],
+  },
+  {
+    id: "lingshan_buddha",
+    name: "灵山大佛",
+    aliases: ["大佛", "灵山大佛景区"],
+    lat: 31.42755,
+    lng: 120.0953,
+    intro: "灵山胜境核心景点之一，适合了解佛教文化与大型露天造像艺术。",
+    duration: "40分钟",
+    tags: ["佛教文化", "核心景点", "拍照打卡"],
+  },
+  {
+    id: "lingshan_palace",
+    name: "灵山梵宫",
+    aliases: ["梵宫", "灵山宫"],
+    lat: 31.4217,
+    lng: 120.09745,
+    intro: "融合建筑、壁画、雕塑与演艺艺术的文化地标，内部装饰华美。",
+    duration: "45分钟",
+    tags: ["建筑艺术", "佛教文化", "室内参观"],
+  },
+  {
+    id: "five_mudra_mandala",
+    name: "五印坛城",
+    aliases: ["坛城", "五印坛城文化园"],
+    lat: 31.4208,
+    lng: 120.0987,
+    intro: "具有鲜明藏式建筑特色的文化景观，可感受丰富的坛城艺术。",
+    duration: "35分钟",
+    tags: ["建筑艺术", "佛教文化", "拍照打卡"],
+  },
+  {
+    id: "manfeilong_pagoda",
+    name: "曼飞龙塔",
+    aliases: ["飞龙塔", "曼飞龙佛塔"],
+    lat: 31.4229,
+    lng: 120.09905,
+    intro: "造型精巧的佛塔景观，周边视野舒展，适合文化参观与摄影。",
+    duration: "20分钟",
+    tags: ["建筑艺术", "拍照打卡", "人文景观"],
+  },
+  {
+    id: "lingshan_lodge",
+    name: "灵山精舍",
+    aliases: ["精舍"],
+    lat: 31.42025,
+    lng: 120.10005,
+    intro: "环境清幽的禅意空间，适合短暂休息并体验东方生活美学。",
+    duration: "20分钟",
+    tags: ["休闲体验", "禅意空间"],
+  },
+  {
+    id: "xingtan_square",
+    name: "杏坛广场",
+    aliases: ["杏坛"],
+    lat: 31.42565,
+    lng: 120.09455,
+    intro: "位于礼佛主轴线上的开阔广场，是前往佛前广场与灵山大佛的重要节点。",
+    duration: "10分钟",
+    tags: ["佛教文化", "休闲漫步"],
+  },
+  {
+    id: "sansheng_hall",
+    name: "三圣殿",
+    aliases: ["三圣堂"],
+    lat: 31.42295,
+    lng: 120.09765,
+    intro: "以佛教造像与文化展示为主的殿堂，适合进一步了解佛教艺术与礼仪。",
+    duration: "20分钟",
+    tags: ["佛教文化", "人文景观"],
+  },
+  {
+    id: "palace_square",
+    name: "梵宫广场",
+    aliases: ["灵山梵宫广场"],
+    lat: 31.42125,
+    lng: 120.09685,
+    intro: "灵山梵宫前的开阔景观空间，可完整欣赏梵宫建筑群与周边环境。",
+    duration: "15分钟",
+    tags: ["建筑艺术", "自然风光", "拍照打卡"],
+  },
+  {
+    id: "demon_relief",
+    name: "降魔浮雕",
+    aliases: ["降魔成道浮雕"],
+    lat: 31.42045,
+    lng: 120.0919,
+    intro: "以佛教故事为主题的大型浮雕景观，通过细腻造型呈现降魔成道场景。",
+    duration: "10分钟",
+    tags: ["佛教文化", "雕塑艺术"],
+  },
+];
 const live2dModels = {
   modern: "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json",
   hanfu: "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json",
@@ -153,6 +353,15 @@ function switchView(view) {
   $("routeMapView").classList.toggle("active", view === "routeMap");
   $("feedbackPageView").classList.toggle("active", view === "feedbackPage");
   $("adminView").classList.toggle("active", view === "admin");
+  if (view === "routeMap") {
+    window.setTimeout(() => {
+      initRouteMap();
+      state.routeMap?.invalidateSize();
+      hydrateScenicSpotsFromBackend().finally(() => {
+        if (state.latestRoutePlan) renderRoutePlan(state.latestRoutePlan);
+      });
+    }, 80);
+  }
 }
 
 function switchAdminTab(tab) {
@@ -1291,58 +1500,363 @@ async function sendMessage(presetText = "") {
   setAIResponding(false);
   setMessageText(assistant, finalText);
   saveMessageToHistory("assistant", finalText);
+  syncRouteFromAIText(finalText);
   if (!state.speechPlaying && !state.speechQueue.length) setHumanState({ emotion });
 }
 
-function renderRouteResult(data) {
-  const spots = Array.isArray(data.spots) ? data.spots : [];
-  updateMapRoute(spots);
-  const steps = spots.map((spot, index) => {
-    const name = escapeHTML(spot.name || spot.spot_name || `景点 ${index + 1}`);
-    const desc = escapeHTML(spot.highlight || spot.description || "");
-    return `<li><span>${index + 1}</span><div><strong>${name}</strong>${desc ? `<p>${desc}</p>` : ""}</div></li>`;
-  }).join("");
-  $("routeResult").innerHTML = `
-    <div class="route-card">
-      <strong>${escapeHTML(data.route_name || data.name || "推荐路线")}</strong>
-      <small>${data.duration_hours ? `${data.duration_hours} 小时` : "时长可调整"}</small>
-      <p>${escapeHTML(data.reason || data.description || "已根据兴趣偏好生成路线。")}</p>
-      ${steps ? `<ol class="route-timeline">${steps}</ol>` : '<div class="empty-mini">暂无景点序列，可在后台补充路线数据。</div>'}
-    </div>
-  `;
+function normalizeSpotName(value = "") {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[\s·•\-—_（）()景区景点广场文化园]/g, "");
 }
 
-function updateMapRoute(spots = []) {
-  const names = spots
-    .map((spot) => String(spot.name || spot.spot_name || "").trim())
-    .filter(Boolean);
-  const nodes = document.querySelectorAll(".map-node");
-  if (!nodes.length) return;
+function locationFromSpot(spot = {}) {
+  const location = spot.location || {};
+  const lat = Number(spot.lat ?? location.lat ?? location.latitude);
+  const lng = Number(spot.lng ?? location.lng ?? location.lon ?? location.longitude);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
 
-  nodes.forEach((node) => {
-    const name = node.dataset.spotName || "";
-    const index = names.findIndex((item) => name.includes(item) || item.includes(name));
-    node.classList.toggle("active", index >= 0 || (!names.length && node.dataset.spotName === "东门"));
-    const badge = node.querySelector("span");
-    if (badge && index >= 0) badge.textContent = index + 1;
+function matchSpotByName(name) {
+  const target = normalizeSpotName(name);
+  if (!target) return null;
+  return scenicSpots.find((spot) => {
+    const candidates = [spot.name, ...(spot.aliases || [])].map(normalizeSpotName);
+    return candidates.some((candidate) => (
+      candidate === target
+      || (candidate.length >= 2 && target.includes(candidate))
+      || (target.length >= 2 && candidate.includes(target))
+    ));
+  }) || null;
+}
+
+function hydrateScenicSpotsFromBackend() {
+  if (state.routeCatalogLoaded) return Promise.resolve();
+  if (state.routeCatalogLoading) return state.routeCatalogLoading;
+  state.routeCatalogLoading = request("/api/spots")
+    .then((items) => {
+      if (!Array.isArray(items)) return;
+      items.forEach((item) => {
+        const location = locationFromSpot(item);
+        const existing = matchSpotByName(item.name);
+        if (existing) {
+          if (location) Object.assign(existing, location);
+          if (item.description) existing.intro = item.description;
+          if (Array.isArray(item.tags) && item.tags.length) existing.tags = item.tags;
+          if (item.visit_duration_min) existing.duration = `${item.visit_duration_min}分钟`;
+          return;
+        }
+        scenicSpots.push({
+          id: item.id || `backend-${scenicSpots.length}`,
+          name: item.name,
+          aliases: item.name_en ? [item.name_en] : [],
+          lat: location?.lat,
+          lng: location?.lng,
+          intro: item.description || "该景点的详细介绍正在补充中。",
+          duration: item.visit_duration_min ? `${item.visit_duration_min}分钟` : "建议 20 分钟",
+          tags: Array.isArray(item.tags) ? item.tags : [],
+        });
+      });
+      state.routeCatalogLoaded = true;
+    })
+    .catch((error) => {
+      console.warn("[Route map] backend spot catalog unavailable, using local fallback", error);
+    })
+    .finally(() => {
+      state.routeCatalogLoading = null;
+    });
+  return state.routeCatalogLoading;
+}
+
+function createNumberedIcon(index, active = false) {
+  if (!window.L) return null;
+  return L.divIcon({
+    className: "route-marker",
+    html: `<div class="marker-dot${active ? " active" : ""}">${index + 1}</div>`,
+    iconSize: [34, 34],
+    iconAnchor: [17, 17],
+    popupAnchor: [0, -20],
   });
-  $("activeRouteLine")?.classList.toggle("is-planned", names.length > 0);
+}
+
+function initRouteMap() {
+  if (state.routeMap || !$("leafletRouteMap")) return state.routeMap;
+  if (!window.L) {
+    $("routeMapError")?.classList.remove("hidden");
+    return null;
+  }
+  try {
+    state.routeMap = L.map("leafletRouteMap", {
+      zoomControl: true,
+      minZoom: 14,
+      maxZoom: 19,
+    }).setView([31.4231, 120.0955], 16);
+
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(state.routeMap);
+    return state.routeMap;
+  } catch (error) {
+    console.error("[Route map] initialization failed", error);
+    $("routeMapError")?.classList.remove("hidden");
+    return null;
+  }
+}
+
+function clearRouteLayer() {
+  if (state.routeMap) {
+    state.routeMarkers.forEach((marker) => {
+      if (marker) state.routeMap.removeLayer(marker);
+    });
+    if (state.routePolyline) state.routeMap.removeLayer(state.routePolyline);
+  }
+  state.routeMarkers = [];
+  state.routePolyline = null;
+  state.routeSpots = [];
+  state.selectedRouteSpot = -1;
+}
+
+function formatRouteDuration(data, spots) {
+  if (data.duration) return String(data.duration);
+  if (data.duration_hours) return `约 ${data.duration_hours} 小时`;
+  const minutes = spots.reduce((sum, spot) => {
+    const value = Number.parseInt(spot.duration, 10);
+    return sum + (Number.isFinite(value) ? value : 0);
+  }, 0);
+  return minutes ? `约 ${Math.max(1, Math.round(minutes / 30) / 2)} 小时` : "时长可调整";
+}
+
+function normalizeRouteSpot(item, index) {
+  const source = typeof item === "string" ? { name: item } : (item || {});
+  const name = source.name || source.spot_name || `景点 ${index + 1}`;
+  const matched = matchSpotByName(name);
+  const sourceLocation = locationFromSpot(source);
+  const matchedLocation = locationFromSpot(matched || {});
+  const location = sourceLocation || matchedLocation;
+  return {
+    ...(matched || {}),
+    ...source,
+    id: source.id || matched?.id || `unmatched-${index}`,
+    name: matched?.name || name,
+    requestedName: name,
+    lat: location?.lat,
+    lng: location?.lng,
+    intro: source.intro || source.description || matched?.intro || "该景点的详细介绍正在补充中。",
+    duration: source.duration || (source.visit_duration_min ? `${source.visit_duration_min}分钟` : matched?.duration || "建议 20 分钟"),
+    tags: Array.isArray(source.tags) && source.tags.length ? source.tags : (matched?.tags || []),
+    hasCoordinates: Boolean(location),
+  };
+}
+
+function renderRouteResult(data) {
+  renderRoutePlan(data);
+}
+
+function renderRoutePlan(aiRouteResult = {}) {
+  const rawSpots = Array.isArray(aiRouteResult.spots) ? aiRouteResult.spots : [];
+  const spots = rawSpots.map(normalizeRouteSpot);
+  const routeName = aiRouteResult.routeName || aiRouteResult.route_name || aiRouteResult.name || "小导推荐路线";
+  const duration = formatRouteDuration(aiRouteResult, spots);
+  const reason = aiRouteResult.reason || aiRouteResult.description || "已根据你的游览时间和兴趣偏好生成路线。";
+  const normalizedPlan = { ...aiRouteResult, routeName, duration, reason, spots };
+
+  state.latestRoutePlan = {
+    routeName,
+    duration,
+    reason,
+    spots: spots.map((spot) => spot.requestedName || spot.name),
+  };
+  localStorage.setItem("dg_latest_route_plan", JSON.stringify(state.latestRoutePlan));
+  clearRouteLayer();
+  state.routeSpots = spots;
+
+  if (!spots.length) {
+    $("routeResult").innerHTML = `
+      <div class="route-empty-state">
+        <span class="route-empty-icon" aria-hidden="true">⌁</span>
+        <strong>暂无推荐路线</strong>
+        <p>请先在导览对话中生成路线，或设置游览时长后点击“生成推荐路线”。</p>
+      </div>`;
+    $("routeSpotList").innerHTML = "";
+    return;
+  }
+
+  const mappedCount = spots.filter((spot) => spot.hasCoordinates).length;
+  $("routeResult").innerHTML = `
+    <div class="route-overview-head">
+      <div>
+        <span>当前路线</span>
+        <strong>${escapeHTML(routeName)}</strong>
+      </div>
+      <span class="route-count">${spots.length} 个景点</span>
+    </div>
+    <div class="route-meta">
+      <span>${escapeHTML(duration)}</span>
+      <span>${mappedCount} 个可地图定位</span>
+    </div>
+    <p>${escapeHTML(reason)}</p>
+  `;
+
+  renderSpotList(spots);
+  initRouteMap();
+  renderRouteMarkers(spots);
+  fitRouteBounds(spots);
+  const firstMappedIndex = spots.findIndex((spot) => spot.hasCoordinates);
+  selectSpot(firstMappedIndex >= 0 ? firstMappedIndex : 0, { moveMap: false, scrollList: false });
+}
+
+function renderSpotList(spots) {
+  $("routeSpotList").innerHTML = spots.map((spot, index) => `
+    <button class="route-spot-card" data-route-spot-index="${index}" type="button">
+      <span class="route-spot-number">${index + 1}</span>
+      <span class="route-spot-content">
+        <span class="route-spot-title">
+          <strong>${escapeHTML(spot.name)}</strong>
+          <small>${escapeHTML(spot.duration)}</small>
+        </span>
+        <span class="route-spot-intro">${escapeHTML(spot.intro)}</span>
+        <span class="route-spot-tags">
+          ${(spot.tags || []).slice(0, 3).map((tag) => `<em>${escapeHTML(tag)}</em>`).join("")}
+        </span>
+        ${spot.hasCoordinates ? "" : '<span class="route-coordinate-warning">该景点暂无坐标信息</span>'}
+      </span>
+    </button>
+  `).join("");
+
+  document.querySelectorAll("[data-route-spot-index]").forEach((card) => {
+    card.onclick = () => selectSpot(Number(card.dataset.routeSpotIndex));
+  });
+}
+
+function routePopupHTML(spot, index) {
+  return `
+    <div class="route-popup">
+      <span class="route-popup-step">第 ${index + 1} 站</span>
+      <strong>${escapeHTML(spot.name)}</strong>
+      <p>${escapeHTML(spot.intro)}</p>
+      <div class="route-popup-meta"><span>${escapeHTML(spot.duration)}</span></div>
+      <div class="route-popup-tags">
+        ${(spot.tags || []).slice(0, 4).map((tag) => `<span>${escapeHTML(tag)}</span>`).join("")}
+      </div>
+    </div>`;
+}
+
+function renderRouteMarkers(spots) {
+  const map = initRouteMap();
+  if (!map) return;
+  const points = [];
+  spots.forEach((spot, index) => {
+    if (!spot.hasCoordinates) {
+      state.routeMarkers[index] = null;
+      return;
+    }
+    const marker = L.marker([spot.lat, spot.lng], {
+      icon: createNumberedIcon(index, false),
+      riseOnHover: true,
+    })
+      .addTo(map)
+      .bindPopup(routePopupHTML(spot, index), { maxWidth: 300, minWidth: 230, offset: [0, -4] });
+    marker.on("click", () => selectSpot(index, { moveMap: false }));
+    state.routeMarkers[index] = marker;
+    points.push([spot.lat, spot.lng]);
+  });
+
+  if (points.length > 1) {
+    state.routePolyline = L.polyline(points, {
+      color: "#16856f",
+      weight: 4,
+      opacity: 0.78,
+      lineCap: "round",
+      lineJoin: "round",
+      dashArray: "2 9",
+    }).addTo(map);
+  }
+}
+
+function fitRouteBounds(spots) {
+  const map = initRouteMap();
+  if (!map) return;
+  const points = spots.filter((spot) => spot.hasCoordinates).map((spot) => [spot.lat, spot.lng]);
+  if (points.length === 1) {
+    map.setView(points[0], 17);
+  } else if (points.length > 1) {
+    map.fitBounds(L.latLngBounds(points), { padding: [64, 64], maxZoom: 17 });
+  } else {
+    map.setView([31.4231, 120.0955], 16);
+  }
+}
+
+function selectSpot(index, options = {}) {
+  const { moveMap = true, scrollList = true } = options;
+  if (index < 0 || index >= state.routeSpots.length) return;
+  state.selectedRouteSpot = index;
+  document.querySelectorAll("[data-route-spot-index]").forEach((card, cardIndex) => {
+    card.classList.toggle("active", cardIndex === index);
+  });
+  state.routeMarkers.forEach((marker, markerIndex) => {
+    if (marker) marker.setIcon(createNumberedIcon(markerIndex, markerIndex === index));
+  });
+
+  const card = document.querySelector(`[data-route-spot-index="${index}"]`);
+  if (scrollList && card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  const marker = state.routeMarkers[index];
+  if (marker) {
+    if (moveMap) state.routeMap.flyTo(marker.getLatLng(), Math.max(state.routeMap.getZoom(), 17), { duration: 0.65 });
+    marker.openPopup();
+  }
+}
+
+function syncRouteFromAIText(text = "") {
+  if (!text) return;
+  const mentions = scenicSpots
+    .map((spot) => {
+      const names = [spot.name, ...(spot.aliases || [])];
+      const positions = names.map((name) => text.indexOf(name)).filter((position) => position >= 0);
+      return positions.length ? { spot, position: Math.min(...positions) } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.position - b.position);
+  const uniqueNames = [...new Set(mentions.map((item) => item.spot.name))];
+  if (uniqueNames.length < 2) return;
+  state.latestRoutePlan = {
+    routeName: "小导智能推荐路线",
+    duration: `约 ${Math.max(1, Math.round(uniqueNames.length * 0.4 * 2) / 2)} 小时`,
+    reason: "根据本轮 AI 导览回答识别出的景点生成，可进入路径规划页查看。",
+    spots: uniqueNames,
+  };
+  localStorage.setItem("dg_latest_route_plan", JSON.stringify(state.latestRoutePlan));
+  if ($("routeMapView").classList.contains("active")) renderRoutePlan(state.latestRoutePlan);
 }
 
 async function recommendRoute() {
   if (!state.conversationId) await createConversation();
+  const button = $("recommendBtn");
+  const previousLabel = button.textContent;
+  button.disabled = true;
+  button.textContent = "正在规划…";
   setHumanState({ thinking: true, emotion: "thinking" });
-  const data = await request("/api/routes/recommend", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      interest_tags: state.interests,
-      available_hours: Number($("availableHours").value || 0) || null,
-      current_area: $("currentArea").value || null,
-    }),
-  });
-  renderRouteResult(data);
-  setHumanState({ emotion: "happy" });
+  try {
+    await hydrateScenicSpotsFromBackend();
+    const data = await request("/api/routes/recommend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        interest_tags: state.interests,
+        available_hours: Number($("availableHours").value || 0) || null,
+        current_area: $("currentArea").value || null,
+      }),
+    });
+    renderRouteResult(data);
+    setHumanState({ emotion: "happy" });
+  } catch (error) {
+    setHumanState({ emotion: "sorry" });
+    throw error;
+  } finally {
+    button.disabled = false;
+    button.textContent = previousLabel;
+  }
 }
 
 function renderRatingButtons() {
