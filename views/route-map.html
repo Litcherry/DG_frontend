@@ -1,0 +1,53 @@
+<section id="routeMapView" class="view">
+  <div class="route-page">
+    <header class="route-page-header">
+      <div>
+        <span class="route-page-kicker">AI 智能规划</span>
+        <strong>游览路径规划</strong>
+      </div>
+      <button id="recommendBtn" class="primary" type="button">生成推荐路线</button>
+    </header>
+    <div class="route-map-layout">
+      <aside class="route-sidebar-panel">
+        <div class="route-form">
+          <label>游览时长
+            <div class="route-input-unit">
+              <input id="availableHours" type="number" min="0.5" step="0.5" value="2" />
+              <span>小时</span>
+            </div>
+          </label>
+          <label>当前位置<input id="currentArea" type="text" placeholder="如：景区东门" /></label>
+        </div>
+        <div id="routeResult" class="route-overview">
+          <div class="route-empty-state">
+            <span class="route-empty-icon" aria-hidden="true">⌁</span>
+            <strong>还没有推荐路线</strong>
+            <p>设置游览时长后生成路线，或先在导览对话中告诉小导你的偏好。</p>
+          </div>
+        </div>
+        <div id="routeSpotList" class="route-spot-list" aria-live="polite"></div>
+      </aside>
+      <section class="route-map-workspace">
+        <div id="leafletRouteMap" class="leaflet-route-map" aria-label="景区游览路线地图"></div>
+        <div id="routeMapError" class="route-map-error hidden">
+          <strong>地图暂时无法加载</strong>
+          <span>请检查网络连接后刷新页面，路线景点仍可在左侧查看。</span>
+        </div>
+        <div class="route-map-legend"><span class="legend-route-line"></span><span>推荐游览顺序</span></div>
+        <aside id="routeAssistantPanel" class="route-guide-panel route-assistant-panel">
+          <div id="routeAssistantHeader" class="route-assistant-header" title="按住标题栏可拖动">
+            <div class="mini-human route-human-card">
+              <div class="route-human-avatar" aria-hidden="true">DG</div>
+              <div><strong>小导路线助手</strong><span>告诉我同行人员和游览偏好</span></div>
+            </div>
+          </div>
+          <div class="route-assistant-body route-guide-composer">
+            <textarea id="routeGuideInput" rows="1" placeholder="例如：带老人游玩，路线轻松一点"></textarea>
+            <button id="routeStopReplyBtn" class="route-stop-reply" type="button" title="停止语音播报">停止播报</button>
+            <button id="routeGuideBtn" class="primary" type="button">询问</button>
+          </div>
+        </aside>
+      </section>
+    </div>
+  </div>
+</section>
