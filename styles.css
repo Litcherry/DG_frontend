@@ -465,6 +465,45 @@ body.sidebar-collapsed .nav-item {
   display: block;
 }
 
+/*
+ * Keep the visitor view mounted while navigating. Chromium/WebGL can restore
+ * a canvas with a stale viewport after an ancestor changes from display:none;
+ * an off-screen mounted view preserves Pixi's renderer and model dimensions.
+ */
+body.role-visitor .main-area {
+  position: relative;
+}
+
+body.role-visitor #visitorView {
+  display: block;
+}
+
+body.role-visitor #visitorView:not(.active) {
+  position: absolute;
+  top: 24px;
+  left: -200vw;
+  width: calc(100% - 56px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body.role-visitor #visitorView:not(.active) .live2d-canvas {
+  opacity: 0;
+}
+
+/* The admin workspace shares the same shell; keep the visitor canvas mounted. */
+body.role-admin #visitorView {
+  display: block;
+  position: absolute;
+  top: 24px;
+  left: -200vw;
+  width: calc(100% - 56px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -3888,7 +3927,7 @@ body.role-admin.sidebar-collapsed .app-shell {
   }
 }
 
-/* Open-source avatar stage: Live2D first, LiveTalking stream ready, CSS avatar as fallback. */
+/* Open-source Live2D avatar stage with a lightweight CSS fallback. */
 .open-avatar-stage {
   position: absolute;
   inset: 10px 10px 56px;
@@ -3902,8 +3941,7 @@ body.role-admin.sidebar-collapsed .app-shell {
   transition: opacity 0.28s ease;
 }
 
-.live2d-canvas,
-.livetalking-video {
+.live2d-canvas {
   width: 100%;
   height: 100%;
   display: none;
@@ -3913,13 +3951,6 @@ body.role-admin.sidebar-collapsed .app-shell {
   filter:
     drop-shadow(0 28px 26px rgba(21, 44, 56, 0.16))
     saturate(1.05);
-}
-
-.livetalking-video {
-  object-fit: cover;
-  background:
-    linear-gradient(135deg, rgba(15, 139, 141, 0.16), rgba(255, 255, 255, 0.84)),
-    #f4f8fb;
 }
 
 .avatar-engine-status {
@@ -3938,7 +3969,6 @@ body.role-admin.sidebar-collapsed .app-shell {
 }
 
 .human-panel.engine-live2d .open-avatar-stage,
-.human-panel.engine-livetalking .open-avatar-stage,
 .human-panel.engine-loading .open-avatar-stage {
   opacity: 1;
 }
@@ -3948,12 +3978,7 @@ body.role-admin.sidebar-collapsed .app-shell {
   display: block;
 }
 
-.human-panel.engine-livetalking .livetalking-video {
-  display: block;
-}
-
 .human-panel.engine-live2d .digital-human,
-.human-panel.engine-livetalking .digital-human,
 .human-panel.engine-loading .digital-human {
   opacity: 0;
   transform: translateY(-6px) scale(0.92);
@@ -3964,31 +3989,15 @@ body.role-admin.sidebar-collapsed .app-shell {
   opacity: 0;
 }
 
-.human-panel.engine-livetalking .open-avatar-stage::before {
-  content: "LiveTalking WebRTC / video stream";
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 28px;
-  color: #506270;
-  font-weight: 900;
-  text-align: center;
-  background:
-    radial-gradient(circle at 50% 36%, rgba(255, 255, 255, 0.86), transparent 34%),
-    linear-gradient(135deg, rgba(15, 139, 141, 0.14), rgba(215, 154, 32, 0.1));
-}
-
 .human-panel.engine-live2d .stage-glow {
   opacity: 0.7;
 }
 
-.human-panel.engine-live2d .human-meta,
-.human-panel.engine-livetalking .human-meta {
+.human-panel.engine-live2d .human-meta {
   z-index: 5;
 }
 
-/* Virtual streamer style local avatar: default display when no LiveTalking service is deployed. */
+/* Lightweight local fallback shown only when Live2D cannot load. */
 .virtual-anchor {
   --mouth-open: 6px;
   position: relative;
@@ -4324,8 +4333,7 @@ body.role-admin.sidebar-collapsed .app-shell {
   transform: translateY(-12px);
 }
 
-.human-panel.engine-css .virtual-anchor,
-.human-panel.engine-livetalking .virtual-anchor {
+.human-panel.engine-css .virtual-anchor {
   opacity: 1;
 }
 
@@ -4336,50 +4344,9 @@ body.role-admin.sidebar-collapsed .app-shell {
 }
 
 .human-panel.engine-css .digital-human,
-.human-panel.engine-livetalking .digital-human,
 .human-panel.engine-live2d .digital-human,
 .human-panel.engine-loading .digital-human {
   display: none;
-}
-
-.human-panel.engine-livetalking .open-avatar-stage::before {
-  content: "LiveTalking 服务未接入，当前显示虚拟主播模式";
-  align-items: end;
-  padding-bottom: 22px;
-  font-size: 13px;
-}
-
-.human-panel.engine-livetalking.livetalking-connected .open-avatar-stage::before {
-  content: none;
-}
-
-.human-panel.engine-livetalking.livetalking-connected .livetalking-video {
-  position: relative;
-  z-index: 3;
-  display: block;
-  object-fit: cover;
-  background: #111;
-}
-
-.human-panel.engine-livetalking.livetalking-connected .virtual-anchor {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.livetalking-connect {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-}
-
-.livetalking-connect input {
-  min-width: 0;
-  min-height: 38px;
-}
-
-.livetalking-connect button {
-  min-height: 38px;
-  padding: 0 12px;
 }
 
 /* ChatGPT-style adaptive composer */

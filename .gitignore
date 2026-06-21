@@ -5,6 +5,7 @@ __pycache__/
 # Local server logs
 server.out.log
 server.err.log
+mark_zh-Hans.zip
 *.log
 
 # Frontend dependencies/build outputs

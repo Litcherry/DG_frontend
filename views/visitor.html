@@ -5,8 +5,6 @@
                 <div class="stage-glow"></div>
                 <div id="openAvatarStage" class="open-avatar-stage">
                   <canvas id="live2dCanvas" class="live2d-canvas"></canvas>
-                  <video id="liveTalkingVideo" class="livetalking-video" playsinline autoplay muted></video>
-                  <audio id="liveTalkingAudio" autoplay></audio>
                   <div id="avatarEngineStatus" class="avatar-engine-status">Live2D 加载中</div>
                 </div>
                 <div id="virtualAnchor" class="virtual-anchor modern" aria-label="虚拟主播数字人">
@@ -88,9 +86,7 @@
                 <div class="visitor-human-grid">
                   <label>引擎
                     <select id="visitorAvatarEngine">
-                      <option value="css">虚拟主播数字人</option>
-                      <option value="live2d">Live2D 开源模型</option>
-                      <option value="livetalking">LiveTalking 视频流</option>
+                      <option value="live2d">Mark Live2D 导游</option>
                     </select>
                   </label>
                   <label>外观
@@ -120,10 +116,6 @@
                       <option value="warm">温暖</option>
                     </select>
                   </label>
-                </div>
-                <div class="livetalking-connect">
-                  <input id="liveTalkingBase" type="url" value="http://127.0.0.1:8010" placeholder="LiveTalking 地址，如 http://127.0.0.1:8010" />
-                  <button id="liveTalkingConnectBtn" type="button">连接</button>
                 </div>
               </div>
 

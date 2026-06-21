@@ -27,11 +27,19 @@ const state = {
   routeRequestAbort: null,
   live2dApp: null,
   live2dModel: null,
+  live2dResizeObserver: null,
+  live2dInitPromise: null,
+  live2dSpeaking: false,
+  live2dMouthValue: 0,
+  live2dRenderedMouth: 0,
+  live2dMouthUpdateHandler: null,
+  live2dLifecycleId: 0,
+  browserMouthTimer: null,
   liveTalkingPc: null,
   liveTalkingSessionId: "",
   liveTalkingConnected: false,
   liveTalkingBase: localStorage.getItem("dg_livetalking_base") || "http://127.0.0.1:8010",
-  avatarEngine: localStorage.getItem("dg_avatar_engine") || "css",
+  avatarEngine: "live2d",
   humanConfig: null,
   visitorHumanConfig: JSON.parse(localStorage.getItem("dg_visitor_human_config") || "null"),
   history: JSON.parse(localStorage.getItem("dg_conversation_history") || "[]"),
@@ -241,9 +249,9 @@ const scenicSpots = [
   },
 ];
 const live2dModels = {
-  modern: "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json",
-  hanfu: "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json",
-  nature: "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json",
+  modern: "./assets/live2d/mark/runtime/mark_free_t04.model3.json",
+  hanfu: "./assets/live2d/mark/runtime/mark_free_t04.model3.json",
+  nature: "./assets/live2d/mark/runtime/mark_free_t04.model3.json",
 };
 const scriptCache = new Map();
 const viewFragments = [
@@ -327,6 +335,17 @@ function clearExpiredLogin() {
 }
 
 function enterApp(role) {
+  const runtimeRole = sessionStorage.getItem("dg_runtime_role") || "";
+  const reloadGuard = sessionStorage.getItem("dg_visitor_reload_guard") === "1";
+  if (role === "visitor" && runtimeRole === "admin" && !reloadGuard) {
+    state.role = "visitor";
+    localStorage.setItem("dg_role", "visitor");
+    sessionStorage.setItem("dg_visitor_reload_guard", "1");
+    window.location.reload();
+    return;
+  }
+  sessionStorage.removeItem("dg_visitor_reload_guard");
+  sessionStorage.setItem("dg_runtime_role", role);
   state.role = role;
   localStorage.setItem("dg_role", role);
   $("authView").classList.add("hidden");
@@ -342,6 +361,7 @@ function enterApp(role) {
     switchAdminTab("dashboard");
   } else {
     switchView("visitor");
+    window.requestAnimationFrame(ensureLive2DVisible);
   }
   renderHistoryList();
 }
@@ -407,6 +427,16 @@ function switchView(view) {
   $("routeMapView").classList.toggle("active", view === "routeMap");
   $("feedbackPageView").classList.toggle("active", view === "feedbackPage");
   $("adminView").classList.toggle("active", view === "admin");
+  if (state.live2dApp) {
+    if (view === "visitor") {
+      state.live2dApp.start?.();
+    } else {
+      state.live2dApp.stop?.();
+    }
+  }
+  if (view === "visitor" && state.avatarEngine === "live2d") {
+    restoreLive2DAfterNavigation();
+  }
   if (view === "routeMap") {
     window.setTimeout(() => {
       initDraggableAssistantPanel();
@@ -417,6 +447,28 @@ function switchView(view) {
       });
     }, 80);
   }
+}
+
+function restoreLive2DAfterNavigation() {
+  const canvas = $("live2dCanvas");
+  if (!canvas) return;
+  canvas.style.visibility = "hidden";
+  const restore = () => {
+    ensureLive2DVisible();
+    resizeLive2DStage();
+    if (state.live2dModel) {
+      state.live2dModel.visible = true;
+      styleLive2DModel();
+    }
+    state.live2dApp?.renderer?.render?.(state.live2dApp.stage);
+  };
+  window.requestAnimationFrame(() => {
+    restore();
+    window.requestAnimationFrame(() => {
+      restore();
+      canvas.style.visibility = "visible";
+    });
+  });
 }
 
 function switchAdminTab(tab) {
@@ -504,20 +556,29 @@ function liveTalkingBase() {
 }
 
 function setAvatarEngine(engine, persist = true) {
-  state.avatarEngine = engine || "live2d";
+  // LiveTalking is intentionally disabled in the competition frontend.
+  state.avatarEngine = "live2d";
   if (persist) localStorage.setItem("dg_avatar_engine", state.avatarEngine);
   const panel = document.querySelector(".human-panel");
   if (!panel) return;
+  stopLipSync();
   panel.classList.remove("engine-live2d", "engine-livetalking", "engine-css", "engine-loading", "livetalking-connected");
   panel.classList.add(`engine-${state.avatarEngine}`);
   const select = $("visitorAvatarEngine");
   if (select && select.value !== state.avatarEngine) select.value = state.avatarEngine;
-  if (state.avatarEngine === "live2d") initLive2D().catch(() => {
-    setAvatarEngineStatus("Live2D 加载失败，已切换本地 2D");
-    setAvatarEngine("css", false);
-  });
-  if (state.avatarEngine === "livetalking") {
-    setAvatarEngineStatus(state.liveTalkingConnected ? `LiveTalking 已连接 ${state.liveTalkingSessionId}` : "等待连接 LiveTalking");
+  if (state.avatarEngine === "live2d") {
+    state.live2dApp?.start?.();
+    if (state.live2dModel) state.live2dModel.visible = true;
+    if (isLive2DStageVisible()) {
+      ensureLive2DVisible();
+      // Let the CSS engine switch finish before measuring the stage. A second
+      // frame protects against stale dimensions after video/Live2D switching.
+      window.requestAnimationFrame(() => {
+        resizeLive2DStage();
+        window.requestAnimationFrame(resizeLive2DStage);
+      });
+    }
+    else setAvatarEngineStatus("Live2D 等待页面显示");
   }
   if (state.avatarEngine === "css") {
     setAvatarEngineStatus("虚拟主播数字人");
@@ -644,70 +705,141 @@ async function waitForLiveTalkingSpeech(runId, textLength = 20) {
 }
 
 async function initLive2D() {
+  const lifecycleId = state.live2dLifecycleId;
   const panel = document.querySelector(".human-panel");
   const canvas = $("live2dCanvas");
   if (!panel || !canvas) return;
+  if (!isLive2DStageVisible()) {
+    setAvatarEngineStatus("Live2D 等待页面显示");
+    return;
+  }
   panel.classList.add("engine-loading");
   setAvatarEngineStatus("Live2D 模型加载中");
 
-  await loadScriptOnce("https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js");
-  await loadScriptOnce("https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/extra/live2d.min.js");
-  await loadScriptOnce("https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js");
-
   if (!window.PIXI?.live2d?.Live2DModel) throw new Error("Live2D runtime unavailable");
   if (!state.live2dApp) {
+    const rect = canvas.parentElement.getBoundingClientRect();
     state.live2dApp = new PIXI.Application({
       view: canvas,
+      width: Math.max(1, Math.round(rect.width)),
+      height: Math.max(1, Math.round(rect.height)),
       autoStart: true,
       transparent: true,
       antialias: true,
-      resizeTo: canvas.parentElement,
+      autoDensity: true,
+      resolution: Math.min(window.devicePixelRatio || 1, 2),
     });
+    observeLive2DStage();
   }
-  await loadLive2DModel();
+  resizeLive2DStage();
+  const modelLoaded = await loadLive2DModel(lifecycleId);
+  if (!modelLoaded) return;
+  if (lifecycleId !== state.live2dLifecycleId) return;
+  resizeLive2DStage();
   panel.classList.remove("engine-loading");
   panel.classList.add("engine-live2d");
-  setAvatarEngineStatus("Live2D 开源模型");
+  setAvatarEngineStatus("Mark Live2D 已就绪");
+  console.info("[Live2D] Mark model ready", live2dModels.modern);
 }
 
-async function loadLive2DModel() {
-  if (!state.live2dApp || !window.PIXI?.live2d?.Live2DModel) return;
-  const appearance = state.humanConfig?.appearance || "modern";
-  const modelUrl = live2dModels[appearance] || live2dModels.modern;
-  if (state.live2dModel?.modelUrl === modelUrl) {
-    styleLive2DModel();
+function isLive2DStageVisible() {
+  const canvas = $("live2dCanvas");
+  const stage = canvas?.parentElement;
+  if (!canvas || !stage || $("appShell")?.classList.contains("hidden")) return false;
+  const rect = stage.getBoundingClientRect();
+  return rect.width > 2 && rect.height > 2;
+}
+
+function ensureLive2DVisible() {
+  if (state.avatarEngine !== "live2d" || !isLive2DStageVisible()) return;
+  if (state.live2dApp && state.live2dModel) {
+    resizeLive2DStage();
+    setAvatarEngineStatus("Mark Live2D 已就绪");
     return;
   }
+  if (state.live2dInitPromise) return;
+  state.live2dInitPromise = initLive2D()
+    .catch((error) => {
+      console.warn("[Live2D] Mark model failed to load; AI chat remains available.", error);
+      setAvatarEngineStatus("Mark 加载失败，已使用简化形象");
+      setAvatarEngine("css", false);
+    })
+    .finally(() => {
+      state.live2dInitPromise = null;
+    });
+}
+
+function observeLive2DStage() {
+  const stage = $("live2dCanvas")?.parentElement;
+  if (!stage || state.live2dResizeObserver || !window.ResizeObserver) return;
+  state.live2dResizeObserver = new ResizeObserver(() => {
+    window.requestAnimationFrame(resizeLive2DStage);
+  });
+  state.live2dResizeObserver.observe(stage);
+}
+
+function resizeLive2DStage() {
+  const app = state.live2dApp;
+  const stage = $("live2dCanvas")?.parentElement;
+  if (!app || !stage) return;
+  const rect = stage.getBoundingClientRect();
+  const width = Math.round(rect.width);
+  const height = Math.round(rect.height);
+  if (width <= 2 || height <= 2) return;
+  if (app.renderer.screen.width !== width || app.renderer.screen.height !== height) {
+    app.renderer.resize(width, height);
+  }
+  styleLive2DModel();
+}
+
+async function loadLive2DModel(lifecycleId = state.live2dLifecycleId) {
+  if (!state.live2dApp || !window.PIXI?.live2d?.Live2DModel) return false;
+  const appearance = state.humanConfig?.appearance || "modern";
+  const configuredPath = state.humanConfig?.extra_config?.live2d_model_path;
+  const modelUrl = configuredPath || live2dModels[appearance] || live2dModels.modern;
+  if (state.live2dModel?.modelUrl === modelUrl) {
+    styleLive2DModel();
+    return true;
+  }
   if (state.live2dModel) {
+    detachLive2DMouthDriver();
     state.live2dApp.stage.removeChild(state.live2dModel);
     state.live2dModel.destroy?.();
     state.live2dModel = null;
   }
   const model = await PIXI.live2d.Live2DModel.from(modelUrl);
+  if (lifecycleId !== state.live2dLifecycleId || !state.live2dApp) {
+    model.destroy?.();
+    return false;
+  }
   model.modelUrl = modelUrl;
   model.anchor.set(0.5, 0.5);
   state.live2dApp.stage.addChild(model);
   state.live2dModel = model;
+  attachLive2DMouthDriver(model);
+  model.motion?.("Idle", 0);
   styleLive2DModel();
+  return true;
 }
 
 function styleLive2DModel() {
   const model = state.live2dModel;
   const app = state.live2dApp;
   if (!model || !app) return;
-  const width = app.renderer.width || 320;
-  const height = app.renderer.height || 320;
+  const width = app.renderer.screen.width || 320;
+  const height = app.renderer.screen.height || 320;
+  const bounds = model.getLocalBounds();
+  const naturalWidth = Math.max(1, bounds.width);
+  const naturalHeight = Math.max(1, bounds.height);
+  // Mark's source canvas contains generous transparent margins, so a modest
+  // visual boost keeps the character legible while preserving the full body.
+  const scale = Math.min(width / naturalWidth, height / naturalHeight) * 1.45;
   model.x = width / 2;
-  model.y = height * 0.82;
-  const base = Math.min(width / model.width, height / model.height) * 1.75;
-  model.scale.set(Math.max(0.18, Math.min(base, 0.42)));
+  model.y = height / 2;
+  model.scale.set(scale);
   model.rotation = 0;
   model.alpha = 1;
-  model.tint = state.humanConfig?.appearance === "hanfu"
-    ? 0xffedf0
-    : state.humanConfig?.appearance === "nature"
-      ? 0xe9fff0
-      : 0xffffff;
+  model.tint = 0xffffff;
 }
 
 function setHumanState({ speaking = false, thinking = false, emotion = "neutral" } = {}) {
@@ -726,6 +858,14 @@ function setHumanState({ speaking = false, thinking = false, emotion = "neutral"
   $("humanState").textContent = speaking ? "正在讲解" : thinking ? "正在思考" : "在线待命";
   if (state.avatarEngine === "live2d" && state.live2dModel) {
     try {
+      if (speaking && !state.live2dSpeaking) {
+        state.live2dSpeaking = true;
+        state.live2dModel.motion?.("Tap");
+      }
+      if (!speaking && state.live2dSpeaking) {
+        state.live2dSpeaking = false;
+        state.live2dModel.motion?.("Idle", 0);
+      }
       if (emotion === "happy") state.live2dModel.expression?.(0);
     } catch {}
   }
@@ -819,12 +959,16 @@ function stopLipSync() {
     cancelAnimationFrame(state.lipSyncFrame);
     state.lipSyncFrame = null;
   }
+  if (state.browserMouthTimer) {
+    window.clearInterval(state.browserMouthTimer);
+    state.browserMouthTimer = null;
+  }
   $("digitalHuman").style.setProperty("--mouth-open", "8px");
   $("virtualAnchor")?.style.setProperty("--mouth-open", "6px");
   setLive2DMouth(0);
 }
 
-function setLive2DMouth(value) {
+function writeLive2DMouth(value) {
   const model = state.live2dModel;
   if (!model) return;
   const normalized = Math.max(0, Math.min(1, value));
@@ -833,6 +977,38 @@ function setLive2DMouth(value) {
     if (core?.setParameterValueById) core.setParameterValueById("ParamMouthOpenY", normalized);
     if (core?.setParamFloat) core.setParamFloat("PARAM_MOUTH_OPEN_Y", normalized);
   } catch {}
+}
+
+function setLive2DMouth(value) {
+  state.live2dMouthValue = Math.max(0, Math.min(1, value));
+  writeLive2DMouth(state.live2dMouthValue);
+}
+
+function detachLive2DMouthDriver() {
+  const internalModel = state.live2dModel?.internalModel;
+  if (internalModel && state.live2dMouthUpdateHandler) {
+    internalModel.off?.("beforeModelUpdate", state.live2dMouthUpdateHandler);
+  }
+  state.live2dMouthUpdateHandler = null;
+  state.live2dMouthValue = 0;
+  state.live2dRenderedMouth = 0;
+}
+
+function attachLive2DMouthDriver(model) {
+  detachLive2DMouthDriver();
+  const internalModel = model?.internalModel;
+  if (!internalModel?.on) return;
+  state.live2dMouthUpdateHandler = () => {
+    // Motions and physics update parameters every frame. Applying lip sync at
+    // beforeModelUpdate keeps the audio-driven value from being overwritten.
+    const response = state.live2dMouthValue > state.live2dRenderedMouth ? 0.34 : 0.2;
+    state.live2dRenderedMouth += (state.live2dMouthValue - state.live2dRenderedMouth) * response;
+    if (state.live2dRenderedMouth < 0.01 && state.live2dMouthValue === 0) {
+      state.live2dRenderedMouth = 0;
+    }
+    writeLive2DMouth(state.live2dRenderedMouth);
+  };
+  internalModel.on("beforeModelUpdate", state.live2dMouthUpdateHandler);
 }
 
 function startLipSync(audio, emotion = "neutral") {
@@ -846,20 +1022,47 @@ function startLipSync(audio, emotion = "neutral") {
   try {
     state.audioContext = state.audioContext || new AudioContextClass();
     const analyser = state.audioContext.createAnalyser();
-    analyser.fftSize = 128;
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.32;
     const source = state.audioContext.createMediaElementSource(audio);
     source.connect(analyser);
     analyser.connect(state.audioContext.destination);
-    const data = new Uint8Array(analyser.frequencyBinCount);
+    const waveform = new Uint8Array(analyser.fftSize);
     const human = $("digitalHuman");
+    let smoothedMouth = 0;
+    let smoothedEnergy = 0;
+    let lastMouthUpdate = 0;
 
-    const tick = () => {
-      analyser.getByteFrequencyData(data);
-      const avg = data.reduce((sum, value) => sum + value, 0) / data.length;
-      const open = Math.max(7, Math.min(28, avg / 5));
-      human.style.setProperty("--mouth-open", `${open}px`);
-      $("virtualAnchor")?.style.setProperty("--mouth-open", `${Math.max(6, Math.min(22, avg / 6))}px`);
-      setLive2DMouth(open / 28);
+    const tick = (timestamp = performance.now()) => {
+      if (audio.paused || audio.ended) {
+        setLive2DMouth(0);
+        return;
+      }
+      analyser.getByteTimeDomainData(waveform);
+      let energy = 0;
+      for (let index = 0; index < waveform.length; index += 1) {
+        const sample = (waveform[index] - 128) / 128;
+        energy += sample * sample;
+      }
+      const rms = Math.sqrt(energy / waveform.length);
+      smoothedEnergy += (rms - smoothedEnergy) * 0.18;
+
+      // Human-looking lip sync does not need to react at 60 FPS. Updating near
+      // 30 FPS and using a slower release removes rapid chatter between samples.
+      if (timestamp - lastMouthUpdate >= 32) {
+        let target = smoothedEnergy < 0.022
+          ? 0
+          : Math.min(0.82, (smoothedEnergy - 0.022) * 6.2);
+        if (target < 0.07) target = 0;
+        const response = target > smoothedMouth ? 0.3 : 0.12;
+        smoothedMouth += (target - smoothedMouth) * response;
+        if (smoothedMouth < 0.025) smoothedMouth = 0;
+        const open = 7 + smoothedMouth * 21;
+        human.style.setProperty("--mouth-open", `${open}px`);
+        $("virtualAnchor")?.style.setProperty("--mouth-open", `${6 + smoothedMouth * 16}px`);
+        setLive2DMouth(smoothedMouth);
+        lastMouthUpdate = timestamp;
+      }
       state.lipSyncFrame = requestAnimationFrame(tick);
     };
 
@@ -1397,6 +1600,38 @@ async function playAudioBlob(blob, emotion, runId, text = "") {
   });
 }
 
+function speakWithBrowserTTS(text, emotion, runId) {
+  if (!("speechSynthesis" in window) || runId !== state.speechRunId) return Promise.resolve();
+  return new Promise((resolve) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    const speedMap = { slow: 0.86, medium: 1, fast: 1.14 };
+    utterance.lang = "zh-CN";
+    utterance.rate = speedMap[state.humanConfig?.voice_speed] || 1;
+    utterance.pitch = state.humanConfig?.voice_gender === "male" ? 0.88 : 1.04;
+    utterance.volume = Math.max(0, Math.min(1, Number(state.humanConfig?.extra_config?.volume ?? 100) / 100));
+    const voices = window.speechSynthesis.getVoices();
+    utterance.voice = voices.find((voice) => voice.lang.toLowerCase().startsWith("zh")) || null;
+    const finish = () => {
+      if (state.browserMouthTimer) {
+        window.clearInterval(state.browserMouthTimer);
+        state.browserMouthTimer = null;
+      }
+      setLive2DMouth(0);
+      if (runId === state.speechRunId) setHumanState({ emotion: "neutral" });
+      resolve();
+    };
+    utterance.onstart = () => {
+      setHumanState({ speaking: true, emotion });
+      state.browserMouthTimer = window.setInterval(() => {
+        setLive2DMouth(0.18 + Math.random() * 0.72);
+      }, 90);
+    };
+    utterance.onend = finish;
+    utterance.onerror = finish;
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
 async function speakSentence(item, runId) {
   if (runId !== state.speechRunId) return;
   const { text, emotion, audioPromise } = item;
@@ -1406,7 +1641,12 @@ async function speakSentence(item, runId) {
     return;
   }
   const blob = await audioPromise;
-  if (!blob || runId !== state.speechRunId) return;
+  if (runId !== state.speechRunId) return;
+  if (!blob || blob.size === 0) {
+    console.warn("[TTS fallback] backend audio unavailable, using browser speech synthesis");
+    await speakWithBrowserTTS(text, emotion, runId);
+    return;
+  }
   await playAudioBlob(blob, emotion, runId, text);
 }
 
@@ -1435,6 +1675,7 @@ function stopReply({ abortGeneration = true } = {}) {
     state.audio.src = "";
     state.audio = null;
   }
+  window.speechSynthesis?.cancel();
   if (abortGeneration) {
     state.generationAbort?.abort();
     state.activeReader?.cancel().catch(() => {});
@@ -2962,7 +3203,6 @@ async function saveHumanConfig(event) {
 
 function bindEvents() {
   if ($("apiBase")) $("apiBase").value = state.apiBase;
-  if ($("liveTalkingBase")) $("liveTalkingBase").value = state.liveTalkingBase;
   $("visitorRoleBtn").onclick = () => setRoleForm("visitor");
   $("adminRoleBtn").onclick = () => setRoleForm("admin");
   $("visitorLoginForm").onsubmit = (event) => {
@@ -3004,10 +3244,6 @@ function bindEvents() {
   $("feedbackBtn").onclick = () => submitFeedback().catch((err) => toast(err.message));
   $("routeGuideBtn").onclick = askRouteGuide;
   $("routeStopReplyBtn").onclick = () => stopReply();
-  $("liveTalkingConnectBtn").onclick = () => connectLiveTalking().catch((err) => {
-    setAvatarEngineStatus("LiveTalking 连接失败");
-    toast(err.message);
-  });
   $("routeGuideInput").onkeydown = (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
