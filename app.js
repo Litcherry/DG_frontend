@@ -427,8 +427,9 @@ function switchView(view) {
   $("routeMapView").classList.toggle("active", view === "routeMap");
   $("feedbackPageView").classList.toggle("active", view === "feedbackPage");
   $("adminView").classList.toggle("active", view === "admin");
+  moveLive2DStage(view === "routeMap" ? "route" : "home");
   if (state.live2dApp) {
-    if (view === "visitor") {
+    if (view === "visitor" || view === "routeMap") {
       state.live2dApp.start?.();
     } else {
       state.live2dApp.stop?.();
@@ -439,6 +440,7 @@ function switchView(view) {
   }
   if (view === "routeMap") {
     window.setTimeout(() => {
+      restoreLive2DAfterNavigation();
       initDraggableAssistantPanel();
       initRouteMap();
       state.routeMap?.invalidateSize();
@@ -447,6 +449,14 @@ function switchView(view) {
       });
     }, 80);
   }
+}
+
+function moveLive2DStage(target = "home") {
+  const stage = $("openAvatarStage");
+  const dock = target === "route" ? $("routeLive2DDock") : $("live2dHomeDock");
+  if (!stage || !dock || stage.parentElement === dock) return;
+  dock.appendChild(stage);
+  stage.classList.toggle("route-avatar-stage", target === "route");
 }
 
 function restoreLive2DAfterNavigation() {
@@ -546,6 +556,14 @@ function loadScriptOnce(src) {
 function setAvatarEngineStatus(text) {
   const status = $("avatarEngineStatus");
   if (status) status.textContent = text;
+}
+
+function digitalHumanName(cfg = state.humanConfig || {}) {
+  return String(cfg.name_zh || cfg.name || "小导").trim() || "小导";
+}
+
+function showDigitalHumanName() {
+  setAvatarEngineStatus(digitalHumanName());
 }
 
 function liveTalkingBase() {
@@ -738,7 +756,7 @@ async function initLive2D() {
   resizeLive2DStage();
   panel.classList.remove("engine-loading");
   panel.classList.add("engine-live2d");
-  setAvatarEngineStatus("Mark Live2D 已就绪");
+  showDigitalHumanName();
   console.info("[Live2D] Mark model ready", live2dModels.modern);
 }
 
@@ -754,7 +772,7 @@ function ensureLive2DVisible() {
   if (state.avatarEngine !== "live2d" || !isLive2DStageVisible()) return;
   if (state.live2dApp && state.live2dModel) {
     resizeLive2DStage();
-    setAvatarEngineStatus("Mark Live2D 已就绪");
+    showDigitalHumanName();
     return;
   }
   if (state.live2dInitPromise) return;
@@ -881,7 +899,11 @@ function describeVoice(cfg = {}) {
 function applyHumanConfig(cfg = {}) {
   const merged = { ...(state.humanConfig || {}), ...(cfg || {}) };
   state.humanConfig = merged;
-  $("humanName").textContent = merged.name || "小导";
+  const name = digitalHumanName(merged);
+  $("humanName").textContent = name;
+  const routeName = $("routeHumanName");
+  if (routeName) routeName.textContent = `${name}路线助手`;
+  if (state.live2dModel) showDigitalHumanName();
   const human = $("digitalHuman");
   const anchor = $("virtualAnchor");
   human.classList.remove("modern", "hanfu", "nature");
@@ -2634,6 +2656,14 @@ function initDraggableAssistantPanel() {
       top: Math.max(0, Math.min(top, maxTop)),
     };
   };
+
+  if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
+    window.requestAnimationFrame(() => {
+      const next = clampPosition(saved.left, saved.top);
+      panel.style.left = `${next.left}px`;
+      panel.style.top = `${next.top}px`;
+    });
+  }
 
   const persistPosition = () => {
     const left = Number.parseInt(panel.style.left, 10);

@@ -3969,11 +3969,13 @@ body.role-admin.sidebar-collapsed .app-shell {
 }
 
 .human-panel.engine-live2d .open-avatar-stage,
+.route-live2d-dock .open-avatar-stage,
 .human-panel.engine-loading .open-avatar-stage {
   opacity: 1;
 }
 
 .human-panel.engine-live2d .live2d-canvas,
+.route-live2d-dock .live2d-canvas,
 .human-panel.engine-loading .live2d-canvas {
   display: block;
 }
@@ -5067,6 +5069,7 @@ body.role-visitor #routeMapView {
   box-shadow: 0 14px 34px rgba(28, 49, 43, 0.14);
   backdrop-filter: blur(14px);
   transition: box-shadow 0.18s ease, opacity 0.18s ease;
+  overflow: hidden;
 }
 
 #routeMapView .route-assistant-panel.is-dragging {
@@ -5085,6 +5088,38 @@ body.role-visitor #routeMapView {
 
 #routeMapView .route-assistant-body {
   padding: 10px 12px 12px;
+}
+
+.route-live2d-dock {
+  position: relative;
+  height: 210px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.95) 0 18%, transparent 19%),
+    radial-gradient(circle at 28% 20%, rgba(15, 139, 141, 0.2), transparent 30%),
+    radial-gradient(circle at 78% 22%, rgba(215, 154, 32, 0.16), transparent 26%),
+    linear-gradient(155deg, #e9f7f4, #f8fbfb 58%, #eef4f8);
+  border-bottom: 1px solid rgba(210, 221, 220, 0.72);
+}
+
+.route-live2d-dock:empty {
+  display: none;
+}
+
+.route-live2d-dock .open-avatar-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  opacity: 1;
+}
+
+.route-live2d-dock .avatar-engine-status {
+  top: 10px;
+  left: 10px;
+  padding: 4px 8px;
+  font-size: 11px;
 }
 
 #routeMapView .route-human-card {
@@ -5279,6 +5314,10 @@ body.role-visitor #routeMapView {
     display: flex;
     flex-direction: column-reverse;
     overflow: visible;
+  }
+
+  .route-live2d-dock {
+    height: 170px;
   }
 
   .route-sidebar-panel {
