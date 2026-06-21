@@ -29,10 +29,6 @@
       </div>
 
       <div class="auth-panel">
-        <div class="api-box">
-          <label for="apiBase">后端服务地址</label>
-          <input id="apiBase" type="url" value="http://localhost:8000" />
-        </div>
         <div class="role-switch">
           <button id="visitorRoleBtn" class="active" type="button">游客入口</button>
           <button id="adminRoleBtn" type="button">管理后台</button>
@@ -86,9 +82,44 @@
             <section class="guide-column">
               <div class="human-panel">
                 <div class="stage-glow"></div>
+                <div id="openAvatarStage" class="open-avatar-stage">
+                  <canvas id="live2dCanvas" class="live2d-canvas"></canvas>
+                  <video id="liveTalkingVideo" class="livetalking-video" playsinline autoplay muted></video>
+                  <audio id="liveTalkingAudio" autoplay></audio>
+                  <div id="avatarEngineStatus" class="avatar-engine-status">Live2D 加载中</div>
+                </div>
+                <div id="virtualAnchor" class="virtual-anchor modern" aria-label="虚拟主播数字人">
+                  <div class="anchor-aura"></div>
+                  <div class="anchor-hair back"></div>
+                  <div class="anchor-head">
+                    <div class="anchor-bangs"></div>
+                    <span class="anchor-ear left"></span>
+                    <span class="anchor-ear right"></span>
+                    <div class="anchor-face">
+                      <span class="anchor-brow left"></span>
+                      <span class="anchor-brow right"></span>
+                      <span class="anchor-eye left"></span>
+                      <span class="anchor-eye right"></span>
+                      <span class="anchor-cheek left"></span>
+                      <span class="anchor-cheek right"></span>
+                      <span class="anchor-mouth"></span>
+                    </div>
+                    <span class="anchor-hairpin"></span>
+                    <span class="anchor-mic"></span>
+                  </div>
+                  <div class="anchor-neck"></div>
+                  <div class="anchor-outfit">
+                    <span class="anchor-collar"></span>
+                    <span class="anchor-ribbon"></span>
+                    <span class="anchor-sleeve left"></span>
+                    <span class="anchor-sleeve right"></span>
+                    <span class="anchor-badge">AI</span>
+                  </div>
+                </div>
                 <div id="digitalHuman" class="digital-human neutral modern">
                   <div class="halo"></div>
                   <div class="head">
+                    <img id="humanAvatarImage" class="human-avatar-image" alt="" />
                     <div class="hair"></div>
                     <div class="face">
                       <span class="brow left"></span>
@@ -108,7 +139,10 @@
                   </div>
                 </div>
                 <div class="human-meta">
-                  <strong id="humanName">小导</strong>
+                  <div>
+                    <strong id="humanName">小导</strong>
+                    <span id="humanVoiceMeta" class="human-voice-meta">女声 · 自然 · 亲切</span>
+                  </div>
                   <span id="humanState">在线待命</span>
                 </div>
               </div>
@@ -123,6 +157,55 @@
                 <div id="interestChips" class="chips"></div>
               </div>
 
+              <div class="tool-panel visitor-human-config">
+                <div class="section-title">
+                  <div>
+                    <h2>数字人形象</h2>
+                    <span>游客端临时调节，立即预览</span>
+                  </div>
+                </div>
+                <div class="visitor-human-grid">
+                  <label>引擎
+                    <select id="visitorAvatarEngine">
+                      <option value="css">虚拟主播数字人</option>
+                      <option value="live2d">Live2D 开源模型</option>
+                      <option value="livetalking">LiveTalking 视频流</option>
+                    </select>
+                  </label>
+                  <label>外观
+                    <select id="visitorAppearance">
+                      <option value="modern">现代导游</option>
+                      <option value="hanfu">汉服讲解员</option>
+                      <option value="nature">自然探索员</option>
+                    </select>
+                  </label>
+                  <label>声音
+                    <select id="visitorVoiceGender">
+                      <option value="female">女声</option>
+                      <option value="male">男声</option>
+                    </select>
+                  </label>
+                  <label>语速
+                    <select id="visitorVoiceSpeed">
+                      <option value="slow">舒缓</option>
+                      <option value="medium">自然</option>
+                      <option value="fast">轻快</option>
+                    </select>
+                  </label>
+                  <label>表情
+                    <select id="visitorExpression">
+                      <option value="lively">活泼</option>
+                      <option value="calm">沉稳</option>
+                      <option value="warm">温暖</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="livetalking-connect">
+                  <input id="liveTalkingBase" type="url" value="http://127.0.0.1:8010" placeholder="LiveTalking 地址，如 http://127.0.0.1:8010" />
+                  <button id="liveTalkingConnectBtn" type="button">连接</button>
+                </div>
+              </div>
+
             </section>
 
             <section class="chat-shell">
@@ -130,7 +213,7 @@
                 <div class="guide-status">
                   <span class="guide-live-dot"></span>
                   <strong>小导在线</strong>
-                  <span id="conversationBadge">未创建会话</span>
+                  <span id="conversationBadge">新的导览会话</span>
                 </div>
               </div>
               <div id="chatMessages" class="chat-messages"></div>
@@ -140,11 +223,33 @@
                 <button type="button" data-question="适合亲子游的路线怎么走">亲子游</button>
                 <button type="button" data-question="附近有哪些服务设施需要注意">服务设施</button>
               </div>
-              <div class="composer">
-                <textarea id="chatInput" rows="3" placeholder="问我景区历史、文化、路线、服务设施..."></textarea>
-                <div class="composer-actions">
-                  <button id="voiceBtn" class="icon-button" title="语音输入" type="button"><span class="mic-icon"></span></button>
-                  <button id="sendBtn" class="primary" type="button">发送</button>
+              <div class="composer-wrap">
+                <div id="voiceStatus" class="voice-status" aria-live="polite">
+                  <span class="voice-wave"><i></i><i></i><i></i><i></i></span>
+                  <span>正在聆听…</span>
+                </div>
+                <button id="stopReplyBtn" class="stop-reply-btn" type="button" title="停止语音回复">
+                  <span class="stop-icon"></span>
+                  <span>停止回复</span>
+                </button>
+                <div class="composer">
+                  <button id="attachmentBtn" class="composer-icon-btn" title="添加附件" type="button" aria-label="添加附件">
+                    <svg class="composer-svg-icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                  </button>
+                  <textarea id="chatInput" rows="1" placeholder="有问题，尽管问"></textarea>
+                  <button id="voiceBtn" class="composer-icon-btn" title="语音输入" type="button" aria-label="语音输入">
+                    <svg class="composer-svg-icon mic-svg" viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="9" y="3" width="6" height="12" rx="3"></rect>
+                      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"></path>
+                    </svg>
+                  </button>
+                  <button id="sendBtn" class="send-icon-btn" title="发送" type="button" aria-label="发送" disabled>
+                    <svg class="composer-svg-icon send-svg" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m5 12 7-7 7 7M12 5v14"></path>
+                    </svg>
+                  </button>
                 </div>
               </div>
             </section>
@@ -359,7 +464,7 @@
               <div class="avatar-preview">
                 <div id="avatarPreview" class="avatar-fallback">DG</div>
                 <strong>数字人形象配置</strong>
-                <p>当前前端使用 CSS 2D 数字人实现口型和情绪动画，后续可替换 Live2D 或 3D SDK。</p>
+                <p>当前前端优先加载开源 Live2D 模型，支持语音能量驱动口型、表情和服装配置；无网络或模型加载失败时自动切换本地 2D 兜底，并预留 LiveTalking 视频流接入。</p>
               </div>
             </div>
           </section>

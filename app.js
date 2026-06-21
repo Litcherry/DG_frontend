@@ -9,15 +9,45 @@ const state = {
   recorder: null,
   chunks: [],
   audio: null,
+  audioContext: null,
+  lipSyncFrame: null,
+  recognition: null,
+  isListening: false,
+  recognitionSessionId: 0,
+  ignoreRecognitionResults: false,
+  speechQueue: [],
+  speechPlaying: false,
+  isAIResponding: false,
+  speechRunId: 0,
+  speechSegmentsQueued: 0,
+  ttsRequestSeq: 0,
+  speechFetchControllers: new Set(),
+  generationAbort: null,
+  activeReader: null,
+  live2dApp: null,
+  live2dModel: null,
+  liveTalkingPc: null,
+  liveTalkingSessionId: "",
+  liveTalkingConnected: false,
+  liveTalkingBase: localStorage.getItem("dg_livetalking_base") || "http://127.0.0.1:8010",
+  avatarEngine: localStorage.getItem("dg_avatar_engine") || "css",
   humanConfig: null,
+  visitorHumanConfig: JSON.parse(localStorage.getItem("dg_visitor_human_config") || "null"),
   history: JSON.parse(localStorage.getItem("dg_conversation_history") || "[]"),
 };
 
 const $ = (id) => document.getElementById(id);
 const defaultInterests = ["历史文化", "自然风光", "休闲娱乐", "亲子游", "摄影打卡"];
+const live2dModels = {
+  modern: "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json",
+  hanfu: "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json",
+  nature: "https://cdn.jsdelivr.net/gh/guansss/pixi-live2d-display/test/assets/shizuku/shizuku.model.json",
+};
+const scriptCache = new Map();
 
 function apiBase() {
-  state.apiBase = $("apiBase").value.replace(/\/$/, "");
+  const input = $("apiBase");
+  state.apiBase = (input?.value || state.apiBase || "http://localhost:8000").replace(/\/$/, "");
   localStorage.setItem("dg_api_base", state.apiBase);
   return state.apiBase;
 }
@@ -154,21 +184,408 @@ function closeHistoryMenus() {
   });
 }
 
+function loadScriptOnce(src) {
+  if (scriptCache.has(src)) return scriptCache.get(src);
+  const promise = new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      existing.addEventListener("load", resolve, { once: true });
+      existing.addEventListener("error", reject, { once: true });
+      if (existing.dataset.loaded === "1") resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.onload = () => {
+      script.dataset.loaded = "1";
+      resolve();
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  scriptCache.set(src, promise);
+  return promise;
+}
+
+function setAvatarEngineStatus(text) {
+  const status = $("avatarEngineStatus");
+  if (status) status.textContent = text;
+}
+
+function liveTalkingBase() {
+  const input = $("liveTalkingBase");
+  state.liveTalkingBase = (input?.value || state.liveTalkingBase || "http://127.0.0.1:8010").replace(/\/$/, "");
+  localStorage.setItem("dg_livetalking_base", state.liveTalkingBase);
+  return state.liveTalkingBase;
+}
+
+function setAvatarEngine(engine, persist = true) {
+  state.avatarEngine = engine || "live2d";
+  if (persist) localStorage.setItem("dg_avatar_engine", state.avatarEngine);
+  const panel = document.querySelector(".human-panel");
+  if (!panel) return;
+  panel.classList.remove("engine-live2d", "engine-livetalking", "engine-css", "engine-loading", "livetalking-connected");
+  panel.classList.add(`engine-${state.avatarEngine}`);
+  const select = $("visitorAvatarEngine");
+  if (select && select.value !== state.avatarEngine) select.value = state.avatarEngine;
+  if (state.avatarEngine === "live2d") initLive2D().catch(() => {
+    setAvatarEngineStatus("Live2D 加载失败，已切换本地 2D");
+    setAvatarEngine("css", false);
+  });
+  if (state.avatarEngine === "livetalking") {
+    setAvatarEngineStatus(state.liveTalkingConnected ? `LiveTalking 已连接 ${state.liveTalkingSessionId}` : "等待连接 LiveTalking");
+  }
+  if (state.avatarEngine === "css") {
+    setAvatarEngineStatus("虚拟主播数字人");
+  }
+}
+
+async function connectLiveTalking() {
+  setAvatarEngine("livetalking");
+  setAvatarEngineStatus("正在连接 LiveTalking");
+  const panel = document.querySelector(".human-panel");
+  panel?.classList.remove("livetalking-connected");
+  if (state.liveTalkingPc) {
+    state.liveTalkingPc.close();
+    state.liveTalkingPc = null;
+  }
+
+  const pc = new RTCPeerConnection({ sdpSemantics: "unified-plan" });
+  state.liveTalkingPc = pc;
+  pc.addTransceiver("video", { direction: "recvonly" });
+  pc.addTransceiver("audio", { direction: "recvonly" });
+  pc.addEventListener("track", (event) => {
+    if (event.track.kind === "video") {
+      const video = $("liveTalkingVideo");
+      video.srcObject = event.streams[0];
+      video.muted = true;
+      video.play?.().catch(() => {});
+      panel?.classList.add("livetalking-connected");
+      setAvatarEngineStatus(`LiveTalking 视频已接入 ${state.liveTalkingSessionId || ""}`.trim());
+    }
+    if (event.track.kind === "audio") {
+      const audio = $("liveTalkingAudio");
+      audio.srcObject = event.streams[0];
+      audio.play?.().catch(() => {});
+    }
+  });
+  pc.addEventListener("connectionstatechange", () => {
+    if (pc.connectionState === "connected") {
+      state.liveTalkingConnected = true;
+      panel?.classList.add("livetalking-connected");
+      setAvatarEngineStatus(`LiveTalking 已连接 ${state.liveTalkingSessionId || ""}`.trim());
+    }
+    if (["failed", "closed", "disconnected"].includes(pc.connectionState)) {
+      state.liveTalkingConnected = false;
+      panel?.classList.remove("livetalking-connected");
+      setAvatarEngineStatus("LiveTalking 连接已断开");
+    }
+  });
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await new Promise((resolve) => {
+    if (pc.iceGatheringState === "complete") return resolve();
+    const checkState = () => {
+      if (pc.iceGatheringState === "complete") {
+        pc.removeEventListener("icegatheringstatechange", checkState);
+        resolve();
+      }
+    };
+    pc.addEventListener("icegatheringstatechange", checkState);
+  });
+
+  const body = {
+    sdp: pc.localDescription.sdp,
+    type: pc.localDescription.type,
+    avatar: state.humanConfig?.avatar_id || undefined,
+  };
+  const res = await fetch(`${liveTalkingBase()}/offer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error("LiveTalking /offer 连接失败");
+  const answer = await res.json();
+  state.liveTalkingSessionId = String(answer.sessionid || "");
+  await pc.setRemoteDescription(answer);
+  state.liveTalkingConnected = true;
+  setAvatarEngineStatus(`LiveTalking 已连接 ${state.liveTalkingSessionId}`);
+  toast("LiveTalking 已连接");
+}
+
+async function speakWithLiveTalking(text, emotion = "neutral", interrupt = true) {
+  if (!text || state.avatarEngine !== "livetalking" || !state.liveTalkingSessionId) return false;
+  const res = await fetch(`${liveTalkingBase()}/human`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sessionid: state.liveTalkingSessionId,
+      text,
+      type: "echo",
+      interrupt,
+      tts: {
+        voice: state.humanConfig?.voice_gender === "male" ? "zh-CN-YunxiNeural" : "zh-CN-XiaoxiaoNeural",
+        emotion,
+      },
+    }),
+  });
+  if (!res.ok) return false;
+  const data = await res.json().catch(() => ({}));
+  if (data.code && data.code !== 0) return false;
+  setHumanState({ speaking: true, emotion });
+  return true;
+}
+
+async function waitForLiveTalkingSpeech(runId, textLength = 20) {
+  const startedAt = Date.now();
+  const timeout = Math.min(30000, Math.max(5000, textLength * 320));
+  let observedSpeaking = false;
+  while (runId === state.speechRunId && Date.now() - startedAt < timeout) {
+    await new Promise((resolve) => window.setTimeout(resolve, 320));
+    try {
+      const res = await fetch(`${liveTalkingBase()}/is_speaking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionid: state.liveTalkingSessionId }),
+      });
+      const data = await res.json();
+      const speaking = Boolean(data.data);
+      if (speaking) observedSpeaking = true;
+      if (observedSpeaking && !speaking) return;
+    } catch {
+      return;
+    }
+  }
+}
+
+async function initLive2D() {
+  const panel = document.querySelector(".human-panel");
+  const canvas = $("live2dCanvas");
+  if (!panel || !canvas) return;
+  panel.classList.add("engine-loading");
+  setAvatarEngineStatus("Live2D 模型加载中");
+
+  await loadScriptOnce("https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js");
+  await loadScriptOnce("https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/extra/live2d.min.js");
+  await loadScriptOnce("https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js");
+
+  if (!window.PIXI?.live2d?.Live2DModel) throw new Error("Live2D runtime unavailable");
+  if (!state.live2dApp) {
+    state.live2dApp = new PIXI.Application({
+      view: canvas,
+      autoStart: true,
+      transparent: true,
+      antialias: true,
+      resizeTo: canvas.parentElement,
+    });
+  }
+  await loadLive2DModel();
+  panel.classList.remove("engine-loading");
+  panel.classList.add("engine-live2d");
+  setAvatarEngineStatus("Live2D 开源模型");
+}
+
+async function loadLive2DModel() {
+  if (!state.live2dApp || !window.PIXI?.live2d?.Live2DModel) return;
+  const appearance = state.humanConfig?.appearance || "modern";
+  const modelUrl = live2dModels[appearance] || live2dModels.modern;
+  if (state.live2dModel?.modelUrl === modelUrl) {
+    styleLive2DModel();
+    return;
+  }
+  if (state.live2dModel) {
+    state.live2dApp.stage.removeChild(state.live2dModel);
+    state.live2dModel.destroy?.();
+    state.live2dModel = null;
+  }
+  const model = await PIXI.live2d.Live2DModel.from(modelUrl);
+  model.modelUrl = modelUrl;
+  model.anchor.set(0.5, 0.5);
+  state.live2dApp.stage.addChild(model);
+  state.live2dModel = model;
+  styleLive2DModel();
+}
+
+function styleLive2DModel() {
+  const model = state.live2dModel;
+  const app = state.live2dApp;
+  if (!model || !app) return;
+  const width = app.renderer.width || 320;
+  const height = app.renderer.height || 320;
+  model.x = width / 2;
+  model.y = height * 0.82;
+  const base = Math.min(width / model.width, height / model.height) * 1.75;
+  model.scale.set(Math.max(0.18, Math.min(base, 0.42)));
+  model.rotation = 0;
+  model.alpha = 1;
+  model.tint = state.humanConfig?.appearance === "hanfu"
+    ? 0xffedf0
+    : state.humanConfig?.appearance === "nature"
+      ? 0xe9fff0
+      : 0xffffff;
+}
+
 function setHumanState({ speaking = false, thinking = false, emotion = "neutral" } = {}) {
   const human = $("digitalHuman");
+  const anchor = $("virtualAnchor");
   human.classList.toggle("speaking", speaking);
   human.classList.toggle("thinking", thinking);
   human.classList.remove("neutral", "happy", "thinking-emotion", "sorry");
   human.classList.add(emotion === "thinking" ? "thinking-emotion" : emotion || "neutral");
+  if (anchor) {
+    anchor.classList.toggle("speaking", speaking);
+    anchor.classList.toggle("thinking", thinking);
+    anchor.classList.remove("neutral", "happy", "thinking-emotion", "sorry");
+    anchor.classList.add(emotion === "thinking" ? "thinking-emotion" : emotion || "neutral");
+  }
   $("humanState").textContent = speaking ? "正在讲解" : thinking ? "正在思考" : "在线待命";
+  if (state.avatarEngine === "live2d" && state.live2dModel) {
+    try {
+      if (emotion === "happy") state.live2dModel.expression?.(0);
+    } catch {}
+  }
+}
+
+function describeVoice(cfg = {}) {
+  const gender = cfg.voice_gender === "male" ? "男声" : "女声";
+  const speedMap = { slow: "舒缓", medium: "自然", fast: "轻快" };
+  const expressionMap = { lively: "活泼", calm: "沉稳", warm: "温暖" };
+  return `${gender} · ${speedMap[cfg.voice_speed] || "自然"} · ${expressionMap[cfg.expression_style] || "亲切"}`;
 }
 
 function applyHumanConfig(cfg = {}) {
-  state.humanConfig = cfg;
-  $("humanName").textContent = cfg.name || "小导";
+  const merged = { ...(state.humanConfig || {}), ...(cfg || {}) };
+  state.humanConfig = merged;
+  $("humanName").textContent = merged.name || "小导";
   const human = $("digitalHuman");
+  const anchor = $("virtualAnchor");
   human.classList.remove("modern", "hanfu", "nature");
-  human.classList.add(cfg.appearance || "modern");
+  human.classList.add(merged.appearance || "modern");
+  if (anchor) {
+    anchor.classList.remove("modern", "hanfu", "nature", "expression-lively", "expression-calm", "expression-warm");
+    anchor.classList.add(merged.appearance || "modern", `expression-${merged.expression_style || "lively"}`);
+    anchor.dataset.voiceGender = merged.voice_gender || "female";
+    anchor.dataset.voiceSpeed = merged.voice_speed || "medium";
+  }
+  human.classList.remove("expression-lively", "expression-calm", "expression-warm");
+  human.classList.add(`expression-${merged.expression_style || "lively"}`);
+  human.dataset.voiceGender = merged.voice_gender || "female";
+  human.dataset.voiceSpeed = merged.voice_speed || "medium";
+  const voiceMeta = $("humanVoiceMeta");
+  if (voiceMeta) voiceMeta.textContent = describeVoice(merged);
+  const avatar = $("humanAvatarImage");
+  if (avatar) {
+    avatar.src = merged.avatar_url || "";
+    human.classList.toggle("has-avatar", Boolean(merged.avatar_url));
+  }
+  syncVisitorHumanControls(merged);
+  if (state.avatarEngine === "live2d") {
+    loadLive2DModel().catch(() => {});
+  }
+}
+
+function previewHumanConfigFromForm() {
+  applyHumanConfig({
+    ...(state.humanConfig || {}),
+    name: $("cfgName").value || "小导",
+    appearance: $("cfgAppearance").value || "modern",
+    voice_gender: $("cfgVoiceGender").value || "female",
+    voice_speed: $("cfgVoiceSpeed").value || "medium",
+    expression_style: $("cfgExpression").value || "lively",
+  });
+}
+
+function syncVisitorHumanControls(cfg = state.humanConfig || {}) {
+  const pairs = [
+    ["visitorAvatarEngine", state.avatarEngine || "live2d"],
+    ["visitorAppearance", cfg.appearance || "modern"],
+    ["visitorVoiceGender", cfg.voice_gender || "female"],
+    ["visitorVoiceSpeed", cfg.voice_speed || "medium"],
+    ["visitorExpression", cfg.expression_style || "lively"],
+  ];
+  pairs.forEach(([id, value]) => {
+    const el = $(id);
+    if (el && el.value !== value) el.value = value;
+  });
+}
+
+function previewVisitorHumanConfig() {
+  setAvatarEngine($("visitorAvatarEngine").value || "live2d");
+  const cfg = {
+    ...(state.humanConfig || {}),
+    ...(state.visitorHumanConfig || {}),
+    appearance: $("visitorAppearance").value || "modern",
+    voice_gender: $("visitorVoiceGender").value || "female",
+    voice_speed: $("visitorVoiceSpeed").value || "medium",
+    expression_style: $("visitorExpression").value || "lively",
+  };
+  state.visitorHumanConfig = {
+    appearance: cfg.appearance,
+    voice_gender: cfg.voice_gender,
+    voice_speed: cfg.voice_speed,
+    expression_style: cfg.expression_style,
+  };
+  localStorage.setItem("dg_visitor_human_config", JSON.stringify(state.visitorHumanConfig));
+  applyHumanConfig(cfg);
+}
+
+function stopLipSync() {
+  if (state.lipSyncFrame) {
+    cancelAnimationFrame(state.lipSyncFrame);
+    state.lipSyncFrame = null;
+  }
+  $("digitalHuman").style.setProperty("--mouth-open", "8px");
+  $("virtualAnchor")?.style.setProperty("--mouth-open", "6px");
+  setLive2DMouth(0);
+}
+
+function setLive2DMouth(value) {
+  const model = state.live2dModel;
+  if (!model) return;
+  const normalized = Math.max(0, Math.min(1, value));
+  try {
+    const core = model.internalModel?.coreModel;
+    if (core?.setParameterValueById) core.setParameterValueById("ParamMouthOpenY", normalized);
+    if (core?.setParamFloat) core.setParamFloat("PARAM_MOUTH_OPEN_Y", normalized);
+  } catch {}
+}
+
+function startLipSync(audio, emotion = "neutral") {
+  stopLipSync();
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    setHumanState({ speaking: true, emotion });
+    return;
+  }
+
+  try {
+    state.audioContext = state.audioContext || new AudioContextClass();
+    const analyser = state.audioContext.createAnalyser();
+    analyser.fftSize = 128;
+    const source = state.audioContext.createMediaElementSource(audio);
+    source.connect(analyser);
+    analyser.connect(state.audioContext.destination);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const human = $("digitalHuman");
+
+    const tick = () => {
+      analyser.getByteFrequencyData(data);
+      const avg = data.reduce((sum, value) => sum + value, 0) / data.length;
+      const open = Math.max(7, Math.min(28, avg / 5));
+      human.style.setProperty("--mouth-open", `${open}px`);
+      $("virtualAnchor")?.style.setProperty("--mouth-open", `${Math.max(6, Math.min(22, avg / 6))}px`);
+      setLive2DMouth(open / 28);
+      state.lipSyncFrame = requestAnimationFrame(tick);
+    };
+
+    state.audioContext.resume?.();
+    setHumanState({ speaking: true, emotion });
+    tick();
+  } catch {
+    setHumanState({ speaking: true, emotion });
+  }
 }
 
 function normalizeStreamText(text = "") {
@@ -264,6 +681,11 @@ function getCurrentHistoryItem() {
   return state.history.find((item) => item.id === state.conversationId);
 }
 
+function updateConversationTitle(title = "") {
+  const badge = $("conversationBadge");
+  if (badge) badge.textContent = title.trim() || "新的导览会话";
+}
+
 function persistHistory() {
   state.history = state.history.slice(0, 30);
   localStorage.setItem("dg_conversation_history", JSON.stringify(state.history));
@@ -295,6 +717,7 @@ function saveMessageToHistory(role, content) {
   item.messages.push({ role, content });
   if (role === "user") item.title = content.slice(0, 28);
   item.updatedAt = new Date().toISOString();
+  updateConversationTitle(item.title);
   persistHistory();
 }
 
@@ -363,6 +786,7 @@ function renameHistoryItem(id) {
   if (!title) return toast("名称不能为空");
   item.title = title.slice(0, 40);
   item.updatedAt = new Date().toISOString();
+  if (state.conversationId === id) updateConversationTitle(item.title);
   persistHistory();
   toast("对话已重命名");
 }
@@ -376,7 +800,7 @@ function deleteHistoryItem(id) {
   state.history = state.history.filter((entry) => entry.id !== id);
   if (state.conversationId === id) {
     state.conversationId = "";
-    $("conversationBadge").textContent = "未创建会话";
+    updateConversationTitle();
     $("chatMessages").innerHTML = "";
     addMessage("assistant", "您好，我是景区 AI 导游小导。点击“新聊天”，就可以开始新的导览会话。", undefined, false);
   }
@@ -388,7 +812,7 @@ async function loadConversationFromHistory(id) {
   const item = state.history.find((entry) => entry.id === id);
   if (!item) return;
   state.conversationId = id;
-  $("conversationBadge").textContent = `会话 ${String(id).slice(0, 8)}`;
+  updateConversationTitle(item.title);
   $("chatMessages").innerHTML = "";
   item.messages.forEach((msg) => addMessage(msg.role, msg.content, undefined, false));
   renderHistoryList();
@@ -440,24 +864,337 @@ async function createConversation() {
   state.conversationId = data.conversation_id;
   state.interests = [];
   $("chatMessages").innerHTML = "";
-  $("conversationBadge").textContent = `会话 ${String(data.conversation_id).slice(0, 8)}`;
+  updateConversationTitle("新的导览会话");
   applyHumanConfig(data.digital_human || {});
+  if (state.visitorHumanConfig) applyHumanConfig({ ...(data.digital_human || {}), ...state.visitorHumanConfig });
   renderInterests(data.interest_options || defaultInterests);
   const greeting = data.greeting || "您好，我是您的 AI 导游小导。想了解景点、路线或服务设施，都可以直接问我。";
   upsertConversationHistory({ id: state.conversationId, title: "新的导览会话", greeting });
   addMessage("assistant", greeting, undefined, false);
 }
 
+function resizeChatInput() {
+  const input = $("chatInput");
+  if (!input) return;
+  input.style.height = "auto";
+  const nextHeight = Math.min(input.scrollHeight, 160);
+  input.style.height = `${Math.max(40, nextHeight)}px`;
+  input.style.overflowY = input.scrollHeight > 160 ? "auto" : "hidden";
+}
+
+function updateComposerState() {
+  const input = $("chatInput");
+  const send = $("sendBtn");
+  if (!input || !send) return;
+  send.disabled = !input.value.trim() && !state.isListening;
+  resizeChatInput();
+}
+
+function setListeningState(active, message = "正在聆听…") {
+  state.isListening = active;
+  $("voiceBtn")?.classList.toggle("listening", active);
+  const status = $("voiceStatus");
+  status?.classList.toggle("show", active);
+  const label = status?.querySelector("span:last-child");
+  if (label) label.textContent = message;
+  updateComposerState();
+}
+
+function initSpeechRecognition() {
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition) return null;
+  const recognition = new Recognition();
+  recognition.lang = "zh-CN";
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+  let committedText = "";
+  let activeSessionId = 0;
+
+  recognition.onstart = () => {
+    activeSessionId = recognition._dgSessionId || 0;
+    if (state.ignoreRecognitionResults || activeSessionId !== state.recognitionSessionId) {
+      try {
+        recognition.abort();
+      } catch {}
+      return;
+    }
+    committedText = $("chatInput").value.trim();
+    setListeningState(true);
+  };
+  recognition.onresult = (event) => {
+    if (state.ignoreRecognitionResults || activeSessionId !== state.recognitionSessionId) return;
+    let interimText = "";
+    let finalText = "";
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const transcript = event.results[index][0]?.transcript || "";
+      if (event.results[index].isFinal) finalText += transcript;
+      else interimText += transcript;
+    }
+    if (finalText) committedText = [committedText, finalText].filter(Boolean).join("");
+    $("chatInput").value = `${committedText}${interimText}`;
+    updateComposerState();
+  };
+  recognition.onerror = (event) => {
+    const messages = {
+      "not-allowed": "麦克风权限被拒绝，请在浏览器设置中允许访问",
+      "audio-capture": "没有检测到可用麦克风",
+      network: "语音识别网络异常，请稍后再试",
+      "no-speech": "没有识别到语音，请再试一次",
+    };
+    if (event.error !== "aborted") toast(messages[event.error] || "语音识别失败，请稍后再试");
+    if (activeSessionId === state.recognitionSessionId) setListeningState(false);
+  };
+  recognition.onend = () => {
+    if (activeSessionId === state.recognitionSessionId) setListeningState(false);
+  };
+  state.recognition = recognition;
+  return recognition;
+}
+
+function toggleVoiceRecognition() {
+  if (state.isListening) {
+    state.recognition?.stop();
+    return;
+  }
+  const recognition = state.recognition || initSpeechRecognition();
+  if (!recognition) {
+    toast("当前浏览器不支持语音识别，建议使用最新版 Chrome");
+    return;
+  }
+  try {
+    state.recognitionSessionId += 1;
+    state.ignoreRecognitionResults = false;
+    recognition._dgSessionId = state.recognitionSessionId;
+    setListeningState(true, "正在启动语音识别…");
+    recognition.start();
+  } catch (error) {
+    setListeningState(false);
+    if (error.name !== "InvalidStateError") toast("语音识别暂时无法启动，请稍后再试");
+  }
+}
+
+function stopVoiceRecognition({ discardLateResults = false } = {}) {
+  if (!state.recognition) {
+    setListeningState(false);
+    return;
+  }
+  if (discardLateResults) {
+    state.ignoreRecognitionResults = true;
+    state.recognitionSessionId += 1;
+    try {
+      state.recognition.abort();
+    } catch {}
+  } else {
+    try {
+      state.recognition.stop();
+    } catch {}
+  }
+  setListeningState(false);
+}
+
+function updateReplyControl() {
+  const active = state.speechPlaying || state.isAIResponding;
+  $("stopReplyBtn")?.classList.toggle("show", active);
+  document.querySelector(".composer-wrap")?.classList.toggle("voice-playing", state.speechPlaying);
+}
+
+function setAIResponding(active) {
+  state.isAIResponding = active;
+  updateReplyControl();
+}
+
+function setSpeechPlaying(active) {
+  state.speechPlaying = active;
+  updateReplyControl();
+}
+
+function splitCompletedSentences(text, flush = false) {
+  const parts = [];
+  let rest = text;
+  let queuedCount = state.speechSegmentsQueued;
+  while (!flush && rest.length) {
+    const targetLength = queuedCount === 0 ? 12 : 22;
+    const maxLength = queuedCount === 0 ? 15 : 25;
+    let sentenceEnd = -1;
+    const inspectLength = Math.min(rest.length, maxLength);
+    for (let index = 0; index < inspectLength; index += 1) {
+      if (/[。！？!?]/.test(rest[index]) && index + 1 >= 8) {
+        sentenceEnd = index + 1;
+        break;
+      }
+    }
+    const cutAt = sentenceEnd > 0
+      ? sentenceEnd
+      : rest.length >= targetLength
+        ? targetLength
+        : -1;
+    if (cutAt < 0) break;
+    const segment = rest.slice(0, cutAt).trim();
+    if (segment) {
+      parts.push(segment);
+      queuedCount += 1;
+    }
+    rest = rest.slice(cutAt).trimStart();
+  }
+  if (flush && rest.trim()) {
+    parts.push(rest.trim());
+    return { sentences: parts, rest: "" };
+  }
+  return { sentences: parts, rest };
+}
+
+function prepareSpeechAudio(text, runId) {
+  const controller = new AbortController();
+  state.speechFetchControllers.add(controller);
+  const requestId = ++state.ttsRequestSeq;
+  const preview = text.slice(0, 10).replace(/\s+/g, " ");
+  const timerLabel = `[TTS ${requestId}] ${preview}`;
+  const startedAt = performance.now();
+  console.time(timerLabel);
+  return fetch(`${apiBase()}/api/voice/tts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ conversation_id: state.conversationId, text }),
+    signal: controller.signal,
+  }).then(async (res) => {
+    if (!res.ok || runId !== state.speechRunId) return null;
+    return res.blob();
+  }).catch((error) => {
+    if (error.name !== "AbortError") console.warn("[TTS error]", preview, error);
+    return null;
+  }).finally(() => {
+    console.timeEnd(timerLabel);
+    console.log("[TTS duration]", requestId, Math.round(performance.now() - startedAt), "ms", preview);
+    state.speechFetchControllers.delete(controller);
+  });
+}
+
+function enqueueSpeech(text, emotion = "neutral") {
+  const clean = text.trim();
+  if (!clean) return;
+  const runId = state.speechRunId;
+  const audioPromise = state.avatarEngine === "livetalking" && state.liveTalkingSessionId
+    ? null
+    : prepareSpeechAudio(clean, runId);
+  state.speechQueue.push({ text: clean, emotion, audioPromise });
+  state.speechSegmentsQueued += 1;
+  console.log("[TTS enqueue]", Date.now(), clean.length, clean);
+  processSpeechQueue().catch(() => {
+    setSpeechPlaying(false);
+    setHumanState({ emotion: "neutral" });
+  });
+}
+
+async function playAudioBlob(blob, emotion, runId, text = "") {
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  state.audio = audio;
+  return new Promise((resolve) => {
+    const finish = () => {
+      stopLipSync();
+      URL.revokeObjectURL(url);
+      if (state.audio === audio) state.audio = null;
+      resolve();
+    };
+    audio.onplay = () => {
+      console.log("[TTS play]", Date.now(), text.length, text.slice(0, 20));
+      startLipSync(audio, emotion);
+    };
+    audio.onended = finish;
+    audio.onerror = finish;
+    audio.onpause = () => {
+      if (runId !== state.speechRunId) finish();
+    };
+    audio.play().catch(finish);
+  });
+}
+
+async function speakSentence(item, runId) {
+  if (runId !== state.speechRunId) return;
+  const { text, emotion, audioPromise } = item;
+  if (state.avatarEngine === "livetalking" && state.liveTalkingSessionId) {
+    const accepted = await speakWithLiveTalking(text, emotion, false);
+    if (accepted) await waitForLiveTalkingSpeech(runId, text.length);
+    return;
+  }
+  const blob = await audioPromise;
+  if (!blob || runId !== state.speechRunId) return;
+  await playAudioBlob(blob, emotion, runId, text);
+}
+
+async function processSpeechQueue() {
+  if (state.speechPlaying || !state.speechQueue.length) return;
+  const runId = state.speechRunId;
+  setSpeechPlaying(true);
+  while (state.speechQueue.length && runId === state.speechRunId) {
+    const item = state.speechQueue.shift();
+    await speakSentence(item, runId);
+  }
+  if (runId === state.speechRunId) {
+    setSpeechPlaying(false);
+    setHumanState({ emotion: "neutral" });
+  }
+}
+
+function stopReply({ abortGeneration = true } = {}) {
+  state.speechRunId += 1;
+  state.speechQueue = [];
+  state.speechSegmentsQueued = 0;
+  state.speechFetchControllers.forEach((controller) => controller.abort());
+  state.speechFetchControllers.clear();
+  if (state.audio) {
+    state.audio.pause();
+    state.audio.src = "";
+    state.audio = null;
+  }
+  if (abortGeneration) {
+    state.generationAbort?.abort();
+    state.activeReader?.cancel().catch(() => {});
+  }
+  state.generationAbort = null;
+  state.activeReader = null;
+  setAIResponding(false);
+  stopLipSync();
+  setSpeechPlaying(false);
+  setHumanState();
+  if (state.liveTalkingSessionId) {
+    fetch(`${liveTalkingBase()}/interrupt_talk`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionid: state.liveTalkingSessionId }),
+    }).catch(() => {});
+  }
+}
+
+function handleSendAction() {
+  const input = $("chatInput");
+  const text = input.value.trim();
+  if (state.isListening) stopVoiceRecognition({ discardLateResults: true });
+  if (!text) {
+    updateComposerState();
+    return;
+  }
+  input.value = "";
+  updateComposerState();
+  sendMessage(text).catch((err) => toast(err.message));
+}
+
 async function sendMessage(presetText = "") {
   const text = (presetText || $("chatInput").value).trim();
   if (!text) return;
+  stopReply();
+  const responseRunId = state.speechRunId;
   if (!state.conversationId) await createConversation();
 
   $("chatInput").value = "";
+  updateComposerState();
   addMessage("user", text);
   const assistant = addMessage("assistant", "", `msg-${Date.now()}`, false);
   setMessageStreaming(assistant, true);
+  setAIResponding(true);
   setHumanState({ thinking: true, emotion: "thinking" });
+  state.generationAbort = new AbortController();
 
   let res;
   try {
@@ -465,9 +1202,17 @@ async function sendMessage(presetText = "") {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ conversation_id: state.conversationId, message: text }),
+      signal: state.generationAbort.signal,
     });
-  } catch {
+  } catch (error) {
+    if (error.name === "AbortError") {
+      setMessageStreaming(assistant, false);
+      setAIResponding(false);
+      if (responseRunId === state.speechRunId) setHumanState();
+      return;
+    }
     setMessageStreaming(assistant, false);
+    setAIResponding(false);
     setMessageText(assistant, "后端服务暂时无法连接，请确认服务地址和后端启动状态。");
     setHumanState();
     return;
@@ -475,29 +1220,23 @@ async function sendMessage(presetText = "") {
 
   if (!res.ok || !res.body) {
     setMessageStreaming(assistant, false);
+    setAIResponding(false);
     setMessageText(assistant, "问答服务暂时不可用，请稍后再试。");
     setHumanState();
     return;
   }
 
   const reader = res.body.getReader();
+  state.activeReader = reader;
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
   let finalText = "";
   let emotion = "neutral";
-  let pendingRender = false;
-
-  const scheduleRender = () => {
-    if (pendingRender) return;
-    pendingRender = true;
-    requestAnimationFrame(() => {
-      setMessageText(assistant, finalText);
-      $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
-      pendingRender = false;
-    });
-  };
+  let speechBuffer = "";
+  let receivedDelta = false;
 
   while (true) {
+    if (responseRunId !== state.speechRunId) break;
     const { value, done } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
@@ -513,12 +1252,23 @@ async function sendMessage(presetText = "") {
         continue;
       }
       if (payload.type === "delta") {
-        finalText += payload.content || "";
-        scheduleRender();
+        if (responseRunId !== state.speechRunId) break;
+        receivedDelta = true;
+        const delta = payload.content || "";
+        console.log("[SSE delta]", Date.now(), delta.length, delta);
+        finalText += delta;
+        speechBuffer += delta;
+        setMessageText(assistant, finalText);
+        $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
+        const completed = splitCompletedSentences(speechBuffer);
+        speechBuffer = completed.rest;
+        completed.sentences.forEach((sentence) => enqueueSpeech(sentence, emotion));
       }
       if (payload.type === "done") {
+        console.log("[SSE done]", Date.now(), (payload.content || finalText).length);
         finalText = payload.content || finalText;
         emotion = payload.emotion || "neutral";
+        if (!receivedDelta) speechBuffer = finalText;
         setMessageText(assistant, finalText);
       }
       if (payload.type === "error") {
@@ -529,55 +1279,19 @@ async function sendMessage(presetText = "") {
     }
   }
 
-  setMessageStreaming(assistant, false);
-  setMessageText(assistant, finalText);
-  saveMessageToHistory("assistant", finalText);
-  setHumanState({ emotion });
-  if (finalText) playTTS(finalText, emotion).catch(() => {});
-}
-
-async function playTTS(text, emotion = "neutral") {
-  if (state.audio) {
-    state.audio.pause();
-    state.audio = null;
-  }
-  const res = await fetch(`${apiBase()}/api/voice/tts`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ conversation_id: state.conversationId, text }),
-  });
-  if (!res.ok) return;
-  const blob = await res.blob();
-  const audio = new Audio(URL.createObjectURL(blob));
-  state.audio = audio;
-  audio.onplay = () => setHumanState({ speaking: true, emotion });
-  audio.onended = () => setHumanState({ emotion });
-  await audio.play();
-}
-
-async function toggleVoice() {
-  if (!navigator.mediaDevices?.getUserMedia) return toast("当前浏览器不支持录音");
-  if (state.recorder?.state === "recording") {
-    state.recorder.stop();
-    $("voiceBtn").classList.remove("recording");
+  if (responseRunId !== state.speechRunId) {
+    setMessageStreaming(assistant, false);
+    setAIResponding(false);
     return;
   }
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  state.chunks = [];
-  state.recorder = new MediaRecorder(stream);
-  state.recorder.ondataavailable = (event) => state.chunks.push(event.data);
-  state.recorder.onstop = async () => {
-    stream.getTracks().forEach((track) => track.stop());
-    const file = new File(state.chunks, "voice.webm", { type: "audio/webm" });
-    const form = new FormData();
-    form.append("audio", file);
-    const res = await request("/api/voice/asr", { method: "POST", body: form });
-    $("chatInput").value = res.text || "";
-    if (res.text) sendMessage().catch((err) => toast(err.message));
-  };
-  state.recorder.start();
-  $("voiceBtn").classList.add("recording");
-  toast("正在录音，再点一次结束");
+  splitCompletedSentences(speechBuffer, true).sentences.forEach((sentence) => enqueueSpeech(sentence, emotion));
+  state.generationAbort = null;
+  state.activeReader = null;
+  setMessageStreaming(assistant, false);
+  setAIResponding(false);
+  setMessageText(assistant, finalText);
+  saveMessageToHistory("assistant", finalText);
+  if (!state.speechPlaying && !state.speechQueue.length) setHumanState({ emotion });
 }
 
 function renderRouteResult(data) {
@@ -899,6 +1613,7 @@ async function loadHumanConfig() {
   $("cfgVoiceSpeed").value = cfg.voice_speed || "medium";
   $("cfgExpression").value = cfg.expression_style || "lively";
   renderAvatarPreview(cfg.avatar_url);
+  applyHumanConfig(cfg);
 }
 
 function renderAvatarPreview(url) {
@@ -943,7 +1658,8 @@ async function saveHumanConfig(event) {
 }
 
 function bindEvents() {
-  $("apiBase").value = state.apiBase;
+  if ($("apiBase")) $("apiBase").value = state.apiBase;
+  if ($("liveTalkingBase")) $("liveTalkingBase").value = state.liveTalkingBase;
   $("visitorRoleBtn").onclick = () => setRoleForm("visitor");
   $("adminRoleBtn").onclick = () => setRoleForm("admin");
   $("visitorLoginForm").onsubmit = (event) => {
@@ -970,17 +1686,24 @@ function bindEvents() {
   });
 
   $("newConversationBtn").onclick = () => createConversation().catch((err) => toast(err.message));
-  $("sendBtn").onclick = () => sendMessage().catch((err) => toast(err.message));
+  $("sendBtn").onclick = handleSendAction;
+  $("attachmentBtn").onclick = () => toast("附件入口已预留，可继续接入图片识别与文档提问");
+  $("chatInput").oninput = updateComposerState;
   $("chatInput").onkeydown = (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      sendMessage().catch((err) => toast(err.message));
+      handleSendAction();
     }
   };
-  $("voiceBtn").onclick = () => toggleVoice().catch((err) => toast(err.message));
+  $("voiceBtn").onclick = toggleVoiceRecognition;
+  $("stopReplyBtn").onclick = () => stopReply();
   $("recommendBtn").onclick = () => recommendRoute().catch((err) => toast(err.message));
   $("feedbackBtn").onclick = () => submitFeedback().catch((err) => toast(err.message));
   $("routeGuideBtn").onclick = askRouteGuide;
+  $("liveTalkingConnectBtn").onclick = () => connectLiveTalking().catch((err) => {
+    setAvatarEngineStatus("LiveTalking 连接失败");
+    toast(err.message);
+  });
   $("routeGuideInput").onkeydown = (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
@@ -993,8 +1716,19 @@ function bindEvents() {
   $("spotForm").onsubmit = (event) => createSpot(event).catch((err) => toast(err.message));
   $("routeForm").onsubmit = (event) => createRoute(event).catch((err) => toast(err.message));
   $("humanForm").onsubmit = (event) => saveHumanConfig(event).catch((err) => toast(err.message));
+  ["cfgName", "cfgAppearance", "cfgVoiceGender", "cfgVoiceSpeed", "cfgExpression"].forEach((id) => {
+    $(id).oninput = previewHumanConfigFromForm;
+  });
+  ["visitorAvatarEngine", "visitorAppearance", "visitorVoiceGender", "visitorVoiceSpeed", "visitorExpression"].forEach((id) => {
+    $(id).oninput = previewVisitorHumanConfig;
+  });
   document.addEventListener("click", (event) => {
     if (!event.target.closest(".history-item-wrap")) closeHistoryMenus();
+  });
+  window.addEventListener("beforeunload", () => {
+    stopVoiceRecognition({ discardLateResults: true });
+    stopReply();
+    state.liveTalkingPc?.close();
   });
 }
 
@@ -1004,6 +1738,16 @@ renderRatingButtons();
 renderInterests(defaultInterests);
 renderHistoryList();
 setHistoryOpen(true);
+updateComposerState();
+applyHumanConfig({
+  name: "小导",
+  appearance: "modern",
+  voice_gender: "female",
+  voice_speed: "medium",
+  expression_style: "lively",
+  ...(state.visitorHumanConfig || {}),
+});
+setAvatarEngine(state.avatarEngine || "live2d", false);
 addMessage("assistant", "您好，我是景区 AI 导游小导。点击“新建会话”，就可以开始问我景点、路线和服务信息。", undefined, false);
 if (state.visitorName) $("visitorNameInput").value = state.visitorName;
 if (state.role === "admin" && state.token) enterApp("admin");
