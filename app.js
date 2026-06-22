@@ -34,6 +34,7 @@ const state = {
   live2dRenderedMouth: 0,
   live2dMouthUpdateHandler: null,
   live2dLifecycleId: 0,
+  live2dModelLoadId: 0,
   browserMouthTimer: null,
   liveTalkingPc: null,
   liveTalkingSessionId: "",
@@ -250,9 +251,16 @@ const scenicSpots = [
 ];
 const live2dModels = {
   modern: "./assets/live2d/mark/runtime/mark_free_t04.model3.json",
-  hanfu: "./assets/live2d/mark/runtime/mark_free_t04.model3.json",
+  hanfu: "./assets/live2d/tsubaki/runtime/tsubaki.model3.json",
   nature: "./assets/live2d/mark/runtime/mark_free_t04.model3.json",
 };
+const live2dRoleDefaults = {
+  modern: { name: "小导", role: "现代智慧导游" },
+  hanfu: { name: "椿", role: "景区文化讲解员" },
+  nature: { name: "小导", role: "自然探索向导" },
+};
+const LIVE2D_RENDER_WIDTH = 480;
+const LIVE2D_RENDER_HEIGHT = 540;
 const scriptCache = new Map();
 const viewFragments = [
   "./views/visitor.html",
@@ -402,15 +410,18 @@ function renderRoleNavigation(role) {
 }
 
 function logout() {
+  stopReply();
   state.role = "";
   state.token = "";
   state.conversationId = "";
   localStorage.removeItem("dg_role");
   localStorage.removeItem("dg_admin_token");
-  $("authView").classList.remove("hidden");
-  $("appShell").classList.add("hidden");
-  document.body.classList.remove("in-app", "role-visitor", "role-admin", "history-open");
-  setRoleForm("visitor");
+  sessionStorage.removeItem("dg_runtime_role");
+  sessionStorage.removeItem("dg_visitor_reload_guard");
+  // Recreate the whole document instead of restoring a hidden WebGL canvas.
+  // Do not call WEBGL_lose_context: Chromium may carry that loss into the next
+  // context created immediately in the same renderer process.
+  window.location.replace(window.location.pathname);
 }
 
 function switchView(view) {
@@ -428,13 +439,7 @@ function switchView(view) {
   $("feedbackPageView").classList.toggle("active", view === "feedbackPage");
   $("adminView").classList.toggle("active", view === "admin");
   moveLive2DStage(view === "routeMap" ? "route" : "home");
-  if (state.live2dApp) {
-    if (view === "visitor" || view === "routeMap") {
-      state.live2dApp.start?.();
-    } else {
-      state.live2dApp.stop?.();
-    }
-  }
+  state.live2dApp?.start?.();
   if (view === "visitor" && state.avatarEngine === "live2d") {
     restoreLive2DAfterNavigation();
   }
@@ -575,7 +580,8 @@ function liveTalkingBase() {
 
 function setAvatarEngine(engine, persist = true) {
   // LiveTalking is intentionally disabled in the competition frontend.
-  state.avatarEngine = "live2d";
+  const staticMode = state.humanConfig?.extra_config?.model_type === "static";
+  state.avatarEngine = staticMode && engine === "css" ? "css" : "live2d";
   if (persist) localStorage.setItem("dg_avatar_engine", state.avatarEngine);
   const panel = document.querySelector(".human-panel");
   if (!panel) return;
@@ -736,16 +742,15 @@ async function initLive2D() {
 
   if (!window.PIXI?.live2d?.Live2DModel) throw new Error("Live2D runtime unavailable");
   if (!state.live2dApp) {
-    const rect = canvas.parentElement.getBoundingClientRect();
     state.live2dApp = new PIXI.Application({
       view: canvas,
-      width: Math.max(1, Math.round(rect.width)),
-      height: Math.max(1, Math.round(rect.height)),
+      width: LIVE2D_RENDER_WIDTH,
+      height: LIVE2D_RENDER_HEIGHT,
       autoStart: true,
       transparent: true,
       antialias: true,
-      autoDensity: true,
-      resolution: Math.min(window.devicePixelRatio || 1, 2),
+      autoDensity: false,
+      resolution: 1,
     });
     observeLive2DStage();
   }
@@ -801,36 +806,52 @@ function resizeLive2DStage() {
   const stage = $("live2dCanvas")?.parentElement;
   if (!app || !stage) return;
   const rect = stage.getBoundingClientRect();
-  const width = Math.round(rect.width);
-  const height = Math.round(rect.height);
-  if (width <= 2 || height <= 2) return;
-  if (app.renderer.screen.width !== width || app.renderer.screen.height !== height) {
-    app.renderer.resize(width, height);
+  if (rect.width <= 2 || rect.height <= 2) return;
+  // Keep Cubism's WebGL viewport fixed. Resizing the renderer between the
+  // visitor card and route popup can corrupt clipping masks on some GPUs.
+  if (
+    app.renderer.screen.width !== LIVE2D_RENDER_WIDTH
+    || app.renderer.screen.height !== LIVE2D_RENDER_HEIGHT
+  ) {
+    app.renderer.resize(LIVE2D_RENDER_WIDTH, LIVE2D_RENDER_HEIGHT);
   }
   styleLive2DModel();
+  app.renderer.render(app.stage);
 }
 
 async function loadLive2DModel(lifecycleId = state.live2dLifecycleId) {
   if (!state.live2dApp || !window.PIXI?.live2d?.Live2DModel) return false;
+  const loadId = ++state.live2dModelLoadId;
   const appearance = state.humanConfig?.appearance || "modern";
   const configuredPath = state.humanConfig?.extra_config?.live2d_model_path;
-  const modelUrl = configuredPath || live2dModels[appearance] || live2dModels.modern;
+  const modelUrl = appearance === "custom" && configuredPath
+    ? configuredPath
+    : live2dModels[appearance] || live2dModels.modern;
   if (state.live2dModel?.modelUrl === modelUrl) {
+    state.live2dModel.modelAppearance = appearance;
     styleLive2DModel();
     return true;
   }
-  if (state.live2dModel) {
-    detachLive2DMouthDriver();
-    state.live2dApp.stage.removeChild(state.live2dModel);
-    state.live2dModel.destroy?.();
-    state.live2dModel = null;
-  }
   const model = await PIXI.live2d.Live2DModel.from(modelUrl);
-  if (lifecycleId !== state.live2dLifecycleId || !state.live2dApp) {
+  if (
+    loadId !== state.live2dModelLoadId
+    || lifecycleId !== state.live2dLifecycleId
+    || !state.live2dApp
+  ) {
     model.destroy?.();
     return false;
   }
+
+  detachLive2DMouthDriver();
+  state.live2dApp.stage.children
+    .filter((child) => child !== model && child?.internalModel)
+    .forEach((child) => {
+      state.live2dApp.stage.removeChild(child);
+      child.destroy?.();
+    });
+
   model.modelUrl = modelUrl;
+  model.modelAppearance = appearance;
   model.anchor.set(0.5, 0.5);
   state.live2dApp.stage.addChild(model);
   state.live2dModel = model;
@@ -849,12 +870,22 @@ function styleLive2DModel() {
   const bounds = model.getLocalBounds();
   const naturalWidth = Math.max(1, bounds.width);
   const naturalHeight = Math.max(1, bounds.height);
-  // Mark's source canvas contains generous transparent margins, so a modest
-  // visual boost keeps the character legible while preserving the full body.
-  const scale = Math.min(width / naturalWidth, height / naturalHeight) * 1.45;
+  const appearance = model.modelAppearance || "modern";
+  const inRouteAssistant = $("routeLive2DDock")?.contains($("openAvatarStage"));
+  const scaleBoost = inRouteAssistant
+    ? appearance === "hanfu" ? 1.42 : 0.82
+    : appearance === "hanfu" ? 1.75 : 1.45;
+  const scale = Math.min(width / naturalWidth, height / naturalHeight) * scaleBoost;
   model.x = width / 2;
-  model.y = height / 2;
+  model.y = inRouteAssistant
+    ? appearance === "hanfu" ? height * 0.56 : height * 0.24
+    : appearance === "hanfu" ? height * 0.95 : height / 2;
   model.scale.set(scale);
+  if (appearance === "hanfu") {
+    const top = model.y + bounds.y * scale;
+    const safeTop = 12;
+    if (top < safeTop) model.y += safeTop - top;
+  }
   model.rotation = 0;
   model.alpha = 1;
   model.tint = 0xffffff;
@@ -884,7 +915,12 @@ function setHumanState({ speaking = false, thinking = false, emotion = "neutral"
         state.live2dSpeaking = false;
         state.live2dModel.motion?.("Idle", 0);
       }
-      if (emotion === "happy") state.live2dModel.expression?.(0);
+      if (state.humanConfig?.appearance === "hanfu") {
+        if (emotion === "happy") state.live2dModel.expression?.("blush");
+        if (emotion === "sorry") state.live2dModel.expression?.("sad");
+      } else if (emotion === "happy") {
+        state.live2dModel.expression?.(0);
+      }
     } catch {}
   }
 }
@@ -920,26 +956,41 @@ function applyHumanConfig(cfg = {}) {
   human.dataset.voiceSpeed = merged.voice_speed || "medium";
   const voiceMeta = $("humanVoiceMeta");
   if (voiceMeta) voiceMeta.textContent = describeVoice(merged);
+  const voiceButton = $("voiceBtn");
+  if (voiceButton) {
+    voiceButton.disabled = merged.extra_config?.voice_input_enabled === false;
+    voiceButton.title = voiceButton.disabled ? "管理员已关闭语音输入" : "语音输入";
+  }
   const avatar = $("humanAvatarImage");
   if (avatar) {
     avatar.src = merged.avatar_url || "";
     human.classList.toggle("has-avatar", Boolean(merged.avatar_url));
   }
   syncVisitorHumanControls(merged);
-  if (state.avatarEngine === "live2d") {
+  if (merged.extra_config?.model_type === "static") {
+    setAvatarEngine("css", false);
+  } else {
+    setAvatarEngine("live2d", false);
     loadLive2DModel().catch(() => {});
   }
 }
 
 function previewHumanConfigFromForm() {
-  applyHumanConfig({
+  const cfg = {
     ...(state.humanConfig || {}),
     name: $("cfgName").value || "小导",
     appearance: $("cfgAppearance").value || "modern",
     voice_gender: $("cfgVoiceGender").value || "female",
     voice_speed: $("cfgVoiceSpeed").value || "medium",
     expression_style: $("cfgExpression").value || "lively",
-  });
+    extra_config: {
+      ...(state.humanConfig?.extra_config || {}),
+      model_type: $("cfgModelType")?.value || "live2d",
+      live2d_model_path: $("cfgModelPath")?.value.trim() || "",
+    },
+  };
+  applyHumanConfig(cfg);
+  renderAvatarPreview(cfg.avatar_url, cfg);
 }
 
 function syncVisitorHumanControls(cfg = state.humanConfig || {}) {
@@ -958,14 +1009,20 @@ function syncVisitorHumanControls(cfg = state.humanConfig || {}) {
 
 function previewVisitorHumanConfig() {
   setAvatarEngine($("visitorAvatarEngine").value || "live2d");
+  const appearance = $("visitorAppearance").value || "modern";
+  const preset = live2dRoleDefaults[appearance];
+  const currentName = digitalHumanName();
   const cfg = {
     ...(state.humanConfig || {}),
     ...(state.visitorHumanConfig || {}),
-    appearance: $("visitorAppearance").value || "modern",
+    appearance,
     voice_gender: $("visitorVoiceGender").value || "female",
     voice_speed: $("visitorVoiceSpeed").value || "medium",
     expression_style: $("visitorExpression").value || "lively",
   };
+  if (preset && Object.values(live2dRoleDefaults).some((item) => item.name === currentName)) {
+    cfg.name = preset.name;
+  }
   state.visitorHumanConfig = {
     appearance: cfg.appearance,
     voice_gender: cfg.voice_gender,
@@ -1378,9 +1435,9 @@ async function createConversation() {
   renderInterests(data.interest_options || defaultInterests);
   const greeting = data.greeting || "您好，我是您的 AI 导游小导。想了解景点、路线或服务设施，都可以直接问我。";
   const configuredGreeting = state.humanConfig?.extra_config?.welcome_message;
-  const activeGreeting = configuredGreeting || greeting;
+  const activeGreeting = state.humanConfig?.extra_config?.welcome_enabled === false ? "" : configuredGreeting || greeting;
   upsertConversationHistory({ id: state.conversationId, title: "新的导览会话", greeting: activeGreeting });
-  addMessage("assistant", activeGreeting, undefined, false);
+  if (activeGreeting) addMessage("assistant", activeGreeting, undefined, false);
 }
 
 function resizeChatInput() {
@@ -1583,7 +1640,8 @@ function prepareSpeechAudio(text, runId) {
 
 function enqueueSpeech(text, emotion = "neutral") {
   const clean = text.trim();
-  if (!clean || state.humanConfig?.extra_config?.auto_voice === false) return;
+  const extra = state.humanConfig?.extra_config || {};
+  if (!clean || extra.tts_enabled === false || extra.auto_voice === false) return;
   const runId = state.speechRunId;
   const audioPromise = state.avatarEngine === "livetalking" && state.liveTalkingSessionId
     ? null
@@ -1611,7 +1669,8 @@ async function playAudioBlob(blob, emotion, runId, text = "") {
     };
     audio.onplay = () => {
       console.log("[TTS play]", Date.now(), text.length, text.slice(0, 20));
-      startLipSync(audio, emotion);
+      if (state.humanConfig?.extra_config?.lip_sync_enabled !== false) startLipSync(audio, emotion);
+      else setHumanState({ speaking: true, emotion });
     };
     audio.onended = finish;
     audio.onerror = finish;
@@ -1644,6 +1703,7 @@ function speakWithBrowserTTS(text, emotion, runId) {
     };
     utterance.onstart = () => {
       setHumanState({ speaking: true, emotion });
+      if (state.humanConfig?.extra_config?.lip_sync_enabled === false) return;
       state.browserMouthTimer = window.setInterval(() => {
         setLive2DMouth(0.18 + Math.random() * 0.72);
       }, 90);
@@ -2343,11 +2403,33 @@ function parseRouteSpotsFromAIText(text = "") {
     ordered.push(name);
   };
 
+  // The route contract requires the first line to contain the actual ordered
+  // route. Parse it before scanning the explanation, which may mention spots
+  // that were explicitly omitted or rejected.
+  const routeLine = String(text)
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(/^\*+|\*+$/g, ""))
+    .find((line) => /^路线顺序\s*[：:]/.test(line));
+  if (routeLine) {
+    const sequence = routeLine.replace(/^路线顺序\s*[：:]\s*/, "");
+    sequence
+      .split(/\s*(?:→|->|—>|⇒|➜)\s*/)
+      .forEach(addName);
+    if (ordered.length >= 2) return ordered;
+    ordered.length = 0;
+    seen.clear();
+  }
+
+  const positiveText = String(text).split(
+    /(?:舍弃|排除|不推荐|未选择|不纳入|无需前往|不建议前往)/,
+    1,
+  )[0];
+
   scenicSpots
     .map((spot) => {
       const names = [spot.name, ...(spot.aliases || [])];
       const positions = names
-        .map((name) => text.indexOf(name))
+        .map((name) => positiveText.indexOf(name))
         .filter((position) => position >= 0);
       return positions.length ? { name: spot.name, position: Math.min(...positions) } : null;
     })
@@ -2362,7 +2444,7 @@ function parseRouteSpotsFromAIText(text = "") {
   const numbered = [];
   const numberedRe = /(?:^|\n)\s*(?:第\s*)?(\d+)[\.、\)）]\s*([^\n]+)/g;
   let match;
-  while ((match = numberedRe.exec(text)) !== null) {
+  while ((match = numberedRe.exec(positiveText)) !== null) {
     numbered.push({ order: Number(match[1]), line: match[2] });
   }
   if (numbered.length >= 2) {
@@ -2374,10 +2456,10 @@ function parseRouteSpotsFromAIText(text = "") {
   }
 
   const stationRe = /第\s*[一二三四五六七八九十\d]+\s*站[：:\s]+([^\n，,；;]+)/g;
-  while ((match = stationRe.exec(text)) !== null) addName(match[1]);
+  while ((match = stationRe.exec(positiveText)) !== null) addName(match[1]);
   if (ordered.length >= 2) return ordered;
 
-  text.split("\n").forEach((line) => {
+  positiveText.split("\n").forEach((line) => {
     if (/[→\->—]+/.test(line)) {
       line.split(/[→\->—]+/).forEach((part) => addName(part));
     }
@@ -2731,81 +2813,241 @@ async function adminLogin(event) {
   enterApp("admin");
 }
 
-const adminMockData = {
+const adminDemoData = {
   overview: { total_conversations: 1286, total_messages: 4932, avg_response_ms: 1680, avg_satisfaction: 4.7, rag_hit_rate: 0.92 },
-  satisfaction: [
-    { date: "周一", avg_rating: 4.3 }, { date: "周二", avg_rating: 4.5 }, { date: "周三", avg_rating: 4.6 },
-    { date: "周四", avg_rating: 4.4 }, { date: "周五", avg_rating: 4.8 }, { date: "周六", avg_rating: 4.9 },
-    { date: "周日", avg_rating: 4.7 },
-  ],
+  satisfaction: {
+    trend: [
+      { date: "周一", avg_rating: 4.3, count: 18 }, { date: "周二", avg_rating: 4.5, count: 22 },
+      { date: "周三", avg_rating: 4.6, count: 25 }, { date: "周四", avg_rating: 4.4, count: 19 },
+      { date: "周五", avg_rating: 4.8, count: 31 }, { date: "周六", avg_rating: 4.9, count: 42 },
+      { date: "周日", avg_rating: 4.7, count: 37 },
+    ],
+    distribution: { 1: 3, 2: 5, 3: 18, 4: 61, 5: 107 },
+  },
   emotions: { happy: 64, neutral: 25, thinking: 8, sorry: 3 },
   hotQuestions: [
     { question_pattern: "灵山大佛怎么游览？", count: 86 },
     { question_pattern: "九龙灌浴表演有什么特色？", count: 71 },
     { question_pattern: "适合老人游玩的路线", count: 54 },
+    { question_pattern: "梵宫需要游览多久？", count: 38 },
+    { question_pattern: "停车场和餐饮在哪里？", count: 29 },
   ],
-  interests: { 历史文化: 38, 自然风光: 26, 摄影打卡: 19, 亲子游: 17 },
+  interests: { 自然风光: 26, 历史文化: 38, 佛教文化: 44, 休闲娱乐: 18, 拍照打卡: 25, 亲子游览: 17, 餐饮购物: 12 },
   hotSpots: [
     { spot_name: "灵山大佛", mention_count: 236 },
     { spot_name: "九龙灌浴", mention_count: 198 },
     { spot_name: "灵山梵宫", mention_count: 174 },
+    { spot_name: "五印坛城", mention_count: 126 },
+    { spot_name: "五明桥", mention_count: 93 },
+    { spot_name: "阿育王柱", mention_count: 61 },
   ],
 };
 
-async function requestOrMock(path, fallback) {
+async function requestAdminData(path, fallback) {
   try {
-    return await request(path, { headers: authHeaders() });
+    return { data: await request(path, { headers: authHeaders() }), source: "backend", path };
   } catch (error) {
-    console.warn(`[Admin mock] ${path}`, error);
-    return fallback;
+    console.warn(`[Admin demo fallback] ${path}`, error);
+    return { data: fallback, source: "demo", path, error };
   }
 }
 
 async function loadDashboard() {
   if (!state.token) return;
-  const [overview, satisfaction, emotion, hot, interest, hotSpots] = await Promise.all([
-    requestOrMock("/api/admin/stats/overview?range=today", adminMockData.overview),
-    requestOrMock("/api/admin/stats/satisfaction?range=week", { trend: adminMockData.satisfaction }),
-    requestOrMock("/api/admin/stats/emotion-trend?range=week", { distribution: adminMockData.emotions }),
-    requestOrMock("/api/admin/stats/hot-questions?range=week&limit=8", { items: adminMockData.hotQuestions }),
-    requestOrMock("/api/admin/stats/interest-distribution?range=month", adminMockData.interests),
-    requestOrMock("/api/admin/stats/hot-spots?range=week&limit=6", { items: adminMockData.hotSpots }),
+  setDashboardSource("loading");
+  const results = await Promise.all([
+    requestAdminData("/api/admin/stats/overview?range=today", adminDemoData.overview),
+    requestAdminData("/api/admin/stats/satisfaction?range=week", adminDemoData.satisfaction),
+    requestAdminData("/api/admin/stats/emotion-trend?range=week", { distribution: adminDemoData.emotions }),
+    requestAdminData("/api/admin/stats/hot-questions?range=week&limit=8", { items: adminDemoData.hotQuestions }),
+    requestAdminData("/api/admin/stats/interest-distribution?range=month", adminDemoData.interests),
+    requestAdminData("/api/admin/stats/hot-spots?range=week&limit=7", { items: adminDemoData.hotSpots }),
   ]);
-  renderStats(overview);
-  renderTrend(satisfaction.trend || []);
+  const [overview, satisfaction, emotion, hot, interest, hotSpots] = results.map((result) => result.data);
+  const usesDemo = results.some((result) => result.source === "demo");
+  setDashboardSource(usesDemo ? "mixed" : "backend");
+  renderStats(overview, results[0].source === "demo");
+  renderSatisfactionCharts(satisfaction.trend || [], satisfaction.distribution || {});
   renderEmotionTrend(emotion.distribution || {});
-  renderRankedList("hotQuestions", hot.items || [], (item) => item.question_pattern, (item) => item.count);
+  renderHotQuestions(hot.items || []);
   renderInterestDistribution(interest || {});
-  renderRankedList("hotSpots", hotSpots.items || [], (item) => item.spot_name, (item) => item.mention_count);
+  renderHotSpots(hotSpots.items || []);
 }
 
-function renderStats(data = {}) {
+function setDashboardSource(source) {
+  const badge = $("dashboardDataSource");
+  if (!badge) return;
+  const labels = {
+    loading: "正在读取数据",
+    backend: "后端实时数据",
+    mixed: "部分演示数据",
+  };
+  badge.className = `data-source-badge ${source === "backend" ? "live" : source === "mixed" ? "demo" : "loading"}`;
+  badge.textContent = labels[source] || labels.loading;
+  badge.title = source === "mixed" ? "部分统计接口不可用，相关图表已使用集中定义的演示数据。" : "数据来自管理后台统计接口。";
+}
+
+function metricIcon(name) {
+  const paths = {
+    conversations: '<path d="M4 5.5h16v10H8l-4 3v-13Z"/><path d="M8 9h8M8 12h5"/>',
+    messages: '<path d="M5 4h14v12H9l-4 3V4Z"/><path d="M8 8h8M8 11h6"/>',
+    response: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+    satisfaction: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>',
+    rag: '<path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/><path d="m15 15 1.4 1.4L19 13.8"/>',
+  };
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[name] || paths.messages}</svg>`;
+}
+
+function formatResponseTime(value) {
+  const milliseconds = Number(value);
+  if (!Number.isFinite(milliseconds)) return { display: "-", raw: "暂无响应耗时数据" };
+  return {
+    display: milliseconds >= 1000 ? `${(milliseconds / 1000).toFixed(1)}s` : `${Math.round(milliseconds)}ms`,
+    raw: `原始平均值 ${Math.round(milliseconds)}ms`,
+  };
+}
+
+function renderStats(data = {}, usesDemo = false) {
+  const response = formatResponseTime(data.avg_response_ms);
+  const satisfaction = data.avg_satisfaction == null ? "-" : Number(data.avg_satisfaction).toFixed(1);
+  const ragRate = data.rag_hit_rate == null ? null : Math.round(Number(data.rag_hit_rate) * 100);
   const items = [
-    ["总会话", data.total_conversations ?? 0],
-    ["总消息", data.total_messages ?? 0],
-    ["平均响应时间", data.avg_response_ms ? `${Math.round(data.avg_response_ms)}ms` : "-"],
-    ["满意度", data.avg_satisfaction ? Number(data.avg_satisfaction).toFixed(1) : "-"],
-    ["RAG 命中率", data.rag_hit_rate == null ? "-" : `${Math.round(data.rag_hit_rate * 100)}%`],
+    { label: "总会话", value: data.total_conversations ?? 0, icon: "conversations", note: "今日创建的游客会话" },
+    { label: "总消息", value: data.total_messages ?? 0, icon: "messages", note: "今日游客与 AI 消息" },
+    { label: "平均响应时间", value: response.display, icon: "response", note: response.raw },
+    { label: "满意度", value: satisfaction, icon: "satisfaction", note: satisfaction === "-" ? "今日暂无反馈评分" : `满分 5 分 · ${renderStars(Number(satisfaction))}` },
+    { label: "RAG 命中率", value: ragRate == null ? "-" : `${ragRate}%`, icon: "rag", note: "AI 回复中命中知识库的比例", status: ragRate >= 80 ? "healthy" : "" },
   ];
-  $("statsCards").innerHTML = items.map(([label, value]) => `<div class="stat-card"><span>${label}</span><strong>${value}</strong></div>`).join("");
+  $("statsCards").innerHTML = items.map((item) => `
+    <article class="stat-card ${item.status || ""}" title="${escapeHTML(item.note)}">
+      <div class="stat-card-top"><span>${escapeHTML(item.label)}</span><i>${metricIcon(item.icon)}</i></div>
+      <strong>${escapeHTML(item.value)}</strong>
+      <small>${escapeHTML(item.note)}</small>
+      ${usesDemo ? '<em>接口异常时使用演示兜底</em>' : ""}
+    </article>
+  `).join("");
 }
 
-function renderTrend(items) {
-  $("satisfactionTrend").innerHTML = items.length
-    ? items.map((item) => `
-      <div class="bar-row">
-        <span>${escapeHTML(item.date)}</span>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, ((item.avg_rating || 0) / 5) * 100)}%"></div></div>
-        <strong>${item.avg_rating || "-"}</strong>
-      </div>`).join("")
-    : '<div class="list-item">暂无满意度数据</div>';
+function renderStars(score) {
+  const rounded = Math.max(0, Math.min(5, Math.round(score)));
+  return `${"★".repeat(rounded)}${"☆".repeat(5 - rounded)}`;
+}
+
+function renderSatisfactionCharts(items, distribution) {
+  renderLineChart("satisfactionTrend", items);
+  renderDonutChart("satisfactionDistribution", distribution);
+}
+
+function renderLineChart(id, items) {
+  const root = $(id);
+  if (!items.length) {
+    root.innerHTML = '<div class="admin-empty">暂无反馈评分数据</div>';
+    return;
+  }
+  const width = 600;
+  const height = 230;
+  const pad = { left: 38, right: 18, top: 20, bottom: 38 };
+  const usableWidth = width - pad.left - pad.right;
+  const usableHeight = height - pad.top - pad.bottom;
+  const points = items.map((item, index) => {
+    const x = pad.left + (items.length === 1 ? usableWidth / 2 : (index / (items.length - 1)) * usableWidth);
+    const y = pad.top + usableHeight - (Math.max(0, Math.min(5, Number(item.avg_rating) || 0)) / 5) * usableHeight;
+    return { x, y, item };
+  });
+  const polyline = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const area = `${pad.left},${pad.top + usableHeight} ${polyline} ${pad.left + usableWidth},${pad.top + usableHeight}`;
+  const grid = [1, 2, 3, 4, 5].map((value) => {
+    const y = pad.top + usableHeight - (value / 5) * usableHeight;
+    return `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" class="chart-grid-line"/><text x="8" y="${y + 4}" class="chart-axis-label">${value}</text>`;
+  }).join("");
+  root.innerHTML = `
+    <svg class="admin-svg-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="满意度每日平均分折线图">
+      ${grid}
+      <polygon points="${area}" class="line-chart-area"/>
+      <polyline points="${polyline}" class="line-chart-path"/>
+      ${points.map(({ x, y, item }) => `
+        <g class="chart-point">
+          <circle cx="${x}" cy="${y}" r="5"><title>${escapeHTML(item.date)}：${item.avg_rating} 分，${item.count || 0} 条反馈</title></circle>
+          <text x="${x}" y="${height - 12}" text-anchor="middle" class="chart-axis-label">${escapeHTML(shortDate(item.date))}</text>
+        </g>
+      `).join("")}
+    </svg>`;
+}
+
+function shortDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(-3);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function renderDonutChart(id, distribution) {
+  const root = $(id);
+  const values = [1, 2, 3, 4, 5].map((rating) => Number(distribution[String(rating)] || distribution[rating] || 0));
+  const total = values.reduce((sum, value) => sum + value, 0);
+  if (!total) {
+    root.innerHTML = '<div class="admin-empty">暂无评分占比</div>';
+    return;
+  }
+  const colors = ["#cf6f6b", "#d99c63", "#dcc36e", "#73aa97", "#16856f"];
+  let offset = 25;
+  const segments = values.map((value, index) => {
+    const percentage = (value / total) * 100;
+    const dash = `${percentage} ${100 - percentage}`;
+    const segment = `<circle cx="70" cy="70" r="48" pathLength="100" stroke="${colors[index]}" stroke-dasharray="${dash}" stroke-dashoffset="${-offset}" class="donut-segment"><title>${index + 1} 星：${value} 条（${Math.round(percentage)}%）</title></circle>`;
+    offset += percentage;
+    return segment;
+  }).join("");
+  const average = values.reduce((sum, value, index) => sum + value * (index + 1), 0) / total;
+  root.innerHTML = `
+    <div class="donut-wrap">
+      <svg viewBox="0 0 140 140" class="donut-chart" role="img" aria-label="满意度评分占比">
+        <circle cx="70" cy="70" r="48" pathLength="100" class="donut-track"/>
+        ${segments}
+        <text x="70" y="66" text-anchor="middle" class="donut-value">${average.toFixed(1)}</text>
+        <text x="70" y="84" text-anchor="middle" class="donut-label">平均评分</text>
+      </svg>
+      <div class="donut-legend">${values.map((value, index) => `<span><i style="background:${colors[index]}"></i>${index + 1} 星 <b>${value}</b></span>`).join("")}</div>
+    </div>`;
 }
 
 function renderInterestDistribution(data) {
-  const entries = Object.entries(data);
-  $("interestDistribution").innerHTML = entries.length
-    ? entries.map(([tag, count]) => `<span class="tag-pill">${escapeHTML(tag)} ${count}</span>`).join("")
-    : '<div class="list-item">暂无兴趣标签数据</div>';
+  const dimensions = ["自然风光", "历史文化", "佛教文化", "休闲娱乐", "拍照打卡", "亲子游览", "餐饮购物"];
+  const aliases = { 摄影打卡: "拍照打卡", 亲子游: "亲子游览" };
+  const normalized = {};
+  Object.entries(data).forEach(([key, value]) => {
+    const target = aliases[key] || key;
+    normalized[target] = (normalized[target] || 0) + Number(value || 0);
+  });
+  const values = dimensions.map((label) => normalized[label] || 0);
+  const max = Math.max(...values, 0);
+  const root = $("interestDistribution");
+  if (!max) {
+    root.innerHTML = '<div class="admin-empty">暂无兴趣分布数据</div>';
+    return;
+  }
+  const size = 330;
+  const center = size / 2;
+  const radius = 108;
+  const pointAt = (index, scale = 1) => {
+    const angle = -Math.PI / 2 + (Math.PI * 2 * index) / dimensions.length;
+    return [center + Math.cos(angle) * radius * scale, center + Math.sin(angle) * radius * scale];
+  };
+  const rings = [0.25, 0.5, 0.75, 1].map((scale) => `<polygon points="${dimensions.map((_, index) => pointAt(index, scale).join(",")).join(" ")}" class="radar-grid"/>`).join("");
+  const axes = dimensions.map((_, index) => {
+    const [x, y] = pointAt(index);
+    return `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" class="radar-axis"/>`;
+  }).join("");
+  const valuePoints = values.map((value, index) => pointAt(index, value / max));
+  root.innerHTML = `
+    <svg class="admin-svg-chart radar-chart" viewBox="0 0 ${size} ${size}" role="img" aria-label="游客兴趣分布雷达图">
+      ${rings}${axes}
+      <polygon points="${valuePoints.map((point) => point.join(",")).join(" ")}" class="radar-value"/>
+      ${dimensions.map((label, index) => {
+        const [x, y] = pointAt(index, 1.22);
+        const [px, py] = valuePoints[index];
+        return `<text x="${x}" y="${y}" text-anchor="middle" class="radar-label">${label}</text><circle cx="${px}" cy="${py}" r="4" class="radar-point"><title>${label}：${values[index]}</title></circle>`;
+      }).join("")}
+    </svg>`;
 }
 
 function renderEmotionTrend(data) {
@@ -2820,10 +3062,58 @@ function renderEmotionTrend(data) {
     </div>`).join("") : '<div class="admin-empty">暂无情绪数据</div>';
 }
 
+function extractQuestionKeywords(items) {
+  const catalog = ["灵山大佛", "五明桥", "梵宫", "九龙灌浴", "五印坛城", "游览路线", "路线", "门票", "停车", "餐饮", "开放时间", "老人", "亲子", "拍照"];
+  const counts = new Map();
+  items.forEach((item) => {
+    const text = item.question_pattern || "";
+    const weight = Number(item.count || 1);
+    catalog.forEach((keyword) => {
+      if (text.includes(keyword)) counts.set(keyword === "路线" ? "游览路线" : keyword, (counts.get(keyword === "路线" ? "游览路线" : keyword) || 0) + weight);
+    });
+  });
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14);
+}
+
+function renderHotQuestions(items) {
+  renderRankedList("hotQuestions", items, (item) => item.question_pattern, (item) => item.count);
+  const keywords = extractQuestionKeywords(items);
+  const root = $("hotQuestionCloud");
+  if (!keywords.length) {
+    root.innerHTML = '<div class="admin-empty">暂无关键词数据</div>';
+    return;
+  }
+  const max = Math.max(...keywords.map(([, count]) => count), 1);
+  root.innerHTML = keywords.map(([word, count], index) => {
+    const level = 0.82 + (count / max) * 0.72;
+    return `<span style="font-size:${level.toFixed(2)}rem;--word-index:${index}" title="${escapeHTML(word)}：${count} 次">${escapeHTML(word)}</span>`;
+  }).join("");
+}
+
 function renderRankedList(id, items, labelGetter, valueGetter) {
   $(id).innerHTML = items.length ? items.map((item, index) => `
     <div class="ranked-item"><span>${index + 1}</span><strong>${escapeHTML(labelGetter(item) || "-")}</strong><em>${valueGetter(item) || 0}</em></div>
   `).join("") : '<div class="admin-empty">暂无数据</div>';
+}
+
+function renderHotSpots(items) {
+  const root = $("hotSpots");
+  if (!items.length) {
+    root.innerHTML = '<div class="admin-empty">暂无景点热度数据</div>';
+    return;
+  }
+  const max = Math.max(...items.map((item) => Number(item.mention_count || 0)), 1);
+  root.innerHTML = items.map((item, index) => {
+    const value = Number(item.mention_count || 0);
+    const width = Math.max(4, (value / max) * 100);
+    return `
+      <div class="horizontal-rank-item" title="${escapeHTML(item.spot_name)}：${value} 次提及">
+        <span>${index + 1}</span>
+        <strong>${escapeHTML(item.spot_name || "-")}</strong>
+        <div><i style="--rank-width:${width}%"></i></div>
+        <em>${value}</em>
+      </div>`;
+  }).join("");
 }
 
 function escapeHTML(value = "") {
@@ -2849,21 +3139,25 @@ function renderList(id, items, mapper) {
 
 async function loadKnowledge() {
   if (!state.token) return;
-  const [docs, faq, blind] = await Promise.all([
+  const [docs, faq, blindResult] = await Promise.all([
     request("/api/admin/knowledge/documents?page=1&page_size=20", { headers: authHeaders() }),
     request("/api/admin/knowledge/faq?page=1&page_size=20", { headers: authHeaders() }),
-    requestOrMock("/api/admin/knowledge/blind-spots?range=week", {
+    requestAdminData("/api/admin/knowledge/blind-spots?range=week", {
       items: [
         { question_pattern: "轮椅租借点在哪里？", count: 6, last_asked_at: new Date().toISOString(), confidence: 0.31 },
         { question_pattern: "梵宫今天的演出时间？", count: 4, last_asked_at: new Date().toISOString(), confidence: 0.42 },
       ],
     }),
   ]);
-  const localDocuments = JSON.parse(localStorage.getItem("dg_mock_documents") || "[]");
-  renderKnowledgeDocuments([...(localDocuments || []), ...(docs.items || [])]);
+  renderKnowledgeDocuments(docs.items || []);
   renderKnowledgeFAQ(faq.items || []);
   renderAdminConversations();
-  renderKnowledgeBlindSpots(blind.items || []);
+  renderKnowledgeBlindSpots(blindResult.data.items || [], blindResult.source);
+  const badge = document.querySelector("#knowledgeBlindPanel .data-source-badge");
+  if (badge) {
+    badge.className = `data-source-badge ${blindResult.source === "backend" ? "live" : "demo"}`;
+    badge.textContent = blindResult.source === "backend" ? "后端实时数据" : "前端演示数据";
+  }
 }
 
 function renderAdminConversations() {
@@ -2881,17 +3175,17 @@ function renderAdminConversations() {
     </tbody></table>` : '<div class="admin-empty">暂无本地游客对话。后端尚未提供管理员会话列表接口。</div>';
 }
 
-function renderKnowledgeBlindSpots(items) {
+function renderKnowledgeBlindSpots(items, source = "backend") {
   $("knowledgeBlindSpots").innerHTML = items.length ? `
     <table class="admin-table"><thead><tr><th>用户问题</th><th>状态</th><th>置信度</th><th>建议类型</th><th>操作</th></tr></thead><tbody>
       ${items.map((item, index) => {
-        const confidence = item.confidence ?? Math.max(0.18, 0.56 - index * 0.08);
+        const confidence = item.confidence;
         return `<tr>
-          <td><strong>${escapeHTML(item.question_pattern || item.question || "-")}</strong><small>${formatDate(item.last_asked_at || item.created_at)}</small></td>
+          <td><strong>${escapeHTML(item.question_pattern || item.question || "-")}</strong><small>${formatDate(item.last_asked_at || item.created_at)} · 出现 ${item.count || 1} 次</small></td>
           <td><span class="status-pill danger">未命中</span></td>
-          <td>${Math.round(confidence * 100)}%</td>
+          <td>${confidence == null ? '<span title="后端当前未返回置信度">-</span>' : `${Math.round(confidence * 100)}%`}</td>
           <td>${/时间|几点|开放/.test(item.question_pattern || "") ? "开放与演出时间" : "服务设施"}</td>
-          <td><div class="table-actions"><button type="button" data-blind-faq="${index}">加入 FAQ</button><button type="button" data-blind-done="${index}">标记已处理</button></div></td>
+          <td><div class="table-actions"><button type="button" data-blind-faq="${index}">加入 FAQ</button><button type="button" data-blind-done="${index}" ${source !== "backend" ? "disabled" : ""}>标记已处理</button></div></td>
         </tr>`;
       }).join("")}
     </tbody></table>` : '<div class="admin-empty">本周暂无知识盲点。</div>';
@@ -2906,8 +3200,7 @@ function renderKnowledgeBlindSpots(items) {
   });
   $("knowledgeBlindSpots").querySelectorAll("[data-blind-done]").forEach((button) => {
     button.onclick = () => {
-      button.closest("tr").remove();
-      toast("已在前端标记处理，待后端提供状态接口");
+      toast("后端尚未提供知识盲点处理状态接口，当前不会伪装保存成功");
     };
   });
 }
@@ -2941,9 +3234,22 @@ function renderKnowledgeFAQ(items) {
         <p>${escapeHTML(item.answer)}</p>
         <small>${escapeHTML(item.category)} · ${item.is_active ? "启用" : "停用"} · ${formatDate(item.updated_at)}</small>
       </div>
-      <div class="item-actions"><button type="button" data-delete-faq="${item.id}">删除</button></div>
+      <div class="item-actions"><button type="button" data-edit-faq="${item.id}">编辑</button><button type="button" data-delete-faq="${item.id}">删除</button></div>
     </div>
   `).join("") : '<div class="list-item">暂无 FAQ，新增后会同步到 AI 知识库。</div>';
+  $("faqList").querySelectorAll("[data-edit-faq]").forEach((btn) => {
+    btn.onclick = () => {
+      const item = items.find((entry) => String(entry.id) === String(btn.dataset.editFaq));
+      if (!item) return;
+      $("faqId").value = item.id;
+      $("faqQuestion").value = item.question || "";
+      $("faqAnswer").value = item.answer || "";
+      $("faqCategory").value = item.category || "general";
+      $("faqSubmitBtn").textContent = "保存修改";
+      $("faqCancelEditBtn").classList.remove("hidden");
+      $("faqQuestion").focus();
+    };
+  });
   $("faqList").querySelectorAll("[data-delete-faq]").forEach((btn) => {
     btn.onclick = () => deleteFAQ(btn.dataset.deleteFaq).catch((err) => toast(err.message));
   });
@@ -2955,22 +3261,7 @@ async function uploadDocument(event) {
   if (!file) return toast("请选择文档");
   const extension = file.name.split(".").pop().toLowerCase();
   if (["md", "markdown"].includes(extension)) {
-    const localDocuments = JSON.parse(localStorage.getItem("dg_mock_documents") || "[]");
-    localDocuments.unshift({
-      id: `mock-${Date.now()}`,
-      original_name: file.name,
-      category: $("docCategory").value || "general",
-      file_type: extension,
-      file_size: file.size,
-      status: "mock",
-      chunk_count: 0,
-      created_at: new Date().toISOString(),
-    });
-    localStorage.setItem("dg_mock_documents", JSON.stringify(localDocuments.slice(0, 20)));
-    event.target.reset();
-    $("docCategory").value = "general";
-    toast("Markdown 已加入前端展示，后端需补充 Markdown 入库支持");
-    loadKnowledge().catch(() => {});
+    toast("后端当前仅支持 PDF、DOCX、TXT，Markdown 尚不能真实入库");
     return;
   }
   const form = new FormData();
@@ -2986,26 +3277,18 @@ async function uploadDocument(event) {
 
 async function createFAQ(event) {
   event.preventDefault();
-  await request("/api/admin/knowledge/faq", {
-    method: "POST",
+  const faqId = $("faqId").value;
+  await request(faqId ? `/api/admin/knowledge/faq/${faqId}` : "/api/admin/knowledge/faq", {
+    method: faqId ? "PUT" : "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ question: $("faqQuestion").value, answer: $("faqAnswer").value, category: $("faqCategory").value || "general" }),
   });
-  event.target.reset();
-  $("faqCategory").value = "general";
-  toast("FAQ 已新增");
+  resetFAQForm();
+  toast(faqId ? "FAQ 已更新并同步知识库" : "FAQ 已新增并同步知识库");
   loadKnowledge().catch(() => {});
 }
 
 async function deleteDocument(id) {
-  if (String(id).startsWith("mock-")) {
-    const localDocuments = JSON.parse(localStorage.getItem("dg_mock_documents") || "[]")
-      .filter((item) => String(item.id) !== String(id));
-    localStorage.setItem("dg_mock_documents", JSON.stringify(localDocuments));
-    toast("本地 Markdown 记录已删除");
-    loadKnowledge().catch(() => {});
-    return;
-  }
   await request(`/api/admin/knowledge/documents/${id}`, { method: "DELETE", headers: authHeaders() });
   toast("文档已删除");
   loadKnowledge().catch(() => {});
@@ -3015,6 +3298,14 @@ async function deleteFAQ(id) {
   await request(`/api/admin/knowledge/faq/${id}`, { method: "DELETE", headers: authHeaders() });
   toast("FAQ 已删除");
   loadKnowledge().catch(() => {});
+}
+
+function resetFAQForm() {
+  $("faqForm").reset();
+  $("faqId").value = "";
+  $("faqCategory").value = "general";
+  $("faqSubmitBtn").textContent = "新增 FAQ";
+  $("faqCancelEditBtn").classList.add("hidden");
 }
 
 async function loadScenic() {
@@ -3162,27 +3453,49 @@ async function loadHumanConfig() {
   $("cfgRole").value = extra.role || "灵山胜境 AI 导览员";
   $("cfgWelcome").value = extra.welcome_message || "您好，我是灵山胜境 AI 导览员小导，很高兴陪你游览。";
   $("cfgVolume").value = extra.volume ?? 85;
+  $("cfgVolumeValue").value = `${extra.volume ?? 85}%`;
+  $("cfgModelType").value = extra.model_type || "live2d";
+  $("cfgTtsEnabled").checked = extra.tts_enabled !== false;
   $("cfgAutoVoice").checked = extra.auto_voice !== false;
+  $("cfgVoiceInput").checked = extra.voice_input_enabled !== false;
   $("cfgInterrupt").checked = extra.allow_interrupt !== false;
+  $("cfgLipSync").checked = extra.lip_sync_enabled !== false;
+  $("cfgWelcomeEnabled").checked = extra.welcome_enabled !== false;
   $("cfgMotion").value = extra.default_motion || "idle";
   $("cfgModelPath").value = extra.live2d_model_path || "";
   $("cfgThemeColor").value = extra.theme_color || "#168f91";
   $("cfgPosition").value = extra.position || "left";
   $("adminHumanPreviewName").textContent = cfg.name || "小导";
   $("adminHumanPreviewRole").textContent = extra.role || "灵山胜境 AI 导览员";
-  renderAvatarPreview(cfg.avatar_url);
+  renderAvatarPreview(cfg.avatar_url, cfg);
   applyHumanConfig(cfg);
 }
 
-function renderAvatarPreview(url) {
+function renderAvatarPreview(url, cfg = state.humanConfig || {}) {
   const preview = $("avatarPreview");
-  if (!url) {
-    preview.className = "avatar-fallback";
-    preview.innerHTML = "DG";
-    return;
+  const modelType = cfg.extra_config?.model_type || "live2d";
+  const appearance = cfg.appearance || "modern";
+  const roleNames = { modern: "Mark", hanfu: "椿", nature: "参数控制角色", custom: "自定义模型" };
+  const stateBadge = $("adminHumanLoadState");
+  const modelInfo = $("adminHumanModelInfo");
+  if (modelType === "static" && url) {
+    preview.className = "avatar-image";
+    preview.innerHTML = `<img src="${escapeHTML(url)}" alt="数字人头像" />`;
+    if (stateBadge) {
+      stateBadge.className = "status-pill success";
+      stateBadge.textContent = "静态头像已加载";
+    }
+  } else {
+    preview.className = `avatar-live2d-preview ${appearance}`;
+    preview.innerHTML = `<span>Live2D</span><strong>${escapeHTML(roleNames[appearance] || "自定义模型")}</strong><small>${escapeHTML(cfg.extra_config?.live2d_model_path || live2dModels[appearance] || "未配置模型路径")}</small>`;
+    if (stateBadge) {
+      stateBadge.className = `status-pill ${live2dModels[appearance] || cfg.extra_config?.live2d_model_path ? "success" : "danger"}`;
+      stateBadge.textContent = live2dModels[appearance] || cfg.extra_config?.live2d_model_path ? "模型路径已配置" : "模型路径缺失";
+    }
   }
-  preview.className = "avatar-image";
-  preview.innerHTML = `<img src="${escapeHTML(url)}" alt="数字人头像" />`;
+  if (modelInfo) modelInfo.textContent = modelType === "static"
+    ? "当前使用静态图片，不启用 Live2D 动作与口型参数。"
+    : `${roleNames[appearance] || "自定义模型"} · ${cfg.extra_config?.live2d_model_path || live2dModels[appearance] || "未配置路径"}`;
 }
 
 async function uploadAvatarIfNeeded() {
@@ -3202,9 +3515,14 @@ async function saveHumanConfig(event) {
     ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     role: $("cfgRole").value.trim(),
     welcome_message: $("cfgWelcome").value.trim(),
+    model_type: $("cfgModelType").value,
     volume: Number($("cfgVolume").value || 85),
+    tts_enabled: $("cfgTtsEnabled").checked,
     auto_voice: $("cfgAutoVoice").checked,
+    voice_input_enabled: $("cfgVoiceInput").checked,
     allow_interrupt: $("cfgInterrupt").checked,
+    lip_sync_enabled: $("cfgLipSync").checked,
+    welcome_enabled: $("cfgWelcomeEnabled").checked,
     default_motion: $("cfgMotion").value.trim() || "idle",
     live2d_model_path: $("cfgModelPath").value.trim(),
     theme_color: $("cfgThemeColor").value,
@@ -3223,12 +3541,23 @@ async function saveHumanConfig(event) {
     }),
   });
   localStorage.setItem("dg_admin_human_settings", JSON.stringify(extraConfig));
-  renderAvatarPreview(cfg.avatar_url);
   applyHumanConfig(cfg);
+  renderAvatarPreview(cfg.avatar_url, cfg);
   $("adminHumanPreviewName").textContent = cfg.name || "小导";
   $("adminHumanPreviewRole").textContent = extraConfig.role;
   document.documentElement.style.setProperty("--brand", extraConfig.theme_color);
   toast("数字人配置已保存");
+}
+
+function previewAdminHumanState(stateName) {
+  document.querySelectorAll("[data-human-preview-state]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.humanPreviewState === stateName);
+  });
+  const preview = $("avatarPreview");
+  preview?.classList.remove("is-idle", "is-thinking", "is-speaking");
+  preview?.classList.add(`is-${stateName}`);
+  const badge = $("adminHumanLoadState");
+  if (badge) badge.textContent = stateName === "speaking" ? "speaking · 口型动画" : stateName === "thinking" ? "thinking · 思考中" : "idle · 在线待命";
 }
 
 function bindEvents() {
@@ -3283,12 +3612,19 @@ function bindEvents() {
   $("refreshStatsBtn").onclick = () => loadDashboard().catch((err) => toast(err.message));
   $("docForm").onsubmit = (event) => uploadDocument(event).catch((err) => toast(err.message));
   $("faqForm").onsubmit = (event) => createFAQ(event).catch((err) => toast(err.message));
+  $("faqCancelEditBtn").onclick = resetFAQForm;
   $("spotForm").onsubmit = (event) => createSpot(event).catch((err) => toast(err.message));
   $("spotFormReset").onclick = resetSpotForm;
   $("routeForm").onsubmit = (event) => createRoute(event).catch((err) => toast(err.message));
   $("humanForm").onsubmit = (event) => saveHumanConfig(event).catch((err) => toast(err.message));
-  ["cfgName", "cfgAppearance", "cfgVoiceGender", "cfgVoiceSpeed", "cfgExpression"].forEach((id) => {
+  ["cfgName", "cfgAppearance", "cfgVoiceGender", "cfgVoiceSpeed", "cfgExpression", "cfgModelType", "cfgModelPath"].forEach((id) => {
     $(id).oninput = previewHumanConfigFromForm;
+  });
+  $("cfgVolume").oninput = () => {
+    $("cfgVolumeValue").value = `${$("cfgVolume").value}%`;
+  };
+  document.querySelectorAll("[data-human-preview-state]").forEach((button) => {
+    button.onclick = () => previewAdminHumanState(button.dataset.humanPreviewState);
   });
   ["cfgName", "cfgRole"].forEach((id) => {
     $(id).addEventListener("input", () => {

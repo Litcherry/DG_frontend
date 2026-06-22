@@ -6,6 +6,8 @@ __pycache__/
 server.out.log
 server.err.log
 mark_zh-Hans.zip
+param_ctrl_zh-Hans.zip
+11月椿.zip
 *.log
 
 # Frontend dependencies/build outputs

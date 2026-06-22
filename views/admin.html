@@ -2,15 +2,39 @@
   <section id="dashboardTab" class="admin-tab active">
     <header class="admin-page-head">
       <div><span>运营总览</span><h1>仪表盘</h1><p>查看导览服务运行情况、游客偏好与知识命中表现。</p></div>
-      <button id="refreshStatsBtn" class="primary" type="button">刷新数据</button>
+      <div class="admin-head-actions">
+        <span id="dashboardDataSource" class="data-source-badge loading">正在读取数据</span>
+        <button id="refreshStatsBtn" class="primary" type="button">刷新数据</button>
+      </div>
     </header>
     <div id="statsCards" class="stats-grid admin-stats-grid"></div>
-    <div class="admin-chart-grid">
-      <section class="admin-panel chart-wide"><div class="panel-heading"><h2>满意度趋势</h2><span>最近 7 天</span></div><div id="satisfactionTrend" class="bar-chart"></div></section>
-      <section class="admin-panel"><div class="panel-heading"><h2>情绪趋势</h2><span>游客互动情绪</span></div><div id="emotionTrend" class="emotion-chart"></div></section>
-      <section class="admin-panel"><div class="panel-heading"><h2>热门问题</h2><span>高频咨询</span></div><div id="hotQuestions" class="admin-ranked-list"></div></section>
-      <section class="admin-panel"><div class="panel-heading"><h2>兴趣分布</h2><span>偏好标签</span></div><div id="interestDistribution" class="tag-chart"></div></section>
-      <section class="admin-panel"><div class="panel-heading"><h2>热门景点</h2><span>提及次数</span></div><div id="hotSpots" class="admin-ranked-list"></div></section>
+    <div class="admin-dashboard-grid">
+      <section class="admin-panel dashboard-satisfaction">
+        <div class="panel-heading"><div><h2>满意度趋势</h2><p>每日均分与评分构成</p></div><span>最近 7 天</span></div>
+        <div class="satisfaction-combo">
+          <div id="satisfactionTrend" class="chart-surface"></div>
+          <div id="satisfactionDistribution" class="chart-surface chart-compact"></div>
+        </div>
+      </section>
+      <section class="admin-panel">
+        <div class="panel-heading"><div><h2>情绪趋势</h2><p>AI 回复情绪标签分布</p></div><span>最近 7 天</span></div>
+        <div id="emotionTrend" class="emotion-chart"></div>
+      </section>
+      <section class="admin-panel dashboard-hot-questions">
+        <div class="panel-heading"><div><h2>热门问题</h2><p>高频咨询与关键词</p></div><span>最近 7 天</span></div>
+        <div class="hot-question-layout">
+          <div id="hotQuestionCloud" class="keyword-cloud"></div>
+          <div id="hotQuestions" class="admin-ranked-list"></div>
+        </div>
+      </section>
+      <section class="admin-panel">
+        <div class="panel-heading"><div><h2>兴趣分布</h2><p>会话偏好标签统计</p></div><span>最近 30 天</span></div>
+        <div id="interestDistribution" class="chart-surface radar-surface"></div>
+      </section>
+      <section class="admin-panel dashboard-hot-spots">
+        <div class="panel-heading"><div><h2>热门景点</h2><p>游客消息中的景点提及</p></div><span>最近 7 天</span></div>
+        <div id="hotSpots" class="horizontal-ranking"></div>
+      </section>
     </div>
   </section>
 
@@ -24,26 +48,31 @@
     </nav>
     <div class="admin-subtab-content">
       <section id="knowledgeDocumentsPanel" class="admin-panel admin-subpanel active" data-subtab-panel="knowledge">
-        <div class="panel-heading"><h2>文档上传</h2><span>PDF / Word / TXT / Markdown</span></div>
+        <div class="panel-heading"><div><h2>文档上传</h2><p>文档列表、上传和删除均连接后端知识库接口。</p></div><span class="data-source-badge live">后端实时数据</span></div>
         <form id="docForm" class="admin-form">
           <label class="admin-upload-box">选择知识文档<input id="docFile" type="file" accept=".pdf,.txt,.docx,.md,.markdown" /></label>
           <label>知识分类<input id="docCategory" type="text" value="general" placeholder="history / route / service" /></label>
           <button class="primary" type="submit">上传并入库</button>
         </form>
+        <p class="admin-inline-note">后端当前支持 PDF、DOCX、TXT；Markdown 暂不能上传入库。</p>
         <div id="documentsList" class="admin-data-list"></div>
       </section>
       <section id="knowledgeFaqPanel" class="admin-panel admin-subpanel" data-subtab-panel="knowledge">
-        <div class="panel-heading"><h2>FAQ 管理</h2><span>常见问答</span></div>
+        <div class="panel-heading"><div><h2>FAQ 管理</h2><p>新增、编辑和删除后同步至 AI 知识库。</p></div><span class="data-source-badge live">后端实时数据</span></div>
         <form id="faqForm" class="admin-form">
+          <input id="faqId" type="hidden" />
           <label>问题<input id="faqQuestion" type="text" placeholder="游客经常提出的问题" required /></label>
           <label>标准答案<textarea id="faqAnswer" rows="3" placeholder="景区标准答复" required></textarea></label>
           <label>分类<input id="faqCategory" type="text" value="general" /></label>
-          <button class="primary" type="submit">新增 FAQ</button>
+          <div class="form-actions">
+            <button id="faqSubmitBtn" class="primary" type="submit">新增 FAQ</button>
+            <button id="faqCancelEditBtn" class="hidden" type="button">取消编辑</button>
+          </div>
         </form>
         <div id="faqList" class="admin-data-list"></div>
       </section>
-      <section id="knowledgeConversationsPanel" class="admin-panel admin-subpanel" data-subtab-panel="knowledge"><div class="panel-heading"><h2>游客对话记录</h2><span class="mock-badge">本地记录</span></div><div id="adminConversationList" class="admin-table-wrap"></div></section>
-      <section id="knowledgeBlindPanel" class="admin-panel admin-subpanel" data-subtab-panel="knowledge"><div class="panel-heading"><h2>知识盲点</h2><span>低命中问题</span></div><div id="knowledgeBlindSpots" class="admin-table-wrap"></div></section>
+      <section id="knowledgeConversationsPanel" class="admin-panel admin-subpanel" data-subtab-panel="knowledge"><div class="panel-heading"><div><h2>游客对话记录</h2><p>当前仅展示本浏览器保存的游客端会话。</p></div><span class="data-source-badge local">浏览器本地数据</span></div><div id="adminConversationList" class="admin-table-wrap"></div></section>
+      <section id="knowledgeBlindPanel" class="admin-panel admin-subpanel" data-subtab-panel="knowledge"><div class="panel-heading"><div><h2>知识盲点</h2><p>来自后端记录的 RAG 未命中问题。</p></div><span class="data-source-badge live">后端实时数据</span></div><div id="knowledgeBlindSpots" class="admin-table-wrap"></div></section>
     </div>
   </section>
 
@@ -90,31 +119,58 @@
   <section id="humanTab" class="admin-tab">
     <header class="admin-page-head"><div><span>导览角色与播报</span><h1>数字人配置</h1><p>配置游客端数字人名称、声音、形象和交互行为。</p></div></header>
     <div class="admin-human-layout">
-      <section class="admin-panel">
+      <section class="admin-panel admin-human-form-panel">
         <form id="humanForm" class="admin-form admin-form-grid">
-          <label>数字人名称<input id="cfgName" type="text" /></label>
-          <label>角色定位<input id="cfgRole" type="text" value="灵山胜境 AI 导览员" /></label>
-          <label class="field-wide">欢迎语<textarea id="cfgWelcome" rows="3"></textarea></label>
-          <label>外观<select id="cfgAppearance"><option value="modern">现代导游</option><option value="hanfu">汉服讲解员</option><option value="nature">自然探索员</option></select></label>
-          <label>语音类型<select id="cfgVoiceGender"><option value="female">女声</option><option value="male">男声</option></select></label>
-          <label>语速<select id="cfgVoiceSpeed"><option value="slow">慢速</option><option value="medium">适中</option><option value="fast">快速</option></select></label>
-          <label>音量<input id="cfgVolume" type="range" min="0" max="100" value="85" /></label>
-          <label>默认表情<select id="cfgExpression"><option value="lively">亲切活泼</option><option value="calm">沉稳专业</option><option value="warm">温暖治愈</option></select></label>
-          <label>默认动作<input id="cfgMotion" type="text" value="idle" /></label>
-          <label>Live2D 模型路径<input id="cfgModelPath" type="text" placeholder="./assets/live2d/guide/guide.model3.json" /></label>
-          <label>主题色<input id="cfgThemeColor" type="color" value="#168f91" /></label>
-          <label>展示位置<select id="cfgPosition"><option value="left">左侧</option><option value="right">右侧</option></select></label>
-          <label class="admin-check"><input id="cfgAutoVoice" type="checkbox" checked />自动播放语音</label>
-          <label class="admin-check"><input id="cfgInterrupt" type="checkbox" checked />允许打断播报</label>
-          <label>头像<input id="avatarFile" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" /></label>
+          <div class="admin-config-section field-wide">
+            <div class="config-section-head"><strong>形象配置</strong><span>模型与展示方式</span></div>
+            <div class="admin-form-grid">
+              <label>数字人名称<input id="cfgName" type="text" /></label>
+              <label>角色定位<input id="cfgRole" type="text" value="灵山胜境 AI 导览员" /></label>
+              <label>模型类型<select id="cfgModelType"><option value="live2d">Live2D</option><option value="static">静态图片</option></select></label>
+              <label>数字人角色<select id="cfgAppearance"><option value="modern">Mark · 现代智慧导游</option><option value="hanfu">椿 · 文化讲解员</option><option value="nature" disabled>参数控制角色 · 待导出运行模型</option><option value="custom">自定义模型路径</option></select></label>
+              <label class="field-wide">Live2D 模型路径<input id="cfgModelPath" type="text" placeholder="./assets/live2d/guide/guide.model3.json" /></label>
+              <label>主题色<input id="cfgThemeColor" type="color" value="#168f91" /></label>
+              <label>展示位置<select id="cfgPosition"><option value="left">左侧</option><option value="right">右侧</option></select></label>
+              <label>静态头像<input id="avatarFile" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" /></label>
+            </div>
+          </div>
+          <div class="admin-config-section field-wide">
+            <div class="config-section-head"><strong>语音配置</strong><span>TTS 播报参数</span></div>
+            <div class="admin-form-grid">
+              <label>音色<select id="cfgVoiceGender"><option value="female">晓晓女声</option><option value="male">云希男声</option></select></label>
+              <label>语速<select id="cfgVoiceSpeed"><option value="slow">慢速</option><option value="medium">适中</option><option value="fast">快速</option></select></label>
+              <label>音量 <output id="cfgVolumeValue">85%</output><input id="cfgVolume" type="range" min="0" max="100" value="85" /></label>
+              <label class="admin-check"><input id="cfgTtsEnabled" type="checkbox" checked />启用 TTS 语音</label>
+              <label class="admin-check"><input id="cfgAutoVoice" type="checkbox" checked />自动播放语音</label>
+            </div>
+          </div>
+          <div class="admin-config-section field-wide">
+            <div class="config-section-head"><strong>交互配置</strong><span>游客端行为</span></div>
+            <div class="admin-form-grid">
+              <label class="admin-check"><input id="cfgVoiceInput" type="checkbox" checked />启用语音输入</label>
+              <label class="admin-check"><input id="cfgInterrupt" type="checkbox" checked />允许打断回复</label>
+              <label class="admin-check"><input id="cfgLipSync" type="checkbox" checked />启用口型动画</label>
+              <label class="admin-check"><input id="cfgWelcomeEnabled" type="checkbox" checked />启用欢迎语</label>
+              <label>默认表情<select id="cfgExpression"><option value="lively">亲切活泼</option><option value="calm">沉稳专业</option><option value="warm">温暖治愈</option></select></label>
+              <label>默认动作<input id="cfgMotion" type="text" value="idle" /></label>
+              <label class="field-wide">欢迎语<textarea id="cfgWelcome" rows="3"></textarea></label>
+            </div>
+          </div>
           <button class="primary field-wide" type="submit">保存并同步游客端</button>
+          <p class="admin-save-note field-wide">配置通过后端数字人配置接口保存，同时在本地缓存预览设置。</p>
         </form>
       </section>
       <aside class="admin-panel admin-avatar-preview">
         <div id="avatarPreview" class="avatar-fallback">DG</div>
+        <span id="adminHumanLoadState" class="status-pill pending">等待加载</span>
         <strong id="adminHumanPreviewName">小导</strong>
         <span id="adminHumanPreviewRole">灵山胜境 AI 导览员</span>
-        <p>Web Live2D 模型路径与高级交互设置保存在数字人配置的扩展字段中。</p>
+        <div class="human-state-preview">
+          <button class="active" type="button" data-human-preview-state="idle">idle</button>
+          <button type="button" data-human-preview-state="thinking">thinking</button>
+          <button type="button" data-human-preview-state="speaking">speaking</button>
+        </div>
+        <p id="adminHumanModelInfo">Live2D 模型设置将同步到游客端。状态按钮用于预览配置语义。</p>
       </aside>
     </div>
   </section>
