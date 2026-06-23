@@ -7654,8 +7654,21 @@ body.role-visitor:not(.history-open) .history-list {
   cursor: default;
 }
 
+.route-sidebar-panel .route-spot-detail-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  width: 32px;
+  min-height: 32px;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 5px 16px rgba(24, 51, 45, 0.14);
+}
+
 .route-sidebar-panel .route-spot-detail-media {
   height: 158px;
+  border-radius: 8px 8px 0 0;
 }
 
 .route-sidebar-panel .route-spot-detail-body {
