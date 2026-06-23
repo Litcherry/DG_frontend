@@ -22,9 +22,25 @@
           <div class="route-empty-state">
             <span class="route-empty-icon" aria-hidden="true">⌁</span>
             <strong>还没有推荐路线</strong>
-            <p>设置游览时长后生成路线，或先在导览对话中告诉小导你的偏好。</p>
+            <p>设置游览时长后生成路线，或先在导览对话中告诉 AI 导览员你的偏好。</p>
           </div>
         </div>
+        <aside id="routeSpotDetail" class="route-spot-detail" aria-hidden="true">
+          <div class="route-spot-detail-handle">
+            <span>景点详情</span>
+            <button id="routeSpotDetailClose" class="route-spot-detail-close" type="button" aria-label="关闭景点详情" title="关闭">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+            </button>
+          </div>
+          <div id="routeSpotDetailMedia" class="route-spot-detail-media"></div>
+          <div class="route-spot-detail-body">
+            <span id="routeSpotDetailStep" class="route-spot-detail-step"></span>
+            <h2 id="routeSpotDetailName"></h2>
+            <div id="routeSpotDetailMeta" class="route-spot-detail-meta"></div>
+            <p id="routeSpotDetailIntro"></p>
+            <div id="routeSpotDetailTags" class="route-spot-detail-tags"></div>
+          </div>
+        </aside>
         <div id="routeSpotList" class="route-spot-list" aria-live="polite"></div>
       </aside>
       <section class="route-map-workspace">
@@ -38,10 +54,10 @@
           <div id="routeAssistantHeader" class="route-assistant-header" title="按住标题栏可拖动">
             <div class="mini-human route-human-card">
               <div class="route-human-avatar" aria-hidden="true">DG</div>
-              <div><strong id="routeHumanName">小导路线助手</strong><span>告诉我同行人员和游览偏好</span></div>
+              <div><strong id="routeHumanName">AI 路线助手</strong><span>告诉我同行人员和游览偏好</span></div>
             </div>
           </div>
-          <div id="routeLive2DDock" class="route-live2d-dock" aria-label="小导数字人"></div>
+          <div id="routeLive2DDock" class="route-live2d-dock" aria-label="AI 数字人导览员"></div>
           <div class="route-assistant-body route-guide-composer">
             <textarea id="routeGuideInput" rows="1" placeholder="例如：带老人游玩，路线轻松一点"></textarea>
             <button id="routeStopReplyBtn" class="route-stop-reply" type="button" title="停止语音播报">停止播报</button>

@@ -1,49 +1,79 @@
 # A5 景区导览服务 AI 数字人前端
 
-这是一个免构建的前端 SPA，直接对接 `DG_backend` 的 FastAPI 接口。
+前端已迁移为 **Vue 3 + Vite**，对接 `DG_backend` 的 FastAPI 接口和 `DG_ai` 的流式问答能力。
 
-## 页面能力
+## 技术栈
 
-- 游客交互端：会话创建、兴趣选择、SSE 流式问答、TTS 播放、语音输入 ASR、路线推荐、满意度反馈。
-- 管理后台：管理员登录、数据大屏、知识文档上传、FAQ 新增、景点路线新增、数字人配置。
-- 数字人演示：使用 CSS 2D 数字人表现说话状态和情绪状态，后续可替换为 Live2D、SadTalker、MuseTalk 或其他 2D/3D 驱动引擎。
+- Vue 3：页面组件与应用入口
+- Vite 6：开发服务器与生产构建
+- 原生 JavaScript 兼容运行时：承载已稳定的聊天、语音、Live2D 和地图逻辑
+- Leaflet：景区地图和路线展示
+- PixiJS + pixi-live2d-display：Live2D 数字人
+- Fetch / SSE：接口调用和流式回答
+- Web Speech API：浏览器语音输入
 
-## 启动方式
+## 目录结构
 
-先确保后端和 AI 服务已经启动：
-
-```powershell
-# DG_backend
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-# DG_ai
-python -m uvicorn main:app --host 0.0.0.0 --port 8100
+```text
+DG_frontend/
+├─ src/
+│  ├─ App.vue
+│  ├─ main.js
+│  ├─ components/
+│  │  ├─ layout/AppShell.vue
+│  │  └─ views/
+│  │     ├─ AuthView.vue
+│  │     ├─ VisitorWorkspace.vue
+│  │     ├─ RoutePlannerView.vue
+│  │     ├─ FeedbackView.vue
+│  │     └─ AdminConsole.vue
+│  ├─ services/api.js
+│  ├─ config/live2d.js
+│  ├─ composables/usePersistentState.js
+│  ├─ legacy/runtime.js
+│  ├─ templates/             # Vue 视图组件的外部模板
+│  └─ styles/legacy.css
+├─ assets/                # Live2D 模型等运行资源
+├─ vendor/                # PixiJS / Cubism 运行库
+├─ vite.config.js
+└─ package.json
 ```
 
-然后启动前端静态服务：
+`src/legacy/runtime.js` 是渐进迁移兼容层。目前它保留了已经调试稳定的 SSE、TTS、Live2D、Leaflet 和后台业务逻辑，后续可继续拆分为 `useChat`、`useSpeech`、`useLive2D`、`useRouteMap` 等 composables。
+
+## 开发启动
+
+先启动后端和 AI 服务，然后：
 
 ```powershell
 cd C:\Project_vscode\DG\DG_frontend
-python serve.py --host 127.0.0.1 --port 5173
+npm install
+npm run dev
 ```
 
-也可以使用 npm 脚本：
-
-```powershell
-cd C:\Project_vscode\DG\DG_frontend
-npm start
-```
-
-打开：
+访问：
 
 ```text
 http://127.0.0.1:5173
 ```
 
-页面里的后端服务地址保持：
+不能再使用旧的 Python 静态服务器直接运行源码，因为浏览器无法自行编译 `.vue` 文件。
 
-```text
-http://localhost:8000
+## 生产构建
+
+```powershell
+npm run build
+npm run preview
 ```
 
-浏览器语音输入需要麦克风权限，建议通过 localhost 访问。管理后台使用后端初始化的管理员账号登录。
+构建结果位于 `dist/`。Vite 构建结束后会自动复制 `assets/` 和 `vendor/`，确保 Live2D 模型和运行库可以部署。
+
+## 常用命令
+
+```powershell
+npm run dev       # 开发模式
+npm run build     # 生产构建
+npm run preview   # 预览生产包
+```
+
+浏览器语音输入需要麦克风权限，建议始终通过 `localhost` 或 `127.0.0.1` 访问。

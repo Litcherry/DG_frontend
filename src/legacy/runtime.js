@@ -1,3 +1,9 @@
+import {
+  LIVE2D_MODELS,
+  LIVE2D_RENDER_SIZE,
+  LIVE2D_ROLE_DEFAULTS,
+} from "../config/live2d.js";
+
 const state = {
   apiBase: localStorage.getItem("dg_api_base") || "http://localhost:8000",
   token: localStorage.getItem("dg_admin_token") || "",
@@ -249,41 +255,42 @@ const scenicSpots = [
     tags: ["佛教文化", "雕塑艺术"],
   },
 ];
-const live2dModels = {
-  modern: "./assets/live2d/mark/runtime/mark_free_t04.model3.json",
-  hanfu: "./assets/live2d/tsubaki/runtime/tsubaki.model3.json",
-  nature: "./assets/live2d/mark/runtime/mark_free_t04.model3.json",
+// The original fallback catalog was drawn around an approximate anchor.
+// Align every fallback point to the published WGS84 coordinate of the Grand
+// Buddha so OpenStreetMap markers match the visible scenic area more closely.
+const fallbackCoordinateCorrection = {
+  lat: 31.43194 - 31.42755,
+  lng: 120.09139 - 120.0953,
 };
+scenicSpots.forEach((spot) => {
+  if (Number.isFinite(spot.lat) && Number.isFinite(spot.lng)) {
+    spot.lat += fallbackCoordinateCorrection.lat;
+    spot.lng += fallbackCoordinateCorrection.lng;
+  }
+});
+const live2dModels = LIVE2D_MODELS;
 const live2dRoleDefaults = {
-  modern: { name: "小导", role: "现代智慧导游" },
-  hanfu: { name: "椿", role: "景区文化讲解员" },
-  nature: { name: "小导", role: "自然探索向导" },
+  ...LIVE2D_ROLE_DEFAULTS,
+  modern: { ...LIVE2D_ROLE_DEFAULTS.modern, name: "AI 导览员" },
+  hanfu: { ...LIVE2D_ROLE_DEFAULTS.hanfu, role: "景区文化讲解员" },
+  nature: { name: "AI 导览员", role: "自然探索向导" },
 };
-const LIVE2D_RENDER_WIDTH = 480;
-const LIVE2D_RENDER_HEIGHT = 540;
+const LIVE2D_RENDER_WIDTH = LIVE2D_RENDER_SIZE.width;
+const LIVE2D_RENDER_HEIGHT = LIVE2D_RENDER_SIZE.height;
 const scriptCache = new Map();
-const viewFragments = [
-  "./views/visitor.html",
-  "./views/route-map.html",
-  "./views/feedback.html",
-  "./views/admin.html",
-];
-
-async function loadViewFragments() {
-  const root = $("deferredViews");
-  const fragments = await Promise.all(viewFragments.map(async (path) => {
-    const response = await fetch(path, { cache: "no-store" });
-    if (!response.ok) throw new Error(`页面片段加载失败：${path}`);
-    return response.text();
-  }));
-  root.innerHTML = fragments.join("\n");
-}
 
 function apiBase() {
   const input = $("apiBase");
   state.apiBase = (input?.value || state.apiBase || "http://localhost:8000").replace(/\/$/, "");
   localStorage.setItem("dg_api_base", state.apiBase);
   return state.apiBase;
+}
+
+function resolveMediaURL(value = "") {
+  const source = String(value || "").trim();
+  if (!source) return "";
+  if (/^(?:https?:|data:|blob:)/i.test(source)) return source;
+  return `${apiBase()}${source.startsWith("/") ? "" : "/"}${source}`;
 }
 
 function authHeaders(extra = {}) {
@@ -564,7 +571,7 @@ function setAvatarEngineStatus(text) {
 }
 
 function digitalHumanName(cfg = state.humanConfig || {}) {
-  return String(cfg.name_zh || cfg.name || "小导").trim() || "小导";
+  return String(cfg.name_zh || cfg.name || "AI 导览员").trim() || "AI 导览员";
 }
 
 function showDigitalHumanName() {
@@ -978,7 +985,7 @@ function applyHumanConfig(cfg = {}) {
 function previewHumanConfigFromForm() {
   const cfg = {
     ...(state.humanConfig || {}),
-    name: $("cfgName").value || "小导",
+    name: $("cfgName").value || "AI 导览员",
     appearance: $("cfgAppearance").value || "modern",
     voice_gender: $("cfgVoiceGender").value || "female",
     voice_speed: $("cfgVoiceSpeed").value || "medium",
@@ -1210,7 +1217,15 @@ function addMessage(role, content, id, persist = true) {
   if (role === "assistant") {
     const meta = document.createElement("div");
     meta.className = "message-meta";
-    meta.innerHTML = '<span class="assistant-dot">DG</span><strong>小导</strong><span class="message-status">已回答</span>';
+    const dot = document.createElement("span");
+    dot.className = "assistant-dot";
+    dot.textContent = "AI";
+    const name = document.createElement("strong");
+    name.textContent = digitalHumanName();
+    const status = document.createElement("span");
+    status.className = "message-status";
+    status.textContent = "已回答";
+    meta.append(dot, name, status);
     box.appendChild(meta);
   }
 
@@ -1367,7 +1382,7 @@ function deleteHistoryItem(id) {
     state.conversationId = "";
     updateConversationTitle();
     $("chatMessages").innerHTML = "";
-    addMessage("assistant", "您好，我是景区 AI 导游小导。点击“新聊天”，就可以开始新的导览会话。", undefined, false);
+    addMessage("assistant", `您好，我是${digitalHumanName()}。点击“新聊天”，即可开始新的导览会话。`, undefined, false);
   }
   persistHistory();
   toast("聊天记录已删除");
@@ -1433,7 +1448,7 @@ async function createConversation() {
   applyHumanConfig(data.digital_human || {});
   if (state.visitorHumanConfig) applyHumanConfig({ ...(data.digital_human || {}), ...state.visitorHumanConfig });
   renderInterests(data.interest_options || defaultInterests);
-  const greeting = data.greeting || "您好，我是您的 AI 导游小导。想了解景点、路线或服务设施，都可以直接问我。";
+  const greeting = data.greeting || `您好，我是${digitalHumanName()}。想了解当前场景内容、路线或服务信息，都可以直接问我。`;
   const configuredGreeting = state.humanConfig?.extra_config?.welcome_message;
   const activeGreeting = state.humanConfig?.extra_config?.welcome_enabled === false ? "" : configuredGreeting || greeting;
   upsertConversationHistory({ id: state.conversationId, title: "新的导览会话", greeting: activeGreeting });
@@ -1978,9 +1993,17 @@ function normalizeSpotName(value = "") {
 
 function locationFromSpot(spot = {}) {
   const location = spot.location || {};
-  const lat = Number(spot.lat ?? location.lat ?? location.latitude);
-  const lng = Number(spot.lng ?? location.lng ?? location.lon ?? location.longitude);
-  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  let lat = Number(spot.lat ?? location.lat ?? location.latitude);
+  let lng = Number(spot.lng ?? location.lng ?? location.lon ?? location.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  // Accept accidentally reversed latitude/longitude, but never accept 0,0 or
+  // coordinates outside the valid world range. The platform can host multiple
+  // scenic areas, so validation must not be tied to one fixed location.
+  if (Math.abs(lat) > 90 && Math.abs(lng) <= 90) [lat, lng] = [lng, lat];
+  const isZeroPoint = Math.abs(lat) < 0.000001 && Math.abs(lng) < 0.000001;
+  const isWorldCoordinate = Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+  return !isZeroPoint && isWorldCoordinate ? { lat, lng } : null;
 }
 
 function matchSpotByName(name) {
@@ -2017,6 +2040,7 @@ function hydrateScenicSpotsFromBackend() {
           if (item.description) existing.intro = item.description;
           if (Array.isArray(item.tags) && item.tags.length) existing.tags = item.tags;
           if (item.visit_duration_min) existing.duration = `${item.visit_duration_min}分钟`;
+          if (item.image_url) existing.imageUrl = resolveMediaURL(item.image_url);
           return;
         }
         scenicSpots.push({
@@ -2028,6 +2052,7 @@ function hydrateScenicSpotsFromBackend() {
           intro: item.description || "该景点的详细介绍正在补充中。",
           duration: item.visit_duration_min ? `${item.visit_duration_min}分钟` : "建议 20 分钟",
           tags: Array.isArray(item.tags) ? item.tags : [],
+          imageUrl: resolveMediaURL(item.image_url),
         });
       });
       state.routeCatalogLoaded = true;
@@ -2063,7 +2088,7 @@ function initRouteMap() {
       zoomControl: true,
       minZoom: 14,
       maxZoom: 19,
-    }).setView([31.4231, 120.0955], 16);
+    }).setView([31.4275, 120.0915], 16);
 
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
@@ -2088,6 +2113,7 @@ function clearRouteLayer() {
   state.routePolyline = null;
   state.routeSpots = [];
   state.selectedRouteSpot = -1;
+  closeRouteSpotDetail();
 }
 
 function formatRouteDuration(data, spots) {
@@ -2118,6 +2144,7 @@ function normalizeRouteSpot(item, index) {
     intro: source.intro || source.description || matched?.intro || "该景点的详细介绍正在补充中。",
     duration: source.duration || (source.visit_duration_min ? `${source.visit_duration_min}分钟` : matched?.duration || "建议 20 分钟"),
     tags: Array.isArray(source.tags) && source.tags.length ? source.tags : (matched?.tags || []),
+    imageUrl: resolveMediaURL(source.image_url || source.imageUrl || matched?.imageUrl),
     hasCoordinates: Boolean(location),
   };
 }
@@ -2129,7 +2156,7 @@ function renderRouteResult(data) {
 function renderRoutePlan(aiRouteResult = {}) {
   const rawSpots = Array.isArray(aiRouteResult.spots) ? aiRouteResult.spots : [];
   const spots = rawSpots.map(normalizeRouteSpot);
-  const routeName = aiRouteResult.routeName || aiRouteResult.route_name || aiRouteResult.name || "小导推荐路线";
+  const routeName = aiRouteResult.routeName || aiRouteResult.route_name || aiRouteResult.name || "AI 推荐路线";
   const duration = formatRouteDuration(aiRouteResult, spots);
   const reason = aiRouteResult.reason || aiRouteResult.description || "已根据你的游览时间和兴趣偏好生成路线。";
   const normalizedPlan = { ...aiRouteResult, routeName, duration, reason, spots };
@@ -2176,12 +2203,17 @@ function renderRoutePlan(aiRouteResult = {}) {
   renderRouteMarkers(spots);
   fitRouteBounds(spots);
   const firstMappedIndex = spots.findIndex((spot) => spot.hasCoordinates);
-  selectSpot(firstMappedIndex >= 0 ? firstMappedIndex : 0, { moveMap: false, scrollList: false });
+  selectSpot(firstMappedIndex >= 0 ? firstMappedIndex : 0, {
+    moveMap: false,
+    scrollList: false,
+    showDetails: false,
+  });
 }
 
 function renderSpotList(spots) {
   $("routeSpotList").innerHTML = spots.map((spot, index) => `
-    <button class="route-spot-card" data-route-spot-index="${index}" type="button">
+    <button class="route-spot-card${spot.imageUrl ? " has-image" : ""}" data-route-spot-index="${index}" type="button"
+      ${spot.imageUrl ? `style="--spot-image: url('${escapeHTML(spot.imageUrl)}')"` : ""}>
       <span class="route-spot-number">${index + 1}</span>
       <span class="route-spot-content">
         <span class="route-spot-title">
@@ -2215,6 +2247,36 @@ function routePopupHTML(spot, index) {
     </div>`;
 }
 
+function closeRouteSpotDetail() {
+  const detail = $("routeSpotDetail");
+  if (!detail) return;
+  detail.classList.remove("show");
+  detail.setAttribute("aria-hidden", "true");
+}
+
+function showRouteSpotDetail(spot, index) {
+  const detail = $("routeSpotDetail");
+  if (!detail || !spot) return;
+  const media = $("routeSpotDetailMedia");
+  const imageUrl = resolveMediaURL(spot.imageUrl || spot.image_url);
+  media.innerHTML = imageUrl
+    ? `<img src="${escapeHTML(imageUrl)}" alt="${escapeHTML(spot.name)}" />`
+    : `<div class="route-spot-detail-placeholder"><span>DG</span><small>暂无景点图片</small></div>`;
+  $("routeSpotDetailStep").textContent = `路线第 ${index + 1} 站`;
+  $("routeSpotDetailName").textContent = spot.name;
+  $("routeSpotDetailMeta").innerHTML = `
+    <span>${escapeHTML(spot.duration || "建议 20 分钟")}</span>
+    <span>${spot.hasCoordinates ? "已定位到地图" : "暂无坐标"}</span>
+  `;
+  $("routeSpotDetailIntro").textContent = spot.intro || "该景点的详细介绍正在补充中。";
+  $("routeSpotDetailTags").innerHTML = (spot.tags || [])
+    .slice(0, 6)
+    .map((tag) => `<span>${escapeHTML(tag)}</span>`)
+    .join("");
+  detail.classList.add("show");
+  detail.setAttribute("aria-hidden", "false");
+}
+
 function renderRouteMarkers(spots) {
   const map = initRouteMap();
   if (!map) return;
@@ -2229,8 +2291,13 @@ function renderRouteMarkers(spots) {
       riseOnHover: true,
     })
       .addTo(map)
-      .bindPopup(routePopupHTML(spot, index), { maxWidth: 300, minWidth: 230, offset: [0, -4] });
-    marker.on("click", () => selectSpot(index, { moveMap: false }));
+      .bindPopup(routePopupHTML(spot, index), {
+        maxWidth: 300,
+        minWidth: 230,
+        offset: [0, -4],
+        autoPan: false,
+      });
+    marker.on("click", () => selectSpot(index, { moveMap: false, showDetails: true }));
     state.routeMarkers[index] = marker;
     points.push([spot.lat, spot.lng]);
   });
@@ -2256,12 +2323,12 @@ function fitRouteBounds(spots) {
   } else if (points.length > 1) {
     map.fitBounds(L.latLngBounds(points), { padding: [64, 64], maxZoom: 17 });
   } else {
-    map.setView([31.4231, 120.0955], 16);
+    map.setView([31.4275, 120.0915], 16);
   }
 }
 
 function selectSpot(index, options = {}) {
-  const { moveMap = true, scrollList = true } = options;
+  const { moveMap = true, scrollList = true, showDetails = true } = options;
   if (index < 0 || index >= state.routeSpots.length) return;
   state.selectedRouteSpot = index;
   document.querySelectorAll("[data-route-spot-index]").forEach((card, cardIndex) => {
@@ -2275,9 +2342,15 @@ function selectSpot(index, options = {}) {
   if (scrollList && card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
   const marker = state.routeMarkers[index];
   if (marker) {
-    if (moveMap) state.routeMap.flyTo(marker.getLatLng(), Math.max(state.routeMap.getZoom(), 17), { duration: 0.65 });
+    if (moveMap && state.routeMap) {
+      state.routeMap.invalidateSize({ animate: false, pan: false });
+      const target = marker.getLatLng();
+      state.routeMap.setView(target, state.routeMap.getZoom(), { animate: true });
+      window.setTimeout(() => state.routeMap?.invalidateSize({ animate: false, pan: false }), 80);
+    }
     marker.openPopup();
   }
+  if (showDetails) showRouteSpotDetail(state.routeSpots[index], index);
 }
 
 function getRoutePreferenceProfile(text = "", interests = []) {
@@ -2376,7 +2449,7 @@ function buildFallbackRoutePlan() {
   return {
     routeName,
     duration: hours > 0 ? `约 ${hours} 小时` : "约 3 小时",
-    reason: "AI 本轮未返回可定位的景点名称，地图已根据当前时长和兴趣生成保底路线，可继续询问小导调整。",
+    reason: "AI 本轮未返回可定位的景点名称，地图已根据当前时长和兴趣生成保底路线，可继续询问 AI 导览员调整。",
     spots: spots.slice(0, count),
   };
 }
@@ -2502,7 +2575,7 @@ function extractAndRenderRouteFromAIText(text = "", meta = {}) {
 
   const hours = Number($("availableHours")?.value || 0);
   const plan = {
-    routeName: meta.routeName || "小导智能推荐路线",
+    routeName: meta.routeName || "AI 智能推荐路线",
     duration: meta.duration || (hours > 0 ? `约 ${hours} 小时` : undefined),
     reason: meta.reason || extractRouteReasonFromAIText(text),
     spots: namesForPlan,
@@ -2586,7 +2659,7 @@ async function requestAIRoutePlan(prompt, options = {}) {
         : undefined,
     });
 
-    const replyText = content.trim() || "小导暂时没有返回有效内容，请稍后再试。";
+    const replyText = content.trim() || "AI 导览员暂时没有返回有效内容，请稍后再试。";
     if (speakResponse && responseRunId === state.speechRunId) {
       if (!receivedSpeechDelta) routeSpeechBuffer = replyText;
       splitCompletedSentences(routeSpeechBuffer, true).sentences
@@ -2686,7 +2759,7 @@ async function submitFeedback() {
 async function askRouteGuide() {
   const input = $("routeGuideInput");
   const text = input.value.trim();
-  if (!text) return toast("先输入想问小导的路线问题");
+  if (!text) return toast("先输入想问 AI 导览员的路线问题");
   input.value = "";
   const prompt = buildRoutePlanningPrompt({ preferenceText: text });
   try {
@@ -3325,16 +3398,23 @@ function scenicLocalMeta() {
 function renderScenicSpots(items) {
   const meta = scenicLocalMeta();
   $("spotsList").innerHTML = items.length ? `
-    <table class="admin-table"><thead><tr><th>景点</th><th>标签</th><th>开放时间</th><th>时长</th><th>位置</th><th>状态</th><th>操作</th></tr></thead><tbody>
+    <table class="admin-table"><thead><tr><th>图片</th><th>景点</th><th>标签</th><th>开放时间</th><th>时长</th><th>位置</th><th>状态</th><th>操作</th></tr></thead><tbody>
       ${items.map((item) => {
         const local = meta[item.id] || {};
-        const location = item.location || {};
+        const location = locationFromSpot(item);
+        const fallbackLocation = locationFromSpot(matchSpotByName(item.name) || {});
+        const displayLocation = location || fallbackLocation;
         return `<tr>
+          <td>${item.image_url
+            ? `<img class="admin-spot-thumb" src="${escapeHTML(resolveMediaURL(item.image_url))}" alt="${escapeHTML(item.name)}" loading="lazy" />`
+            : '<span class="admin-spot-thumb empty">暂无</span>'}</td>
           <td><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.description || "").slice(0, 70)}</small></td>
           <td>${(item.tags || []).map((tag) => `<span class="mini-tag">${escapeHTML(tag)}</span>`).join("")}</td>
           <td>${escapeHTML(local.open_hours || "待补充")}</td>
           <td>${item.visit_duration_min || 30} 分钟</td>
-          <td>${location.lat && (location.lng || location.lon) ? `${location.lat}, ${location.lng || location.lon}` : "暂无坐标"}</td>
+          <td>${displayLocation
+            ? `${displayLocation.lat.toFixed(6)}, ${displayLocation.lng.toFixed(6)}${location ? "" : '<small class="coordinate-fallback-note">待保存修复</small>'}`
+            : "暂无坐标"}</td>
           <td><span class="status-pill ${item.is_active ? "success" : "pending"}">${local.is_hot ? "热门" : item.is_active ? "展示中" : "停用"}</span></td>
           <td><div class="table-actions"><button type="button" data-edit-spot="${item.id}">编辑</button><button type="button" class="danger" data-delete-spot="${item.id}">删除</button></div></td>
         </tr>`;
@@ -3352,16 +3432,19 @@ function fillSpotForm(item) {
   if (!item) return;
   switchAdminSubtab("scenic", "scenicEditorPanel");
   const local = scenicLocalMeta()[item.id] || {};
-  const location = item.location || {};
+  const backendLocation = locationFromSpot(item);
+  const fallbackLocation = locationFromSpot(matchSpotByName(item.name) || {});
+  const location = backendLocation || fallbackLocation || {};
   $("spotId").value = item.id;
   $("spotName").value = item.name || "";
   $("spotDesc").value = item.description || "";
   $("spotTags").value = (item.tags || []).join("、");
   $("spotDuration").value = item.visit_duration_min || 30;
-  $("spotLat").value = location.lat || "";
-  $("spotLng").value = location.lng || location.lon || "";
+  $("spotLat").value = Number.isFinite(location.lat) ? location.lat.toFixed(6) : "";
+  $("spotLng").value = Number.isFinite(location.lng) ? location.lng.toFixed(6) : "";
   $("spotOpenHours").value = local.open_hours || "";
   $("spotHot").checked = Boolean(local.is_hot);
+  renderSpotImagePreview(resolveMediaURL(item.image_url), item.name);
   $("spotName").focus();
 }
 
@@ -3369,6 +3452,16 @@ function resetSpotForm() {
   $("spotForm").reset();
   $("spotId").value = "";
   $("spotDuration").value = 30;
+  renderSpotImagePreview();
+}
+
+function renderSpotImagePreview(url = "", name = "景点图片") {
+  const preview = $("spotImagePreview");
+  if (!preview) return;
+  preview.innerHTML = url
+    ? `<img src="${escapeHTML(url)}" alt="${escapeHTML(name)}" /><span>图片将同步展示在游客端景点详情中</span>`
+    : "<span>上传图片后将在这里预览</span>";
+  preview.classList.toggle("has-image", Boolean(url));
 }
 
 function splitTags(value) {
@@ -3378,8 +3471,15 @@ function splitTags(value) {
 async function createSpot(event) {
   event.preventDefault();
   const spotId = $("spotId").value;
-  const lat = Number($("spotLat").value);
-  const lng = Number($("spotLng").value);
+  const latText = $("spotLat").value.trim();
+  const lngText = $("spotLng").value.trim();
+  const lat = latText === "" ? Number.NaN : Number(latText);
+  const lng = lngText === "" ? Number.NaN : Number(lngText);
+  const hasLocation = Number.isFinite(lat) && Number.isFinite(lng);
+  if ((latText || lngText) && !hasLocation) return toast("请同时填写有效的纬度和经度");
+  if (hasLocation && !locationFromSpot({ lat, lng })) {
+    return toast("经纬度无效，请检查是否填反或输入了 0,0");
+  }
   const saved = await request(spotId ? `/api/admin/spots/${spotId}` : "/api/admin/spots", {
     method: spotId ? "PUT" : "POST",
     headers: authHeaders({ "Content-Type": "application/json" }),
@@ -3388,7 +3488,7 @@ async function createSpot(event) {
       description: $("spotDesc").value,
       tags: splitTags($("spotTags").value),
       visit_duration_min: Number($("spotDuration").value || 30),
-      location: Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null,
+      location: hasLocation ? { lat, lng } : null,
     }),
   });
   const image = $("spotImage").files[0];
@@ -3400,6 +3500,7 @@ async function createSpot(event) {
   const meta = scenicLocalMeta();
   meta[saved.id] = { open_hours: $("spotOpenHours").value.trim(), is_hot: $("spotHot").checked };
   localStorage.setItem("dg_scenic_admin_meta", JSON.stringify(meta));
+  state.routeCatalogLoaded = false;
   resetSpotForm();
   toast(spotId ? "景点已更新" : "景点已新增");
   loadScenic().catch(() => {});
@@ -3450,8 +3551,8 @@ async function loadHumanConfig() {
   $("cfgVoiceSpeed").value = cfg.voice_speed || "medium";
   $("cfgExpression").value = cfg.expression_style || "lively";
   const extra = cfg.extra_config || {};
-  $("cfgRole").value = extra.role || "灵山胜境 AI 导览员";
-  $("cfgWelcome").value = extra.welcome_message || "您好，我是灵山胜境 AI 导览员小导，很高兴陪你游览。";
+  $("cfgRole").value = extra.role || "知识库数字人讲解员";
+  $("cfgWelcome").value = extra.welcome_message || "您好，我是当前场景的 AI 导览员，很高兴为你提供讲解与路线服务。";
   $("cfgVolume").value = extra.volume ?? 85;
   $("cfgVolumeValue").value = `${extra.volume ?? 85}%`;
   $("cfgModelType").value = extra.model_type || "live2d";
@@ -3465,8 +3566,8 @@ async function loadHumanConfig() {
   $("cfgModelPath").value = extra.live2d_model_path || "";
   $("cfgThemeColor").value = extra.theme_color || "#168f91";
   $("cfgPosition").value = extra.position || "left";
-  $("adminHumanPreviewName").textContent = cfg.name || "小导";
-  $("adminHumanPreviewRole").textContent = extra.role || "灵山胜境 AI 导览员";
+  $("adminHumanPreviewName").textContent = cfg.name || "AI 导览员";
+  $("adminHumanPreviewRole").textContent = extra.role || "知识库数字人讲解员";
   renderAvatarPreview(cfg.avatar_url, cfg);
   applyHumanConfig(cfg);
 }
@@ -3543,7 +3644,7 @@ async function saveHumanConfig(event) {
   localStorage.setItem("dg_admin_human_settings", JSON.stringify(extraConfig));
   applyHumanConfig(cfg);
   renderAvatarPreview(cfg.avatar_url, cfg);
-  $("adminHumanPreviewName").textContent = cfg.name || "小导";
+  $("adminHumanPreviewName").textContent = cfg.name || "AI 导览员";
   $("adminHumanPreviewRole").textContent = extraConfig.role;
   document.documentElement.style.setProperty("--brand", extraConfig.theme_color);
   toast("数字人配置已保存");
@@ -3603,6 +3704,7 @@ function bindEvents() {
   $("feedbackBtn").onclick = () => submitFeedback().catch((err) => toast(err.message));
   $("routeGuideBtn").onclick = askRouteGuide;
   $("routeStopReplyBtn").onclick = () => stopReply();
+  $("routeSpotDetailClose").onclick = closeRouteSpotDetail;
   $("routeGuideInput").onkeydown = (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
@@ -3615,6 +3717,18 @@ function bindEvents() {
   $("faqCancelEditBtn").onclick = resetFAQForm;
   $("spotForm").onsubmit = (event) => createSpot(event).catch((err) => toast(err.message));
   $("spotFormReset").onclick = resetSpotForm;
+  $("spotImage").onchange = () => {
+    const file = $("spotImage").files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      $("spotImage").value = "";
+      toast("景点图片最大支持 10 MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => renderSpotImagePreview(String(reader.result || ""), file.name);
+    reader.readAsDataURL(file);
+  };
   $("routeForm").onsubmit = (event) => createRoute(event).catch((err) => toast(err.message));
   $("humanForm").onsubmit = (event) => saveHumanConfig(event).catch((err) => toast(err.message));
   ["cfgName", "cfgAppearance", "cfgVoiceGender", "cfgVoiceSpeed", "cfgExpression", "cfgModelType", "cfgModelPath"].forEach((id) => {
@@ -3628,8 +3742,8 @@ function bindEvents() {
   });
   ["cfgName", "cfgRole"].forEach((id) => {
     $(id).addEventListener("input", () => {
-      $("adminHumanPreviewName").textContent = $("cfgName").value || "小导";
-      $("adminHumanPreviewRole").textContent = $("cfgRole").value || "灵山胜境 AI 导览员";
+      $("adminHumanPreviewName").textContent = $("cfgName").value || "AI 导览员";
+      $("adminHumanPreviewRole").textContent = $("cfgRole").value || "知识库数字人讲解员";
     });
   });
   ["visitorAvatarEngine", "visitorAppearance", "visitorVoiceGender", "visitorVoiceSpeed", "visitorExpression"].forEach((id) => {
@@ -3645,14 +3759,7 @@ function bindEvents() {
   });
 }
 
-async function bootstrapApp() {
-  try {
-    await loadViewFragments();
-  } catch (error) {
-    console.error(error);
-    document.body.innerHTML = `<div class="bootstrap-error"><strong>页面加载失败</strong><p>${escapeHTML(error.message)}</p><p>请通过本地前端服务访问，不要直接双击 index.html。</p></div>`;
-    return;
-  }
+export async function bootstrapLegacyApp() {
   bindEvents();
   restoreAdminSubtabs();
   initDraggableAssistantPanel();
@@ -3663,7 +3770,7 @@ async function bootstrapApp() {
   setHistoryOpen(true);
   updateComposerState();
   applyHumanConfig({
-    name: "小导",
+    name: "AI 导览员",
     appearance: "modern",
     voice_gender: "female",
     voice_speed: "medium",
@@ -3672,10 +3779,8 @@ async function bootstrapApp() {
     ...(state.visitorHumanConfig || {}),
   });
   setAvatarEngine(state.avatarEngine || "live2d", false);
-  addMessage("assistant", "您好，我是景区 AI 导游小导。点击“新建会话”，就可以开始问我景点、路线和服务信息。", undefined, false);
+  addMessage("assistant", `您好，我是${digitalHumanName()}。点击“新建会话”，即可开始询问当前场景内容、路线和服务信息。`, undefined, false);
   if (state.visitorName) $("visitorNameInput").value = state.visitorName;
   if (state.role === "admin" && state.token) enterApp("admin");
   if (state.role === "visitor") enterApp("visitor");
 }
-
-bootstrapApp();

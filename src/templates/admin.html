@@ -95,9 +95,15 @@
           <label>推荐时长<input id="spotDuration" type="number" value="30" min="5" /></label>
           <label>纬度<input id="spotLat" type="number" step="0.000001" placeholder="31.4231" /></label>
           <label>经度<input id="spotLng" type="number" step="0.000001" placeholder="120.0955" /></label>
-          <label>景点图片<input id="spotImage" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" /></label>
+          <label class="spot-image-upload">景点图片
+            <input id="spotImage" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" />
+            <span>支持 JPG、PNG、GIF、WebP，最大 10 MB</span>
+          </label>
           <label class="admin-check"><input id="spotHot" type="checkbox" />标记为热门景点（暂存本地）</label>
-          <label class="field-wide">景点简介<textarea id="spotDesc" rows="3"></textarea></label>
+          <div id="spotImagePreview" class="spot-image-preview field-wide">
+            <span>上传图片后将在这里预览</span>
+          </div>
+          <label class="field-wide">景点简介<textarea id="spotDesc" rows="5" placeholder="介绍景点特色、文化背景、推荐体验等内容，游客将在路线详情中看到这段介绍。"></textarea></label>
           <div class="field-wide form-actions"><button class="primary" type="submit">保存景点</button><button id="spotFormReset" type="button">清空</button></div>
         </form>
       </section>
@@ -125,7 +131,7 @@
             <div class="config-section-head"><strong>形象配置</strong><span>模型与展示方式</span></div>
             <div class="admin-form-grid">
               <label>数字人名称<input id="cfgName" type="text" /></label>
-              <label>角色定位<input id="cfgRole" type="text" value="灵山胜境 AI 导览员" /></label>
+              <label>角色定位<input id="cfgRole" type="text" value="知识库数字人讲解员" /></label>
               <label>模型类型<select id="cfgModelType"><option value="live2d">Live2D</option><option value="static">静态图片</option></select></label>
               <label>数字人角色<select id="cfgAppearance"><option value="modern">Mark · 现代智慧导游</option><option value="hanfu">椿 · 文化讲解员</option><option value="nature" disabled>参数控制角色 · 待导出运行模型</option><option value="custom">自定义模型路径</option></select></label>
               <label class="field-wide">Live2D 模型路径<input id="cfgModelPath" type="text" placeholder="./assets/live2d/guide/guide.model3.json" /></label>
@@ -163,8 +169,8 @@
       <aside class="admin-panel admin-avatar-preview">
         <div id="avatarPreview" class="avatar-fallback">DG</div>
         <span id="adminHumanLoadState" class="status-pill pending">等待加载</span>
-        <strong id="adminHumanPreviewName">小导</strong>
-        <span id="adminHumanPreviewRole">灵山胜境 AI 导览员</span>
+        <strong id="adminHumanPreviewName">AI 导览员</strong>
+        <span id="adminHumanPreviewRole">知识库数字人讲解员</span>
         <div class="human-state-preview">
           <button class="active" type="button" data-human-preview-state="idle">idle</button>
           <button type="button" data-human-preview-state="thinking">thinking</button>

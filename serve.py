@@ -25,7 +25,10 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=5173)
     args = parser.parse_args()
 
-    root = Path(__file__).resolve().parent
+    project_root = Path(__file__).resolve().parent
+    root = project_root / "dist"
+    if not root.exists():
+        raise SystemExit("dist/ 不存在。请先运行 npm install 和 npm run build。开发模式请使用 npm run dev。")
     handler = lambda *handler_args, **handler_kwargs: StaticHandler(  # noqa: E731
         *handler_args,
         directory=str(root),
@@ -33,7 +36,7 @@ def main() -> None:
     )
 
     with socketserver.TCPServer((args.host, args.port), handler) as server:
-        print(f"DG frontend running at http://{args.host}:{args.port}")
+        print(f"DG Vue production build running at http://{args.host}:{args.port}")
         print("Press Ctrl+C to stop.")
         server.serve_forever()
 

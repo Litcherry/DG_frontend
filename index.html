@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#168f91" />
     <title>A5 景区导览服务 AI 数字人</title>
     <link
       rel="stylesheet"
@@ -10,87 +11,14 @@
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       crossorigin=""
     />
-    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <section id="authView" class="auth-view">
-      <div class="auth-hero">
-        <div class="brand-row">
-          <div class="brand-mark">DG</div>
-          <div>
-            <strong>景区导览服务 AI 数字人</strong>
-            <span>游客智能导览与景区运营后台</span>
-          </div>
-        </div>
-        <div class="hero-copy">
-          <p class="eyebrow">A5 Competition Prototype</p>
-          <h1>会讲解、会规划、会反馈的景区 AI 导游</h1>
-          <p>面向软件杯 A5 赛题，覆盖游客问答、语音输入、数字人播报、路线推荐、知识库维护、形象配置和游客感受度分析。</p>
-        </div>
-        <div class="hero-metrics">
-          <div><strong>24h</strong><span>在线导览</span></div>
-          <div><strong>RAG</strong><span>知识增强</span></div>
-          <div><strong>&lt;5s</strong><span>交互目标</span></div>
-        </div>
-      </div>
-
-      <div class="auth-panel">
-        <div class="role-switch">
-          <button id="visitorRoleBtn" class="active" type="button">游客入口</button>
-          <button id="adminRoleBtn" type="button">管理后台</button>
-        </div>
-        <form id="visitorLoginForm" class="login-card active">
-          <h2>开始智能导览</h2>
-          <p>游客无需账号。输入昵称后即可创建本次导览会话。</p>
-          <label>游客昵称
-            <input id="visitorNameInput" type="text" placeholder="例如：小王、游客001" />
-          </label>
-          <button class="primary wide" type="submit">进入游客交互端</button>
-        </form>
-        <form id="adminLoginForm" class="login-card">
-          <h2>管理员登录</h2>
-          <p>用于维护知识库、景点路线、数字人配置，并查看运营数据。</p>
-          <label>账号
-            <input id="username" type="text" value="admin" autocomplete="username" />
-          </label>
-          <label>密码
-            <input id="password" type="password" placeholder="默认 admin123" autocomplete="current-password" />
-          </label>
-          <button class="primary wide" type="submit">登录管理后台</button>
-        </form>
-      </div>
-    </section>
-
-    <div id="appShell" class="app-shell hidden">
-      <aside id="sidebar" class="sidebar">
-        <button id="sidebarToggle" class="sidebar-toggle" type="button" title="收起侧栏" aria-label="收起侧栏">
-          <span class="panel-toggle-icon"></span>
-        </button>
-        <div class="brand-row compact">
-          <div class="brand-mark">DG</div>
-          <div class="sidebar-text">
-            <strong>AI 数字人导览</strong>
-            <span id="sessionLabel">未登录</span>
-          </div>
-        </div>
-        <nav id="roleNav" class="nav"></nav>
-        <button id="logoutBtn" class="ghost wide" type="button">退出当前身份</button>
-      </aside>
-
-      <main class="main-area">
-        <div id="deferredViews"></div>
-      </main>
-    </div>
-
-    <div id="toast" class="toast"></div>
+    <div id="app"></div>
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
-    <script src="./vendor/live2d/pixi.min.js"></script>
-    <script src="./vendor/live2d/live2dcubismcore.min.js"></script>
-    <script src="./vendor/live2d/pixi-live2d-display-cubism4.min.js"></script>
-    <script src="./app.js"></script>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>
