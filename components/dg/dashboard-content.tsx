@@ -35,12 +35,12 @@ type DashboardState = {
 }
 
 const initialState: DashboardState = {
-  overview: demoData.overview,
-  satisfaction: demoData.satisfaction,
-  emotions: demoData.emotions,
-  hotQuestions: demoData.hotQuestions,
-  interests: demoData.interests,
-  hotSpots: demoData.hotSpots,
+  overview: null,
+  satisfaction: null,
+  emotions: {},
+  hotQuestions: [],
+  interests: {},
+  hotSpots: [],
   source: "loading",
 }
 
@@ -65,13 +65,13 @@ function StatCard({ title, value, note, icon: Icon, active, delay }: any) {
       className={`${active ? "bg-primary text-primary-foreground" : "bg-card text-foreground"} cursor-pointer p-5 shadow-lg transition-all duration-500 ease-out animate-slide-in-up hover:scale-[1.03] hover:shadow-2xl`}
       style={{ animationDelay: delay }}
     >
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-1 flex items-start justify-between">
         <h3 className="text-sm font-medium opacity-90">{title}</h3>
         <div className={`${active ? "bg-primary-foreground/20" : "bg-primary"} flex h-7 w-7 items-center justify-center rounded-full transition-transform duration-300 group-hover:rotate-45`}>
           <ArrowUpRight className="h-3.5 w-3.5 text-primary-foreground" />
         </div>
       </div>
-      <p className="mb-6 text-4xl font-bold">{value}</p>
+      <p className="mb-2 text-4xl font-bold">{value}</p>
       <div className="flex items-center gap-1.5 text-xs opacity-80">
         <Icon className="h-3.5 w-3.5" />
         <span>{note}</span>
@@ -359,21 +359,21 @@ export function DashboardContent() {
     setLoading(true)
     const trendRange = range === "today" ? "week" : range
     const results = await Promise.all([
-      requestAdminData(`/api/admin/stats/overview?range=${range}`, demoData.overview),
-      requestAdminData(`/api/admin/stats/satisfaction?range=${trendRange}`, demoData.satisfaction),
-      requestAdminData(`/api/admin/stats/emotion-trend?range=${trendRange}`, { distribution: demoData.emotions }),
-      requestAdminData(`/api/admin/stats/hot-questions?range=${trendRange}&limit=8`, { items: demoData.hotQuestions }),
-      requestAdminData(`/api/admin/stats/interest-distribution?range=${range === "today" ? "month" : range}`, demoData.interests),
-      requestAdminData(`/api/admin/stats/hot-spots?range=${trendRange}&limit=7`, { items: demoData.hotSpots }),
+      requestAdminData(`/api/admin/stats/overview?range=${range}`, null),
+      requestAdminData(`/api/admin/stats/satisfaction?range=${trendRange}`, null),
+      requestAdminData(`/api/admin/stats/emotion-trend?range=${trendRange}`, { distribution: {} }),
+      requestAdminData(`/api/admin/stats/hot-questions?range=${trendRange}&limit=8`, { items: [] }),
+      requestAdminData(`/api/admin/stats/interest-distribution?range=${range === "today" ? "month" : range}`, {}),
+      requestAdminData(`/api/admin/stats/hot-spots?range=${trendRange}&limit=7`, { items: [] }),
     ])
     setState({
       overview: results[0].data,
       satisfaction: results[1].data,
-      emotions: (results[2].data as any).distribution || results[2].data || demoData.emotions,
+      emotions: (results[2].data as any).distribution || results[2].data || {},
       hotQuestions: (results[3].data as any).items || [],
-      interests: results[4].data as any,
+      interests: results[4].data as any || {},
       hotSpots: (results[5].data as any).items || [],
-      source: results.some((item) => item.source === "demo") ? "mixed" : "backend",
+      source: "backend",
     })
     setLoading(false)
   }
