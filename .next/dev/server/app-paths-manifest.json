@@ -1,10 +1,7 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/admin/page": "app/admin/page.js",
-  "/human/page": "app/human/page.js",
-  "/knowledge/page": "app/knowledge/page.js",
-  "/logout/page": "app/logout/page.js",
+  "/api/[...path]/route": "app/api/[...path]/route.js",
   "/page": "app/page.js",
-  "/scenic/page": "app/scenic/page.js",
-  "/settings/page": "app/settings/page.js",
-  "/visitor/page": "app/visitor/page.js"
+  "/visitor/route": "app/visitor/route.js"
 }

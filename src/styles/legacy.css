@@ -7703,579 +7703,93 @@ body.role-visitor:not(.history-open) .history-list {
     max-height: 62vh;
   }
 }
-
-/* Tasko modern task management dashboard skin for the admin workspace. */
-body.role-admin {
-  --tasko-bg: #f8faf8;
-  --tasko-card: #ffffff;
-  --tasko-ink: #203129;
-  --tasko-muted: #738078;
-  --tasko-soft: #f0f5f1;
-  --tasko-line: #e5ece7;
-  --tasko-primary: #047857;
-  --tasko-primary-2: #10b981;
-  --tasko-danger: #d34a42;
-  --tasko-shadow: 0 18px 46px rgba(18, 42, 31, 0.08);
-  background: var(--tasko-bg);
-  color: var(--tasko-ink);
-}
-
-body.role-admin .app-shell {
-  min-height: 100vh;
-  background: var(--tasko-bg);
-}
-
-body.role-admin .sidebar {
-  position: sticky;
-  top: 0;
-  flex: 0 0 256px;
-  width: 256px;
-  height: 100vh;
-  padding: 18px 16px;
-  gap: 22px;
-  overflow-y: auto;
-  border-right: 1px solid var(--tasko-line);
-  background: var(--tasko-card);
-  color: var(--tasko-ink);
-  box-shadow: none;
-}
-
-body.role-admin .sidebar .brand-row.compact {
-  min-height: 40px;
-  margin: 0 0 10px;
-  padding: 0;
-}
-
-body.role-admin .brand-mark {
+/* Local route-map fallback used when Leaflet/CDN resources are unavailable. */
+.fallback-route-map {
   position: relative;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-  border-radius: 50%;
-  background: var(--tasko-primary);
-  color: #fff;
-  font-size: 13px;
-  box-shadow: 0 10px 22px rgba(4, 120, 87, 0.18);
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0) 18%),
+    linear-gradient(135deg, #d9efe7 0%, #eff7ef 46%, #d7e8f0 100%);
 }
 
-body.role-admin .brand-mark::before,
-body.role-admin .brand-mark::after {
-  content: "";
+.fallback-map-grid {
   position: absolute;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #ecfdf5;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(22, 133, 111, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(22, 133, 111, 0.12) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.56));
 }
 
-body.role-admin .brand-mark::before {
-  transform: translate(-6px, -5px);
-}
-
-body.role-admin .brand-mark::after {
-  transform: translate(6px, -5px);
-}
-
-body.role-admin .sidebar-text strong {
-  color: var(--tasko-ink);
-  font-size: 17px;
-  font-weight: 750;
-}
-
-body.role-admin .sidebar-text span,
-body.role-admin .brand-row.compact span {
-  color: var(--tasko-muted);
-  font-size: 11px;
-}
-
-body.role-admin .sidebar .sidebar-toggle,
-body.role-admin.sidebar-collapsed .sidebar .sidebar-toggle,
-body.role-admin .sidebar > #sidebarToggle,
-body.role-admin.sidebar-collapsed .sidebar > #sidebarToggle {
-  position: absolute !important;
-  top: 18px !important;
-  right: 14px !important;
-  left: auto !important;
-  width: 34px !important;
-  height: 34px !important;
-  min-height: 34px !important;
-  border: 1px solid var(--tasko-line) !important;
-  background: #fff !important;
-  color: #68756d !important;
-  box-shadow: 0 8px 18px rgba(18, 42, 31, 0.05);
-}
-
-body.role-admin .sidebar .sidebar-toggle:hover {
-  background: var(--tasko-soft) !important;
-  color: var(--tasko-primary) !important;
-}
-
-body.role-admin .nav {
-  gap: 5px;
-  margin-top: 6px;
-}
-
-body.role-admin .nav::before,
-body.role-admin .nav::after {
-  display: block;
-  margin: 0 0 6px;
-  color: #97a49b;
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-body.role-admin .nav::before {
-  content: "Menu";
-}
-
-body.role-admin .nav::after {
-  content: "General";
-  margin-top: 16px;
-}
-
-body.role-admin .nav-item {
-  min-height: 42px;
-  padding: 0 10px;
-  gap: 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--tasko-muted);
-  font-size: 14px;
-  font-weight: 650;
-  transition: background 0.22s ease, color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
-}
-
-body.role-admin .nav-item:hover {
-  background: var(--tasko-soft);
-  color: var(--tasko-ink);
-  transform: translateX(4px);
-}
-
-body.role-admin .nav-item.active {
-  background: var(--tasko-primary);
-  color: #fff;
-  box-shadow: 0 12px 24px rgba(4, 120, 87, 0.18);
-}
-
-body.role-admin .nav-icon {
-  width: 24px;
-  height: 24px;
-  flex: 0 0 24px;
-  border-radius: 7px;
-  background: transparent;
-  color: inherit;
-  font-size: 12px;
-}
-
-body.role-admin .nav-item.active .nav-icon {
-  background: rgba(255, 255, 255, 0.16);
-}
-
-body.role-admin #logoutBtn {
-  min-height: 42px;
-  margin-top: auto;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--tasko-muted);
-  font-weight: 650;
-  text-align: left;
-}
-
-body.role-admin #logoutBtn:hover {
-  background: #fff1f0;
-  color: var(--tasko-danger);
-}
-
-body.role-admin .main-area {
-  height: 100vh;
-  padding: 0;
-  overflow: auto;
-  background: var(--tasko-bg);
-}
-
-body.role-admin.sidebar-collapsed .sidebar {
-  flex-basis: 76px;
-  width: 76px;
-  padding: 18px 14px;
-}
-
-body.role-admin.sidebar-collapsed .brand-row.compact {
-  width: 48px;
-  margin-top: 44px;
-  justify-content: center;
-}
-
-body.role-admin.sidebar-collapsed .brand-mark {
-  width: 40px;
-  height: 40px;
-  flex-basis: 40px;
-}
-
-body.role-admin.sidebar-collapsed .nav {
-  width: 48px;
-}
-
-body.role-admin.sidebar-collapsed .nav::before,
-body.role-admin.sidebar-collapsed .nav::after {
-  display: none;
-}
-
-body.role-admin.sidebar-collapsed .nav-item {
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  padding: 0;
-  justify-content: center;
-}
-
-body.role-admin.sidebar-collapsed .nav-item:hover {
-  transform: none;
-}
-
-body.role-admin.sidebar-collapsed .sidebar-toggle {
-  position: absolute !important;
-  top: 16px !important;
-  right: 21px !important;
-}
-
-body.role-admin .admin-console {
-  min-height: 100vh;
-  color: var(--tasko-ink);
-}
-
-body.role-admin .admin-console .admin-tab {
-  padding: 22px clamp(16px, 2.4vw, 32px) 34px;
-}
-
-body.role-admin .admin-page-head {
-  min-height: 0;
-  margin-bottom: 18px;
-  align-items: center;
-}
-
-body.role-admin .admin-page-head > div:first-child {
-  min-width: 0;
-}
-
-body.role-admin .admin-page-head span {
-  color: var(--tasko-primary);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0;
-}
-
-body.role-admin .admin-page-head h1 {
-  margin: 4px 0;
-  color: var(--tasko-ink);
-  font-size: clamp(24px, 2.2vw, 34px);
-  font-weight: 850;
-  letter-spacing: 0;
-}
-
-body.role-admin .admin-page-head p {
-  max-width: 720px;
-  color: var(--tasko-muted);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-body.role-admin .admin-head-actions {
-  gap: 8px;
-}
-
-body.role-admin button,
-body.role-admin .primary {
-  border-radius: 8px;
-}
-
-body.role-admin .primary {
-  border-color: var(--tasko-primary);
-  background: var(--tasko-primary);
-  box-shadow: 0 12px 22px rgba(4, 120, 87, 0.16);
-}
-
-body.role-admin .primary:hover {
-  background: #065f46;
-  box-shadow: 0 14px 28px rgba(4, 120, 87, 0.2);
-  transform: translateY(-1px);
-}
-
-body.role-admin .data-source-badge {
-  min-height: 28px;
+.fallback-map-path {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 50%;
+  height: 4px;
   border-radius: 999px;
-  font-size: 10px !important;
+  background: linear-gradient(90deg, rgba(22, 133, 111, 0.12), rgba(22, 133, 111, 0.72), rgba(22, 133, 111, 0.12));
+  transform: rotate(-8deg);
+  transform-origin: center;
 }
 
-body.role-admin .admin-stats-grid {
-  grid-template-columns: repeat(5, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+.fallback-map-point {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 190px;
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 12px 7px 7px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f2a23;
+  box-shadow: 0 16px 38px rgba(20, 61, 48, 0.16);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
 }
 
-body.role-admin .admin-stats-grid .stat-card {
-  min-height: 138px;
-  padding: 16px;
-  border: 1px solid var(--tasko-line);
-  border-radius: 8px;
-  background: var(--tasko-card);
-  box-shadow: 0 9px 24px rgba(18, 42, 31, 0.055);
-  cursor: default;
-  transition: transform 0.32s ease, box-shadow 0.32s ease, border-color 0.32s ease;
-  animation: taskoSlideInUp 0.42s ease both;
-}
-
-body.role-admin .admin-stats-grid .stat-card:first-child,
-body.role-admin .admin-stats-grid .stat-card.healthy {
-  border-color: transparent;
-  background: var(--tasko-primary);
-  color: #fff;
-  box-shadow: 0 16px 34px rgba(4, 120, 87, 0.2);
-}
-
-body.role-admin .admin-stats-grid .stat-card:hover {
-  border-color: rgba(16, 185, 129, 0.32);
-  box-shadow: var(--tasko-shadow);
-  transform: translateY(-3px);
-}
-
-body.role-admin .stat-card-top span {
-  color: inherit;
-  opacity: 0.78;
-}
-
-body.role-admin .stat-card-top i {
+.fallback-map-point span {
+  display: grid;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  background: var(--tasko-primary);
-  color: #fff;
-  transition: transform 0.28s ease;
-}
-
-body.role-admin .stat-card:hover .stat-card-top i {
-  transform: rotate(45deg);
-}
-
-body.role-admin .admin-stats-grid .stat-card:first-child .stat-card-top i,
-body.role-admin .admin-stats-grid .stat-card.healthy .stat-card-top i {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-body.role-admin .admin-stats-grid .stat-card strong {
-  margin-top: 12px;
-  color: inherit;
-  font-size: 32px;
-  line-height: 1.1;
-}
-
-body.role-admin .admin-stats-grid .stat-card small,
-body.role-admin .admin-stats-grid .stat-card em {
-  color: inherit;
-  opacity: 0.68;
-}
-
-body.role-admin .admin-dashboard-grid {
-  grid-template-columns: minmax(0, 1.8fr) minmax(300px, 0.9fr);
-  gap: 14px;
-}
-
-body.role-admin .admin-panel {
-  border: 1px solid var(--tasko-line);
-  border-radius: 8px;
-  background: linear-gradient(135deg, #fff 0%, #fbfdfb 100%);
-  box-shadow: 0 9px 24px rgba(18, 42, 31, 0.055);
-  transition: box-shadow 0.32s ease, transform 0.32s ease, border-color 0.32s ease;
-  animation: taskoSlideInUp 0.44s ease both;
-}
-
-body.role-admin .admin-panel:hover {
-  border-color: rgba(16, 185, 129, 0.24);
-  box-shadow: var(--tasko-shadow);
-}
-
-body.role-admin .panel-heading {
-  margin-bottom: 16px;
-}
-
-body.role-admin .panel-heading h2 {
-  color: var(--tasko-ink);
-  font-size: 18px;
-  font-weight: 760;
-}
-
-body.role-admin .panel-heading > div p,
-body.role-admin .panel-heading > span {
-  color: var(--tasko-muted);
-}
-
-body.role-admin .chart-grid-line,
-body.role-admin .donut-track,
-body.role-admin .emotion-row > div,
-body.role-admin .horizontal-rank-item > div {
-  stroke: var(--tasko-line);
-  background: var(--tasko-soft);
-}
-
-body.role-admin .line-chart-path,
-body.role-admin .radar-value {
-  stroke: var(--tasko-primary);
-}
-
-body.role-admin .line-chart-area,
-body.role-admin .radar-value {
-  fill: rgba(16, 185, 129, 0.12);
-}
-
-body.role-admin .chart-point circle,
-body.role-admin .radar-point {
-  stroke: #fff;
-  fill: var(--tasko-primary);
-}
-
-body.role-admin .keyword-cloud,
-body.role-admin .admin-config-section,
-body.role-admin .admin-upload-box {
-  border-color: var(--tasko-line);
-  background: #fbfdfb;
-}
-
-body.role-admin .admin-subtabs {
-  gap: 6px;
-  margin: -2px 0 16px;
-  padding: 4px;
-  border: 1px solid var(--tasko-line);
-  border-radius: 8px;
-  background: var(--tasko-card);
-}
-
-body.role-admin .admin-subtab {
-  min-height: 38px;
-  border-radius: 7px;
-  color: var(--tasko-muted);
-}
-
-body.role-admin .admin-subtab:hover {
-  background: var(--tasko-soft);
-}
-
-body.role-admin .admin-subtab.active {
-  background: var(--tasko-primary);
-  color: #fff;
-  box-shadow: 0 10px 20px rgba(4, 120, 87, 0.16);
-}
-
-body.role-admin .admin-subtab.active::after {
-  display: none;
-}
-
-body.role-admin .admin-form label {
-  color: #56645c;
-}
-
-body.role-admin .admin-form input,
-body.role-admin .admin-form select,
-body.role-admin .admin-form textarea,
-body.role-admin input,
-body.role-admin textarea,
-body.role-admin select {
-  border-color: var(--tasko-line);
-  border-radius: 8px;
-  background: #fff;
-}
-
-body.role-admin .admin-form input:focus,
-body.role-admin .admin-form select:focus,
-body.role-admin .admin-form textarea:focus,
-body.role-admin input:focus,
-body.role-admin textarea:focus,
-body.role-admin select:focus {
-  border-color: rgba(16, 185, 129, 0.7);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
-}
-
-body.role-admin .admin-table {
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-body.role-admin .admin-table th {
-  border-bottom: 1px solid var(--tasko-line);
-  background: var(--tasko-soft);
-  color: var(--tasko-muted);
-}
-
-body.role-admin .admin-table td {
-  border-bottom: 1px solid #eef3ef;
-}
-
-body.role-admin .admin-table tr:hover td {
-  background: #fbfdfb;
-}
-
-body.role-admin .status-pill,
-body.role-admin .mini-tag {
+  place-items: center;
   border-radius: 999px;
+  background: #087a35;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  flex: 0 0 auto;
 }
 
-body.role-admin .table-actions button,
-body.role-admin .form-actions button,
-body.role-admin .human-state-preview button {
-  border-radius: 8px;
+.fallback-map-point small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-body.role-admin .admin-avatar-preview {
-  position: sticky;
-  top: 20px;
+.fallback-map-point:hover {
+  transform: translate(-50%, -50%) scale(1.04);
 }
 
-body.role-admin .avatar-live2d-preview {
-  border-color: var(--tasko-line);
-  background:
-    radial-gradient(circle at 50% 36%, rgba(255, 255, 255, 0.95) 0 24%, transparent 25%),
-    linear-gradient(145deg, #ddf7ed, #f7fbf8);
-}
-
-@keyframes taskoSlideInUp {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 1280px) {
-  body.role-admin .admin-stats-grid {
-    grid-template-columns: repeat(3, minmax(160px, 1fr));
-  }
-
-  body.role-admin .admin-dashboard-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  body.role-admin .dashboard-satisfaction,
-  body.role-admin .dashboard-hot-questions,
-  body.role-admin .dashboard-hot-spots {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 900px) {
-  body.role-admin .admin-page-head {
-    align-items: flex-start;
-  }
-
-  body.role-admin .admin-stats-grid,
-  body.role-admin .admin-dashboard-grid,
-  body.role-admin .satisfaction-combo,
-  body.role-admin .hot-question-layout,
-  body.role-admin .admin-human-layout {
-    grid-template-columns: 1fr;
-  }
+.fallback-map-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(360px, calc(100% - 48px));
+  transform: translate(-50%, -50%);
+  border-radius: 18px;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #5e6b62;
+  text-align: center;
+  box-shadow: 0 16px 38px rgba(20, 61, 48, 0.12);
 }

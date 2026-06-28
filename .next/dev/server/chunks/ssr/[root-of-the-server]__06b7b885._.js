@@ -958,12 +958,8 @@ __turbopack_context__.s([
     ()=>authHeaders,
     "clearToken",
     ()=>clearToken,
-    "demoData",
-    ()=>demoData,
     "request",
     ()=>request,
-    "requestAdminData",
-    ()=>requestAdminData,
     "resolveMediaURL",
     ()=>resolveMediaURL,
     "setApiBase",
@@ -976,120 +972,6 @@ __turbopack_context__.s([
     ()=>token
 ]);
 "use client";
-const demoData = {
-    overview: {
-        total_conversations: 1286,
-        total_messages: 4932,
-        avg_response_ms: 1680,
-        avg_satisfaction: 4.7,
-        rag_hit_rate: 0.92
-    },
-    satisfaction: {
-        trend: [
-            {
-                date: "周一",
-                avg_rating: 4.3,
-                count: 18
-            },
-            {
-                date: "周二",
-                avg_rating: 4.5,
-                count: 22
-            },
-            {
-                date: "周三",
-                avg_rating: 4.6,
-                count: 25
-            },
-            {
-                date: "周四",
-                avg_rating: 4.4,
-                count: 19
-            },
-            {
-                date: "周五",
-                avg_rating: 4.8,
-                count: 31
-            },
-            {
-                date: "周六",
-                avg_rating: 4.9,
-                count: 42
-            },
-            {
-                date: "周日",
-                avg_rating: 4.7,
-                count: 37
-            }
-        ],
-        distribution: {
-            1: 3,
-            2: 5,
-            3: 18,
-            4: 61,
-            5: 107
-        }
-    },
-    emotions: {
-        积极: 64,
-        平稳: 25,
-        思考: 8,
-        致歉: 3
-    },
-    hotQuestions: [
-        {
-            question_pattern: "灵山大佛怎么游览？",
-            count: 86
-        },
-        {
-            question_pattern: "九龙灌浴表演有什么特色？",
-            count: 71
-        },
-        {
-            question_pattern: "适合老人的游玩路线？",
-            count: 54
-        },
-        {
-            question_pattern: "梵宫需要游览多久？",
-            count: 38
-        },
-        {
-            question_pattern: "停车场和餐饮在哪里？",
-            count: 29
-        }
-    ],
-    interests: {
-        自然风光: 26,
-        历史文化: 38,
-        佛教文化: 44,
-        休闲娱乐: 18,
-        拍照打卡: 25,
-        亲子游览: 17,
-        餐饮购物: 12
-    },
-    hotSpots: [
-        {
-            spot_name: "灵山大佛",
-            mention_count: 236
-        },
-        {
-            spot_name: "九龙灌浴",
-            mention_count: 198
-        },
-        {
-            spot_name: "灵山梵宫",
-            mention_count: 174
-        },
-        {
-            spot_name: "五印坛城",
-            mention_count: 126
-        },
-        {
-            spot_name: "五明桥",
-            mention_count: 93
-        }
-    ]
-};
 function apiBase() {
     if ("TURBOPACK compile-time truthy", 1) return "http://localhost:8000";
     //TURBOPACK unreachable
@@ -1124,7 +1006,7 @@ function readErrorMessage(text, fallback) {
     if (!text) return fallback;
     try {
         const data = JSON.parse(text);
-        if (Array.isArray(data.detail)) return data.detail.map((item)=>item.msg).join("，");
+        if (Array.isArray(data.detail)) return data.detail.map((item)=>item.msg).join(", ");
         return data.detail || data.message || fallback;
     } catch  {
         return text;
@@ -1134,26 +1016,10 @@ async function request(path, options = {}) {
     const res = await fetch(`${apiBase()}${path}`, options);
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(readErrorMessage(text, `请求失败（${res.status}）`));
+        throw new Error(readErrorMessage(text, `Request failed (${res.status})`));
     }
     const type = res.headers.get("content-type") || "";
     return type.includes("application/json") ? res.json() : res;
-}
-async function requestAdminData(path, fallback) {
-    try {
-        return {
-            data: await request(path, {
-                headers: authHeaders()
-            }),
-            source: "backend"
-        };
-    } catch (error) {
-        console.warn(`[DG admin demo fallback] ${path}`, error);
-        return {
-            data: fallback,
-            source: "demo"
-        };
-    }
 }
 function resolveMediaURL(value = "") {
     const source = String(value || "").trim();
@@ -1872,14 +1738,8 @@ function KnowledgeContent() {
         //TURBOPACK unreachable
         ;
     }, []);
-    const filteredDocs = documents.filter((item)=>{
-        const text = `${item.original_name || item.filename || item.name || ""} ${item.category || ""} ${item.status || ""}`.toLowerCase();
-        return text.includes(search.toLowerCase());
-    });
-    const filteredFaqs = faqs.filter((item)=>{
-        const text = `${item.question || ""} ${item.answer || ""} ${item.category || ""}`.toLowerCase();
-        return text.includes(search.toLowerCase());
-    });
+    const filteredDocs = documents.filter((item)=>`${item.original_name || item.filename || item.name || ""} ${item.category || ""} ${item.status || ""}`.toLowerCase().includes(search.toLowerCase()));
+    const filteredFaqs = faqs.filter((item)=>`${item.question || ""} ${item.answer || ""} ${item.category || ""}`.toLowerCase().includes(search.toLowerCase()));
     async function load() {
         setLoading(true);
         setMessage("");
@@ -1899,16 +1759,18 @@ function KnowledgeContent() {
             }).catch(()=>[
                     "general"
                 ]),
-            (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$dg$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["requestAdminData"])("/api/admin/knowledge/blind-spots?range=week", {
-                items: []
-            })
+            (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$dg$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["request"])("/api/admin/knowledge/blind-spots?range=week", {
+                headers: (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$dg$2f$api$2e$ts__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["authHeaders"])()
+            }).catch(()=>({
+                    items: []
+                }))
         ]);
         setDocuments(itemsOf(docs));
         setFaqs(itemsOf(faqData));
         setCategories(cats.length ? cats : [
             "general"
         ]);
-        setBlindSpots(itemsOf(blind.data));
+        setBlindSpots(itemsOf(blind));
         setLoading(false);
     }
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["useEffect"])(()=>{
@@ -2000,15 +1862,15 @@ function KnowledgeContent() {
                     className: `h-4 w-4 ${loading ? "animate-spin" : ""}`
                 }, void 0, false, {
                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                    lineNumber: 141,
-                    columnNumber: 58
+                    lineNumber: 124,
+                    columnNumber: 118
                 }, void 0),
                 "刷新"
             ]
         }, void 0, true, {
             fileName: "[project]/components/dg/knowledge-content.tsx",
-            lineNumber: 141,
-            columnNumber: 16
+            lineNumber: 124,
+            columnNumber: 76
         }, void 0),
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -2021,7 +1883,7 @@ function KnowledgeContent() {
                         placeholder: "搜索文档、FAQ、分类"
                     }, void 0, false, {
                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                        lineNumber: 144,
+                        lineNumber: 126,
                         columnNumber: 9
                     }, this),
                     message && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2029,13 +1891,13 @@ function KnowledgeContent() {
                         children: message
                     }, void 0, false, {
                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                        lineNumber: 145,
+                        lineNumber: 127,
                         columnNumber: 21
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                lineNumber: 143,
+                lineNumber: 125,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Tabs"], {
@@ -2050,37 +1912,37 @@ function KnowledgeContent() {
                                 children: "文档上传"
                             }, void 0, false, {
                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                lineNumber: 150,
-                                columnNumber: 11
+                                lineNumber: 131,
+                                columnNumber: 19
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TabsTrigger"], {
                                 value: "faq",
                                 children: "FAQ 管理"
                             }, void 0, false, {
                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                lineNumber: 151,
-                                columnNumber: 11
+                                lineNumber: 131,
+                                columnNumber: 68
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TabsTrigger"], {
                                 value: "conversations",
                                 children: "对话记录"
                             }, void 0, false, {
                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                lineNumber: 152,
-                                columnNumber: 11
+                                lineNumber: 131,
+                                columnNumber: 113
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TabsTrigger"], {
                                 value: "blind",
                                 children: "知识盲点"
                             }, void 0, false, {
                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                lineNumber: 153,
-                                columnNumber: 11
+                                lineNumber: 131,
+                                columnNumber: 166
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                        lineNumber: 149,
+                        lineNumber: 131,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TabsContent"], {
@@ -2088,7 +1950,7 @@ function KnowledgeContent() {
                         className: "grid gap-4 lg:grid-cols-[380px_1fr]",
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
-                                className: "animate-slide-in-up p-6 shadow-lg",
+                                className: "p-6 shadow-lg",
                                 children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
                                     className: "space-y-4",
                                     onSubmit: uploadDocument,
@@ -2098,7 +1960,7 @@ function KnowledgeContent() {
                                             children: "上传知识文档"
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 159,
+                                            lineNumber: 136,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Input"], {
@@ -2107,7 +1969,7 @@ function KnowledgeContent() {
                                             onChange: (event)=>setDocFile(event.target.files?.[0] || null)
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 160,
+                                            lineNumber: 137,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -2119,29 +1981,30 @@ function KnowledgeContent() {
                                                     children: item
                                                 }, item, false, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 162,
-                                                    columnNumber: 43
+                                                    lineNumber: 138,
+                                                    columnNumber: 207
                                                 }, this))
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 161,
+                                            lineNumber: 138,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
+                                            type: "submit",
                                             className: "w-full",
                                             children: [
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$lucide$2d$react$40$0$2e$454$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$file$2d$up$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__FileUp$3e$__["FileUp"], {
                                                     className: "h-4 w-4"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 164,
-                                                    columnNumber: 42
+                                                    lineNumber: 139,
+                                                    columnNumber: 56
                                                 }, this),
                                                 "上传并入库"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 164,
+                                            lineNumber: 139,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -2149,32 +2012,29 @@ function KnowledgeContent() {
                                             children: "支持 pdf / txt / docx，沿用原后端文档入库接口。"
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 165,
+                                            lineNumber: 140,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                    lineNumber: 158,
+                                    lineNumber: 135,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                lineNumber: 157,
+                                lineNumber: 134,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
-                                className: "animate-slide-in-up p-6 shadow-lg",
-                                style: {
-                                    animationDelay: "100ms"
-                                },
+                                className: "p-6 shadow-lg",
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                         className: "mb-4 text-xl font-semibold",
                                         children: "文档列表"
                                     }, void 0, false, {
                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                        lineNumber: 169,
+                                        lineNumber: 144,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Table"], {
@@ -2186,48 +2046,48 @@ function KnowledgeContent() {
                                                             children: "文件"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 171,
-                                                            columnNumber: 38
+                                                            lineNumber: 145,
+                                                            columnNumber: 43
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableHead"], {
                                                             children: "分类"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 171,
-                                                            columnNumber: 63
+                                                            lineNumber: 145,
+                                                            columnNumber: 68
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableHead"], {
                                                             children: "状态"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 171,
-                                                            columnNumber: 88
+                                                            lineNumber: 145,
+                                                            columnNumber: 93
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableHead"], {
                                                             children: "分块"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 171,
-                                                            columnNumber: 113
+                                                            lineNumber: 145,
+                                                            columnNumber: 118
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableHead"], {
                                                             className: "text-right",
                                                             children: "操作"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 171,
-                                                            columnNumber: 138
+                                                            lineNumber: 145,
+                                                            columnNumber: 143
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 171,
-                                                    columnNumber: 28
+                                                    lineNumber: 145,
+                                                    columnNumber: 33
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                lineNumber: 171,
-                                                columnNumber: 15
+                                                lineNumber: 145,
+                                                columnNumber: 20
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableBody"], {
                                                 children: filteredDocs.map((item)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableRow"], {
@@ -2237,29 +2097,29 @@ function KnowledgeContent() {
                                                                 children: item.original_name || item.filename || item.name
                                                             }, void 0, false, {
                                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                lineNumber: 175,
-                                                                columnNumber: 21
+                                                                lineNumber: 145,
+                                                                columnNumber: 301
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableCell"], {
                                                                 children: item.category || "-"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                lineNumber: 176,
-                                                                columnNumber: 21
+                                                                lineNumber: 145,
+                                                                columnNumber: 398
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableCell"], {
                                                                 children: item.status || "active"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                lineNumber: 177,
-                                                                columnNumber: 21
+                                                                lineNumber: 145,
+                                                                columnNumber: 443
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableCell"], {
                                                                 children: item.chunk_count ?? "-"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                lineNumber: 178,
-                                                                columnNumber: 21
+                                                                lineNumber: 145,
+                                                                columnNumber: 491
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableCell"], {
                                                                 className: "text-right",
@@ -2271,46 +2131,46 @@ function KnowledgeContent() {
                                                                         className: "h-4 w-4"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                        lineNumber: 179,
-                                                                        columnNumber: 162
+                                                                        lineNumber: 145,
+                                                                        columnNumber: 680
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                    lineNumber: 179,
-                                                                    columnNumber: 55
+                                                                    lineNumber: 145,
+                                                                    columnNumber: 573
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                lineNumber: 179,
-                                                                columnNumber: 21
+                                                                lineNumber: 145,
+                                                                columnNumber: 539
                                                             }, this)
                                                         ]
                                                     }, item.id || item.original_name, true, {
                                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                        lineNumber: 174,
-                                                        columnNumber: 19
+                                                        lineNumber: 145,
+                                                        columnNumber: 255
                                                     }, this))
                                             }, void 0, false, {
                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                lineNumber: 172,
-                                                columnNumber: 15
+                                                lineNumber: 145,
+                                                columnNumber: 216
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                        lineNumber: 170,
+                                        lineNumber: 145,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                lineNumber: 168,
+                                lineNumber: 143,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                        lineNumber: 156,
+                        lineNumber: 133,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TabsContent"], {
@@ -2318,7 +2178,7 @@ function KnowledgeContent() {
                         className: "grid gap-4 lg:grid-cols-[420px_1fr]",
                         children: [
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
-                                className: "animate-slide-in-up p-6 shadow-lg",
+                                className: "p-6 shadow-lg",
                                 children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
                                     className: "space-y-4",
                                     onSubmit: saveFAQ,
@@ -2328,7 +2188,7 @@ function KnowledgeContent() {
                                             children: faqId ? "编辑 FAQ" : "新增 FAQ"
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 190,
+                                            lineNumber: 152,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Input"], {
@@ -2338,7 +2198,7 @@ function KnowledgeContent() {
                                             required: true
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 191,
+                                            lineNumber: 153,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$textarea$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Textarea"], {
@@ -2348,7 +2208,7 @@ function KnowledgeContent() {
                                             required: true
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 192,
+                                            lineNumber: 154,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -2360,12 +2220,12 @@ function KnowledgeContent() {
                                                     children: item
                                                 }, item, false, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 194,
-                                                    columnNumber: 43
+                                                    lineNumber: 155,
+                                                    columnNumber: 207
                                                 }, this))
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 193,
+                                            lineNumber: 155,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -2378,42 +2238,43 @@ function KnowledgeContent() {
                                                     children: "启用"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 197,
-                                                    columnNumber: 17
+                                                    lineNumber: 156,
+                                                    columnNumber: 196
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
                                                     value: "false",
                                                     children: "停用"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 198,
-                                                    columnNumber: 17
+                                                    lineNumber: 156,
+                                                    columnNumber: 228
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 196,
+                                            lineNumber: 156,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                             className: "flex gap-2",
                                             children: [
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
+                                                    type: "submit",
                                                     className: "flex-1",
                                                     children: [
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$lucide$2d$react$40$0$2e$454$2e$0_react$40$19$2e$2$2e$0$2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$save$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Save$3e$__["Save"], {
                                                             className: "h-4 w-4"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 201,
-                                                            columnNumber: 44
+                                                            lineNumber: 157,
+                                                            columnNumber: 84
                                                         }, this),
                                                         "保存 FAQ"
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 201,
-                                                    columnNumber: 17
+                                                    lineNumber: 157,
+                                                    columnNumber: 43
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
                                                     type: "button",
@@ -2422,44 +2283,41 @@ function KnowledgeContent() {
                                                     children: "清空"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 202,
-                                                    columnNumber: 17
+                                                    lineNumber: 157,
+                                                    columnNumber: 127
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 200,
+                                            lineNumber: 157,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                    lineNumber: 189,
+                                    lineNumber: 151,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                lineNumber: 188,
+                                lineNumber: 150,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
-                                className: "animate-slide-in-up p-6 shadow-lg",
-                                style: {
-                                    animationDelay: "100ms"
-                                },
+                                className: "p-6 shadow-lg",
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                         className: "mb-4 text-xl font-semibold",
                                         children: "FAQ 列表"
                                     }, void 0, false, {
                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                        lineNumber: 207,
+                                        lineNumber: 161,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "space-y-3",
                                         children: filteredFaqs.map((item)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                className: "rounded-xl border border-border p-4 transition-all duration-300 hover:scale-[1.01] hover:shadow-md",
+                                                className: "rounded-xl border border-border p-4",
                                                 children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                     className: "flex items-start justify-between gap-3",
                                                     children: [
@@ -2470,16 +2328,16 @@ function KnowledgeContent() {
                                                                     children: item.question
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                    lineNumber: 212,
-                                                                    columnNumber: 26
+                                                                    lineNumber: 162,
+                                                                    columnNumber: 213
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                                                     className: "mt-2 text-sm text-muted-foreground",
                                                                     children: item.answer
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                    lineNumber: 212,
-                                                                    columnNumber: 76
+                                                                    lineNumber: 162,
+                                                                    columnNumber: 263
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                                                     className: "mt-2 text-xs text-muted-foreground",
@@ -2490,14 +2348,14 @@ function KnowledgeContent() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                    lineNumber: 212,
-                                                                    columnNumber: 143
+                                                                    lineNumber: 162,
+                                                                    columnNumber: 330
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 212,
-                                                            columnNumber: 21
+                                                            lineNumber: 162,
+                                                            columnNumber: 208
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                             className: "flex gap-1",
@@ -2509,8 +2367,8 @@ function KnowledgeContent() {
                                                                     children: "编辑"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                    lineNumber: 214,
-                                                                    columnNumber: 23
+                                                                    lineNumber: 162,
+                                                                    columnNumber: 476
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
                                                                     variant: "outline",
@@ -2519,8 +2377,8 @@ function KnowledgeContent() {
                                                                     children: item.is_active === false ? "启用" : "停用"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                    lineNumber: 215,
-                                                                    columnNumber: 23
+                                                                    lineNumber: 162,
+                                                                    columnNumber: 553
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Button"], {
                                                                     variant: "ghost",
@@ -2530,60 +2388,60 @@ function KnowledgeContent() {
                                                                         className: "h-4 w-4"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                        lineNumber: 216,
-                                                                        columnNumber: 124
+                                                                        lineNumber: 162,
+                                                                        columnNumber: 771
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                                    lineNumber: 216,
-                                                                    columnNumber: 23
+                                                                    lineNumber: 162,
+                                                                    columnNumber: 670
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 213,
-                                                            columnNumber: 21
+                                                            lineNumber: 162,
+                                                            columnNumber: 448
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 211,
-                                                    columnNumber: 19
+                                                    lineNumber: 162,
+                                                    columnNumber: 152
                                                 }, this)
                                             }, item.id || item.question, false, {
                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                lineNumber: 210,
-                                                columnNumber: 17
+                                                lineNumber: 162,
+                                                columnNumber: 68
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                        lineNumber: 208,
+                                        lineNumber: 162,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                lineNumber: 206,
+                                lineNumber: 160,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                        lineNumber: 187,
+                        lineNumber: 149,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TabsContent"], {
                         value: "conversations",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
-                            className: "animate-slide-in-up p-6 shadow-lg",
+                            className: "p-6 shadow-lg",
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                     className: "mb-4 text-xl font-semibold",
                                     children: "游客对话记录"
                                 }, void 0, false, {
                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                    lineNumber: 227,
-                                    columnNumber: 13
+                                    lineNumber: 166,
+                                    columnNumber: 76
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     className: "grid gap-3 md:grid-cols-2 xl:grid-cols-3",
@@ -2595,60 +2453,60 @@ function KnowledgeContent() {
                                                         children: item.title || "导览会话"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                        lineNumber: 229,
-                                                        columnNumber: 116
+                                                        lineNumber: 166,
+                                                        columnNumber: 289
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                                         className: "mt-2 text-xs text-muted-foreground",
                                                         children: item.updatedAt || "-"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                        lineNumber: 229,
-                                                        columnNumber: 155
+                                                        lineNumber: 166,
+                                                        columnNumber: 328
                                                     }, this)
                                                 ]
                                             }, item.id, true, {
                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                lineNumber: 229,
-                                                columnNumber: 49
+                                                lineNumber: 166,
+                                                columnNumber: 222
                                             }, this)),
                                         !conversations.length && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                             className: "text-sm text-muted-foreground",
                                             children: "暂无本机游客会话记录。"
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 230,
-                                            columnNumber: 41
+                                            lineNumber: 166,
+                                            columnNumber: 439
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                    lineNumber: 228,
-                                    columnNumber: 13
+                                    lineNumber: 166,
+                                    columnNumber: 130
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                            lineNumber: 226,
-                            columnNumber: 11
+                            lineNumber: 166,
+                            columnNumber: 44
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                        lineNumber: 225,
+                        lineNumber: 166,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$tabs$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TabsContent"], {
                         value: "blind",
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Card"], {
-                            className: "animate-slide-in-up p-6 shadow-lg",
+                            className: "p-6 shadow-lg",
                             children: [
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                                     className: "mb-4 text-xl font-semibold",
                                     children: "知识盲点"
                                 }, void 0, false, {
                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                    lineNumber: 237,
-                                    columnNumber: 13
+                                    lineNumber: 167,
+                                    columnNumber: 68
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Table"], {
                                     children: [
@@ -2659,33 +2517,33 @@ function KnowledgeContent() {
                                                         children: "问题"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                        lineNumber: 239,
-                                                        columnNumber: 38
+                                                        lineNumber: 167,
+                                                        columnNumber: 150
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableHead"], {
                                                         children: "次数"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                        lineNumber: 239,
-                                                        columnNumber: 63
+                                                        lineNumber: 167,
+                                                        columnNumber: 175
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableHead"], {
                                                         children: "最近时间"
                                                     }, void 0, false, {
                                                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                        lineNumber: 239,
-                                                        columnNumber: 88
+                                                        lineNumber: 167,
+                                                        columnNumber: 200
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                lineNumber: 239,
-                                                columnNumber: 28
+                                                lineNumber: 167,
+                                                columnNumber: 140
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 239,
-                                            columnNumber: 15
+                                            lineNumber: 167,
+                                            columnNumber: 127
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableBody"], {
                                             children: blindSpots.map((item, index)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableRow"], {
@@ -2694,61 +2552,61 @@ function KnowledgeContent() {
                                                             children: item.question_pattern || item.question || item.query
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 240,
-                                                            columnNumber: 81
+                                                            lineNumber: 167,
+                                                            columnNumber: 318
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableCell"], {
                                                             children: item.count || 1
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 240,
-                                                            columnNumber: 158
+                                                            lineNumber: 167,
+                                                            columnNumber: 395
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f2e$pnpm$2f$next$40$16$2e$0$2e$10_react$2d$dom$40$19$2e$2$2e$0_react$40$19$2e$2$2e$0_$5f$react$40$19$2e$2$2e$0$2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["TableCell"], {
                                                             children: item.last_asked_at || item.created_at || "-"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                            lineNumber: 240,
-                                                            columnNumber: 198
+                                                            lineNumber: 167,
+                                                            columnNumber: 435
                                                         }, this)
                                                     ]
                                                 }, index, true, {
                                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                                    lineNumber: 240,
-                                                    columnNumber: 59
+                                                    lineNumber: 167,
+                                                    columnNumber: 296
                                                 }, this))
                                         }, void 0, false, {
                                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                                            lineNumber: 240,
-                                            columnNumber: 15
+                                            lineNumber: 167,
+                                            columnNumber: 252
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/dg/knowledge-content.tsx",
-                                    lineNumber: 238,
-                                    columnNumber: 13
+                                    lineNumber: 167,
+                                    columnNumber: 120
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/dg/knowledge-content.tsx",
-                            lineNumber: 236,
-                            columnNumber: 11
+                            lineNumber: 167,
+                            columnNumber: 36
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/dg/knowledge-content.tsx",
-                        lineNumber: 235,
+                        lineNumber: 167,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/components/dg/knowledge-content.tsx",
-                lineNumber: 148,
+                lineNumber: 130,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/components/dg/knowledge-content.tsx",
-        lineNumber: 138,
+        lineNumber: 124,
         columnNumber: 5
     }, this);
 }

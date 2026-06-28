@@ -48,20 +48,52 @@ const state = {
   liveTalkingBase: localStorage.getItem("dg_livetalking_base") || "http://127.0.0.1:8010",
   avatarEngine: "live2d",
   humanConfig: null,
-  visitorHumanConfig: JSON.parse(localStorage.getItem("dg_visitor_human_config") || "null"),
-  history: JSON.parse(localStorage.getItem("dg_conversation_history") || "[]"),
+  visitorHumanConfig: safeJSONParse(localStorage.getItem("dg_visitor_human_config"), null),
+  history: normalizeHistory(safeJSONParse(localStorage.getItem("dg_conversation_history"), [])),
   routeMap: null,
   routeMarkers: [],
   routePolyline: null,
   routeSpots: [],
   selectedRouteSpot: -1,
-  latestRoutePlan: JSON.parse(localStorage.getItem("dg_latest_route_plan") || "null"),
+  latestRoutePlan: safeJSONParse(localStorage.getItem("dg_latest_route_plan"), null),
   routeCatalogLoaded: false,
   routeCatalogLoading: null,
   latestRoutePreference: "",
 };
 
 const $ = (id) => document.getElementById(id);
+
+function safeJSONParse(value, fallback) {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeHistoryItem(item = {}) {
+  const messages = Array.isArray(item.messages)
+    ? item.messages
+        .filter((msg) => msg && typeof msg === "object")
+        .map((msg) => ({
+          role: msg.role === "user" ? "user" : "assistant",
+          content: String(msg.content || ""),
+        }))
+        .filter((msg) => msg.content)
+    : [];
+  return {
+    ...item,
+    id: item.id || item.conversation_id || crypto.randomUUID(),
+    title: item.title || item.name || "新的导览会话",
+    messages,
+    updatedAt: item.updatedAt || item.updated_at || new Date().toISOString(),
+  };
+}
+
+function normalizeHistory(value) {
+  return Array.isArray(value) ? value.map(normalizeHistoryItem).filter((item) => item.id) : [];
+}
 const defaultInterests = ["历史文化", "自然风光", "休闲娱乐", "亲子游", "摄影打卡"];
 const scenicSpots = [
   {
@@ -692,8 +724,6 @@ async function connectLiveTalking() {
 
 async function speakWithLiveTalking(text, emotion = "neutral", interrupt = true) {
   if (!text || state.avatarEngine !== "livetalking" || !state.liveTalkingSessionId) return false;
-  const speechConfig = currentSpeechConfig();
-  const speedMap = { slow: 0.85, medium: 1, fast: 1.2 };
   const res = await fetch(`${liveTalkingBase()}/human`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -703,9 +733,8 @@ async function speakWithLiveTalking(text, emotion = "neutral", interrupt = true)
       type: "echo",
       interrupt,
       tts: {
-        voice: speechConfig.voiceGender === "male" ? "zh-CN-YunxiNeural" : "zh-CN-XiaoxiaoNeural",
-        rate: speedMap[speechConfig.voiceSpeed],
-        emotion: speechConfig.expressionStyle || emotion,
+        voice: state.humanConfig?.voice_gender === "male" ? "zh-CN-YunxiNeural" : "zh-CN-XiaoxiaoNeural",
+        emotion,
       },
     }),
   });
@@ -904,33 +933,31 @@ function styleLive2DModel() {
 function setHumanState({ speaking = false, thinking = false, emotion = "neutral" } = {}) {
   const human = $("digitalHuman");
   const anchor = $("virtualAnchor");
-  const expressionStyle = state.humanConfig?.expression_style || "lively";
-  const effectiveEmotion = speechEmotion(emotion, expressionStyle);
   human.classList.toggle("speaking", speaking);
   human.classList.toggle("thinking", thinking);
   human.classList.remove("neutral", "happy", "thinking-emotion", "sorry");
-  human.classList.add(effectiveEmotion === "thinking" ? "thinking-emotion" : effectiveEmotion || "neutral");
+  human.classList.add(emotion === "thinking" ? "thinking-emotion" : emotion || "neutral");
   if (anchor) {
     anchor.classList.toggle("speaking", speaking);
     anchor.classList.toggle("thinking", thinking);
     anchor.classList.remove("neutral", "happy", "thinking-emotion", "sorry");
-    anchor.classList.add(effectiveEmotion === "thinking" ? "thinking-emotion" : effectiveEmotion || "neutral");
+    anchor.classList.add(emotion === "thinking" ? "thinking-emotion" : emotion || "neutral");
   }
   $("humanState").textContent = speaking ? "正在讲解" : thinking ? "正在思考" : "在线待命";
   if (state.avatarEngine === "live2d" && state.live2dModel) {
     try {
       if (speaking && !state.live2dSpeaking) {
         state.live2dSpeaking = true;
-        state.live2dModel.motion?.(expressionStyle === "calm" ? "Idle" : "Tap");
+        state.live2dModel.motion?.("Tap");
       }
       if (!speaking && state.live2dSpeaking) {
         state.live2dSpeaking = false;
         state.live2dModel.motion?.("Idle", 0);
       }
       if (state.humanConfig?.appearance === "hanfu") {
-        if (effectiveEmotion === "happy") state.live2dModel.expression?.("blush");
-        if (effectiveEmotion === "sorry") state.live2dModel.expression?.("sad");
-      } else if (effectiveEmotion === "happy") {
+        if (emotion === "happy") state.live2dModel.expression?.("blush");
+        if (emotion === "sorry") state.live2dModel.expression?.("sad");
+      } else if (emotion === "happy") {
         state.live2dModel.expression?.(0);
       }
     } catch {}
@@ -975,7 +1002,8 @@ function applyHumanConfig(cfg = {}) {
   }
   const avatar = $("humanAvatarImage");
   if (avatar) {
-    avatar.src = merged.avatar_url || "";
+    if (merged.avatar_url) avatar.src = merged.avatar_url;
+    else avatar.removeAttribute("src");
     human.classList.toggle("has-avatar", Boolean(merged.avatar_url));
   }
   syncVisitorHumanControls(merged);
@@ -1272,7 +1300,7 @@ function updateConversationTitle(title = "") {
 }
 
 function persistHistory() {
-  state.history = state.history.slice(0, 30);
+  state.history = normalizeHistory(state.history).slice(0, 30);
   localStorage.setItem("dg_conversation_history", JSON.stringify(state.history));
   renderHistoryList();
 }
@@ -1284,6 +1312,7 @@ function upsertConversationHistory({ id, title, greeting = "" }) {
     item = { id, title: title || "新的导览会话", messages: [], updatedAt: new Date().toISOString() };
     state.history.unshift(item);
   }
+  item.messages = Array.isArray(item.messages) ? item.messages : [];
   item.title = title || item.title;
   item.updatedAt = new Date().toISOString();
   if (greeting && !item.messages.length) item.messages.push({ role: "assistant", content: greeting });
@@ -1297,6 +1326,7 @@ function saveMessageToHistory(role, content) {
     item = { id: state.conversationId, title: content.slice(0, 24), messages: [], updatedAt: new Date().toISOString() };
     state.history.unshift(item);
   }
+  item.messages = Array.isArray(item.messages) ? item.messages : [];
   const last = item.messages[item.messages.length - 1];
   if (last && last.role === role && last.content === content) return;
   item.messages.push({ role, content });
@@ -1309,6 +1339,7 @@ function saveMessageToHistory(role, content) {
 function renderHistoryList() {
   const list = $("historyList");
   if (!list) return;
+  state.history = normalizeHistory(state.history);
   if (!state.history.length) {
     list.innerHTML = '<div class="empty-history">暂无历史会话</div>';
     return;
@@ -1396,6 +1427,7 @@ function deleteHistoryItem(id) {
 async function loadConversationFromHistory(id) {
   const item = state.history.find((entry) => entry.id === id);
   if (!item) return;
+  item.messages = Array.isArray(item.messages) ? item.messages : [];
   state.conversationId = id;
   updateConversationTitle(item.title);
   $("chatMessages").innerHTML = "";
@@ -1602,11 +1634,21 @@ function splitCompletedSentences(text, flush = false) {
   let rest = text;
   let queuedCount = state.speechSegmentsQueued;
   while (!flush && rest.length) {
-    // Keep punctuation inside one synthesized audio segment so Edge TTS can
-    // apply its own natural prosody. Splitting exactly at punctuation creates
-    // an additional network/decode gap between two MP3 files.
-    const targetLength = queuedCount === 0 ? 32 : 52;
-    const cutAt = rest.length >= targetLength ? targetLength : -1;
+    const targetLength = queuedCount === 0 ? 12 : 22;
+    const maxLength = queuedCount === 0 ? 15 : 25;
+    let sentenceEnd = -1;
+    const inspectLength = Math.min(rest.length, maxLength);
+    for (let index = 0; index < inspectLength; index += 1) {
+      if (/[。！？!?]/.test(rest[index]) && index + 1 >= 8) {
+        sentenceEnd = index + 1;
+        break;
+      }
+    }
+    const cutAt = sentenceEnd > 0
+      ? sentenceEnd
+      : rest.length >= targetLength
+        ? targetLength
+        : -1;
     if (cutAt < 0) break;
     const segment = rest.slice(0, cutAt).trim();
     if (segment) {
@@ -1622,24 +1664,7 @@ function splitCompletedSentences(text, flush = false) {
   return { sentences: parts, rest };
 }
 
-function currentSpeechConfig() {
-  const cfg = state.humanConfig || {};
-  return {
-    voiceGender: cfg.voice_gender === "male" ? "male" : "female",
-    voiceSpeed: ["slow", "medium", "fast"].includes(cfg.voice_speed) ? cfg.voice_speed : "medium",
-    expressionStyle: ["lively", "calm", "warm"].includes(cfg.expression_style) ? cfg.expression_style : "lively",
-  };
-}
-
-function speechEmotion(emotion = "neutral", expressionStyle = currentSpeechConfig().expressionStyle) {
-  if (emotion === "thinking") return "thinking";
-  if (emotion && emotion !== "neutral") return emotion;
-  if (expressionStyle === "lively") return "happy";
-  if (expressionStyle === "warm") return "happy";
-  return "neutral";
-}
-
-function prepareSpeechAudio(text, runId, speechConfig = currentSpeechConfig()) {
+function prepareSpeechAudio(text, runId) {
   const controller = new AbortController();
   state.speechFetchControllers.add(controller);
   const requestId = ++state.ttsRequestSeq;
@@ -1650,13 +1675,7 @@ function prepareSpeechAudio(text, runId, speechConfig = currentSpeechConfig()) {
   return fetch(`${apiBase()}/api/voice/tts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      conversation_id: state.conversationId,
-      text,
-      language: "zh",
-      voice_gender: speechConfig.voiceGender,
-      voice_speed: speechConfig.voiceSpeed,
-    }),
+    body: JSON.stringify({ conversation_id: state.conversationId, text }),
     signal: controller.signal,
   }).then(async (res) => {
     if (!res.ok || runId !== state.speechRunId) return null;
@@ -1676,17 +1695,10 @@ function enqueueSpeech(text, emotion = "neutral") {
   const extra = state.humanConfig?.extra_config || {};
   if (!clean || extra.tts_enabled === false || extra.auto_voice === false) return;
   const runId = state.speechRunId;
-  const speechConfig = currentSpeechConfig();
-  const effectiveEmotion = speechEmotion(emotion, speechConfig.expressionStyle);
   const audioPromise = state.avatarEngine === "livetalking" && state.liveTalkingSessionId
     ? null
-    : prepareSpeechAudio(clean, runId, speechConfig);
-  state.speechQueue.push({
-    text: clean,
-    emotion: effectiveEmotion,
-    speechConfig,
-    audioPromise,
-  });
+    : prepareSpeechAudio(clean, runId);
+  state.speechQueue.push({ text: clean, emotion, audioPromise });
   state.speechSegmentsQueued += 1;
   console.log("[TTS enqueue]", Date.now(), clean.length, clean);
   processSpeechQueue().catch(() => {
@@ -1721,23 +1733,17 @@ async function playAudioBlob(blob, emotion, runId, text = "") {
   });
 }
 
-function speakWithBrowserTTS(text, emotion, runId, speechConfig = currentSpeechConfig()) {
+function speakWithBrowserTTS(text, emotion, runId) {
   if (!("speechSynthesis" in window) || runId !== state.speechRunId) return Promise.resolve();
   return new Promise((resolve) => {
     const utterance = new SpeechSynthesisUtterance(text);
-    const speedMap = { slow: 0.85, medium: 1, fast: 1.2 };
+    const speedMap = { slow: 0.86, medium: 1, fast: 1.14 };
     utterance.lang = "zh-CN";
-    utterance.rate = speedMap[speechConfig.voiceSpeed] || 1;
-    utterance.pitch = speechConfig.voiceGender === "male" ? 0.88 : 1.04;
+    utterance.rate = speedMap[state.humanConfig?.voice_speed] || 1;
+    utterance.pitch = state.humanConfig?.voice_gender === "male" ? 0.88 : 1.04;
     utterance.volume = Math.max(0, Math.min(1, Number(state.humanConfig?.extra_config?.volume ?? 100) / 100));
     const voices = window.speechSynthesis.getVoices();
-    const chineseVoices = voices.filter((voice) => voice.lang.toLowerCase().startsWith("zh"));
-    const preferredPattern = speechConfig.voiceGender === "male"
-      ? /(yunxi|yunjian|male|男)/i
-      : /(xiaoxiao|xiaoyi|huihui|female|女)/i;
-    utterance.voice = chineseVoices.find((voice) => preferredPattern.test(`${voice.name} ${voice.voiceURI}`))
-      || chineseVoices[0]
-      || null;
+    utterance.voice = voices.find((voice) => voice.lang.toLowerCase().startsWith("zh")) || null;
     const finish = () => {
       if (state.browserMouthTimer) {
         window.clearInterval(state.browserMouthTimer);
@@ -1762,7 +1768,7 @@ function speakWithBrowserTTS(text, emotion, runId, speechConfig = currentSpeechC
 
 async function speakSentence(item, runId) {
   if (runId !== state.speechRunId) return;
-  const { text, emotion, speechConfig, audioPromise } = item;
+  const { text, emotion, audioPromise } = item;
   if (state.avatarEngine === "livetalking" && state.liveTalkingSessionId) {
     const accepted = await speakWithLiveTalking(text, emotion, false);
     if (accepted) await waitForLiveTalkingSpeech(runId, text.length);
@@ -1772,7 +1778,7 @@ async function speakSentence(item, runId) {
   if (runId !== state.speechRunId) return;
   if (!blob || blob.size === 0) {
     console.warn("[TTS fallback] backend audio unavailable, using browser speech synthesis");
-    await speakWithBrowserTTS(text, emotion, runId, speechConfig);
+    await speakWithBrowserTTS(text, emotion, runId);
     return;
   }
   await playAudioBlob(blob, emotion, runId, text);
@@ -2111,7 +2117,7 @@ function createNumberedIcon(index, active = false) {
 function initRouteMap() {
   if (state.routeMap || !$("leafletRouteMap")) return state.routeMap;
   if (!window.L) {
-    $("routeMapError")?.classList.remove("hidden");
+    renderFallbackRouteMap(state.routeSpots);
     return null;
   }
   try {
@@ -2131,6 +2137,39 @@ function initRouteMap() {
     $("routeMapError")?.classList.remove("hidden");
     return null;
   }
+}
+
+function renderFallbackRouteMap(spots = []) {
+  const map = $("leafletRouteMap");
+  if (!map) return;
+  const positioned = spots.filter((spot) => spot.hasCoordinates);
+  const minLat = Math.min(...positioned.map((spot) => spot.lat), 31.419);
+  const maxLat = Math.max(...positioned.map((spot) => spot.lat), 31.435);
+  const minLng = Math.min(...positioned.map((spot) => spot.lng), 120.084);
+  const maxLng = Math.max(...positioned.map((spot) => spot.lng), 120.101);
+  const latSpan = Math.max(0.001, maxLat - minLat);
+  const lngSpan = Math.max(0.001, maxLng - minLng);
+  const points = positioned.map((spot, index) => {
+    const left = 10 + ((spot.lng - minLng) / lngSpan) * 80;
+    const top = 90 - ((spot.lat - minLat) / latSpan) * 80;
+    const originalIndex = spots.indexOf(spot);
+    return `
+      <button class="fallback-map-point" type="button" data-fallback-route-index="${originalIndex}" style="left:${left}%;top:${top}%">
+        <span>${originalIndex + 1}</span>
+        <small>${escapeHTML(spot.name)}</small>
+      </button>
+    `;
+  }).join("");
+  map.innerHTML = `
+    <div class="fallback-route-map">
+      <div class="fallback-map-grid"></div>
+      <div class="fallback-map-path"></div>
+      ${points || '<div class="fallback-map-empty">路线景点暂无坐标，仍可在左侧查看推荐顺序</div>'}
+    </div>
+  `;
+  map.querySelectorAll("[data-fallback-route-index]").forEach((btn) => {
+    btn.onclick = () => selectSpot(Number(btn.dataset.fallbackRouteIndex), { moveMap: false, showDetails: true });
+  });
 }
 
 function clearRouteLayer() {
@@ -2310,7 +2349,10 @@ function showRouteSpotDetail(spot, index) {
 
 function renderRouteMarkers(spots) {
   const map = initRouteMap();
-  if (!map) return;
+  if (!map) {
+    renderFallbackRouteMap(spots);
+    return;
+  }
   const points = [];
   spots.forEach((spot, index) => {
     if (!spot.hasCoordinates) {

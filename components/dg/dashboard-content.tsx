@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Area,
   AreaChart,
@@ -9,42 +9,98 @@ import {
   Cell,
   Pie,
   PieChart,
-  PolarAngleAxis,
-  PolarGrid,
-  Radar,
-  RadarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts"
-import { Activity, ArrowUpRight, FlaskConical, MessageSquare, Play, RefreshCw, Star, Timer, TrendingUp } from "lucide-react"
+import { AlertCircle, ArrowUpRight, BarChart3, Bot, Database, FileText, Map, MessageSquare, RefreshCw, Star, Timer } from "lucide-react"
 import { AdminFrame } from "@/components/dg/admin-frame"
+import { authHeaders, requestWithTimeout, token } from "@/components/dg/api"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { authHeaders, demoData, request, requestAdminData } from "@/components/dg/api"
+
+type RangeValue = "today" | "week" | "month"
 
 type DashboardState = {
-  overview: any
-  satisfaction: any
+  overview: Record<string, any>
+  satisfaction: { trend?: any[]; distribution?: Record<string, number> }
   emotions: Record<string, number>
   hotQuestions: any[]
   interests: Record<string, number>
   hotSpots: any[]
-  source: "backend" | "demo" | "mixed" | "loading"
 }
 
-const initialState: DashboardState = {
-  overview: null,
-  satisfaction: null,
+const emptyState: DashboardState = {
+  overview: {},
+  satisfaction: { trend: [], distribution: {} },
   emotions: {},
   hotQuestions: [],
   interests: {},
   hotSpots: [],
-  source: "loading",
 }
 
-const chartColors = ["#007a2f", "#0f9f6e", "#e4c65d", "#6f8d99", "#d96b6b", "#8bbf9f", "#1b6b50"]
+const label = {
+  title: "\u4EEA\u8868\u76D8",
+  desc: "\u67E5\u770B\u5BFC\u89C8\u670D\u52A1\u8FD0\u884C\u60C5\u51B5\u3001\u6E38\u5BA2\u504F\u597D\u4E0E\u77E5\u8BC6\u547D\u4E2D\u8868\u73B0\u3002",
+  backend: "\u540E\u7AEF\u5B9E\u65F6\u6570\u636E",
+  refresh: "\u5237\u65B0\u6570\u636E",
+  loading: "\u6B63\u5728\u8BFB\u53D6\u540E\u7AEF\u5B9E\u65F6\u6570\u636E",
+  empty: "\u6682\u65E0\u6570\u636E",
+  authWait: "\u7B49\u5F85\u767B\u5F55\u51ED\u8BC1\u5C31\u7EEA",
+  conversations: "\u603B\u4F1A\u8BDD",
+  messages: "\u603B\u6D88\u606F",
+  response: "\u5E73\u5747\u54CD\u5E94\u65F6\u95F4",
+  satisfaction: "\u6EE1\u610F\u5EA6",
+  rag: "RAG \u547D\u4E2D\u7387",
+  today: "\u4ECA\u65E5",
+  rangeToday: "\u4ECA\u65E5",
+  rangeWeek: "\u6700\u8FD1 7 \u5929",
+  rangeMonth: "\u6700\u8FD1 30 \u5929",
+  satTrend: "\u6EE1\u610F\u5EA6\u8D8B\u52BF",
+  satNote: "\u6BCF\u65E5\u5747\u5206\u4E0E\u8BC4\u5206\u6784\u6210",
+  avgScore: "\u5E73\u5747\u8BC4\u5206",
+  emotion: "\u60C5\u7EEA\u8D8B\u52BF",
+  emotionNote: "AI \u56DE\u590D\u60C5\u7EEA\u6807\u7B7E\u5206\u5E03",
+  hotQuestions: "\u70ED\u95E8\u95EE\u9898",
+  hotQuestionsNote: "\u9AD8\u9891\u6E38\u5BA2\u95EE\u9898\uFF0C\u5355\u884C\u663E\u793A\uFF0C\u70B9\u51FB\u67E5\u770B\u5168\u6587",
+  interests: "\u5174\u8DA3\u5206\u5E03",
+  interestsNote: "\u4F1A\u8BDD\u4E2D\u7684\u6E38\u5BA2\u5174\u8DA3\u5206\u5E03",
+  spots: "\u70ED\u95E8\u666F\u70B9",
+  spotsNote: "\u6E38\u5BA2\u54A8\u8BE2\u4E2D\u88AB\u63D0\u53CA\u7684\u666F\u70B9",
+  fullQuestion: "\u95EE\u9898\u5168\u6587",
+  count: "\u6B21",
+  noToken: "\u5C1A\u672A\u83B7\u53D6\u767B\u5F55\u51ED\u8BC1\uFF0C\u5DF2\u6682\u505C\u8BF7\u6C42\u3002",
+  partial: "\u90E8\u5206\u63A5\u53E3\u6682\u65F6\u672A\u8FD4\u56DE\uFF0C\u5DF2\u5148\u663E\u793A\u53EF\u7528\u7684\u771F\u5B9E\u6570\u636E\u3002",
+  quickActions: "\u5FEB\u6377\u64CD\u4F5C",
+  uploadKnowledge: "\u4E0A\u4F20\u77E5\u8BC6\u6587\u6863",
+  viewBlind: "\u67E5\u770B\u77E5\u8BC6\u76F2\u70B9",
+  manageScenic: "\u7BA1\u7406\u666F\u533A\u6570\u636E",
+  configHuman: "\u914D\u7F6E\u6570\u5B57\u4EBA",
+}
+
+const colors = ["#007A2F", "#12B981", "#E0B43F", "#6F8D99", "#D66A6A", "#0F6F55", "#A0C878"]
+
+function itemsOf(data: any) {
+  return Array.isArray(data) ? data : data?.items || []
+}
+
+function rangeText(range: RangeValue) {
+  if (range === "today") return label.rangeToday
+  if (range === "month") return label.rangeMonth
+  return label.rangeWeek
+}
+
+function formatNumber(value: unknown) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number.toLocaleString("zh-CN") : "-"
+}
+
+function formatPercent(value: unknown) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return "-"
+  return `${Math.round(number * 100)}%`
+}
 
 function responseTime(value: unknown) {
   const ms = Number(value)
@@ -54,27 +110,22 @@ function responseTime(value: unknown) {
 
 function shortDate(value: unknown) {
   const text = String(value || "")
-  if (!text) return "-"
-  if (text.includes("-")) return text.slice(5).replace("-", "/")
-  return text
+  return text.includes("-") ? text.slice(5).replace("-", "/") : text || "-"
 }
 
-function StatCard({ title, value, note, icon: Icon, active, delay }: any) {
+function StatCard({ title, value, note, icon: Icon, active }: any) {
   return (
-    <Card
-      className={`${active ? "bg-primary text-primary-foreground" : "bg-card text-foreground"} cursor-pointer p-5 shadow-lg transition-all duration-500 ease-out animate-slide-in-up hover:scale-[1.03] hover:shadow-2xl`}
-      style={{ animationDelay: delay }}
-    >
-      <div className="mb-1 flex items-start justify-between">
+    <Card className={`${active ? "bg-primary text-primary-foreground" : "bg-card text-foreground"} p-5 shadow-lg transition-all duration-300 hover:scale-[1.02]`}>
+      <div className="mb-4 flex items-start justify-between">
         <h3 className="text-sm font-medium opacity-90">{title}</h3>
-        <div className={`${active ? "bg-primary-foreground/20" : "bg-primary"} flex h-7 w-7 items-center justify-center rounded-full transition-transform duration-300 group-hover:rotate-45`}>
-          <ArrowUpRight className="h-3.5 w-3.5 text-primary-foreground" />
+        <div className={`${active ? "bg-primary-foreground/20" : "bg-primary"} flex h-8 w-8 items-center justify-center rounded-full`}>
+          <ArrowUpRight className="h-4 w-4 text-primary-foreground" />
         </div>
       </div>
-      <p className="mb-2 text-4xl font-bold">{value}</p>
+      <p className="mb-4 text-4xl font-bold">{value}</p>
       <div className="flex items-center gap-1.5 text-xs opacity-80">
         <Icon className="h-3.5 w-3.5" />
-        <span>{note}</span>
+        {note}
       </div>
     </Card>
   )
@@ -84,7 +135,7 @@ function PanelHeader({ title, note, range }: { title: string; note: string; rang
   return (
     <div className="mb-5 flex items-start justify-between gap-3">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+        <h2 className="text-xl font-semibold">{title}</h2>
         <p className="mt-1 text-xs text-muted-foreground">{note}</p>
       </div>
       <span className="shrink-0 text-xs text-muted-foreground">{range}</span>
@@ -92,360 +143,266 @@ function PanelHeader({ title, note, range }: { title: string; note: string; rang
   )
 }
 
-function EmptyChart({ text = "暂无数据" }: { text?: string }) {
-  return <div className="grid h-full min-h-48 place-items-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">{text}</div>
+function EmptyBox({ text = label.empty }: { text?: string }) {
+  return <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">{text}</div>
 }
 
-function SatisfactionPanel({ trend, distribution }: { trend: any[]; distribution: Record<string, number> }) {
-  const lineData = trend.map((item) => ({
-    date: shortDate(item.date),
-    rating: Number(item.avg_rating || 0),
-    count: Number(item.count || 0),
-  }))
-  const pieData = Object.entries(distribution || {}).map(([name, value]) => ({ name: `${name}星`, value: Number(value) }))
-  const total = pieData.reduce((sum, item) => sum + item.value, 0)
-  const average = lineData.length ? lineData.reduce((sum, item) => sum + item.rating, 0) / lineData.length : 0
+async function safeRequest<T>(path: string, fallback: T, timeoutMs = 9000) {
+  try {
+    return { data: await requestWithTimeout<T>(path, { headers: authHeaders() }, timeoutMs), ok: true }
+  } catch (error) {
+    console.warn(`[Dashboard] ${path}`, error)
+    return { data: fallback, ok: false }
+  }
+}
+
+function ProgressList({ entries }: { entries: { name: string; value: number }[] }) {
+  const max = Math.max(...entries.map((item) => item.value), 1)
+  if (!entries.length) return <EmptyBox />
+  return (
+    <div className="space-y-4">
+      {entries.slice(0, 8).map((item, index) => (
+        <div key={item.name} className="grid grid-cols-[80px_1fr_42px] items-center gap-3 text-sm">
+          <span className="truncate text-foreground">{item.name}</span>
+          <div className="h-2 rounded-full bg-muted">
+            <div className="h-full rounded-full" style={{ width: `${Math.max(6, (item.value / max) * 100)}%`, backgroundColor: colors[index % colors.length] }} />
+          </div>
+          <strong className="text-right">{item.value}</strong>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SatisfactionPanel({ data, range }: { data: DashboardState["satisfaction"]; range: RangeValue }) {
+  const trend = (data?.trend || []).map((item: any) => ({ date: shortDate(item.date), rating: Number(item.avg_rating || 0) }))
+  const distribution = Object.entries(data?.distribution || {}).map(([name, value]) => ({ name: `${name} star`, value: Number(value) }))
+  const average = trend.length ? trend.reduce((sum, item) => sum + item.rating, 0) / trend.length : 0
 
   return (
-    <Card className="animate-slide-in-up p-6 shadow-lg transition-all duration-500 hover:shadow-xl">
-      <PanelHeader title="满意度趋势" note="每日均分与评分构成" range="最近 7 天" />
-      <div className="grid gap-5 lg:grid-cols-[1fr_260px]">
-        <div className="h-72 min-w-0">
-          {lineData.length ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={lineData} margin={{ top: 8, right: 18, left: -18, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="ratingFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#007a2f" stopOpacity={0.28} />
-                    <stop offset="95%" stopColor="#007a2f" stopOpacity={0.03} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#e5ebe4" vertical={false} />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#6f766d", fontSize: 12 }} />
-                <YAxis domain={[0, 5]} tickLine={false} axisLine={false} tick={{ fill: "#6f766d", fontSize: 12 }} />
-                <Tooltip formatter={(value: any) => [`${Number(value).toFixed(1)} 分`, "满意度"]} />
-                <Area type="monotone" dataKey="rating" stroke="#007a2f" strokeWidth={3} fill="url(#ratingFill)" activeDot={{ r: 5 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <EmptyChart />
-          )}
-        </div>
-
-        <div className="grid h-72 place-items-center">
-          {pieData.length ? (
-            <div className="relative h-full w-full">
-              <ResponsiveContainer width="100%" height="100%">
+    <Card className="p-6 shadow-lg">
+      <PanelHeader title={label.satTrend} note={label.satNote} range={rangeText(range)} />
+      {trend.length ? (
+        <div className="grid min-h-[300px] gap-6 lg:grid-cols-[1fr_210px]">
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={trend} margin={{ left: 0, right: 12, top: 8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E6EEE8" />
+              <XAxis dataKey="date" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0, 5]} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+              <Tooltip />
+              <Area type="monotone" dataKey="rating" stroke="#007A2F" fill="#DDF3EA" strokeWidth={3} />
+            </AreaChart>
+          </ResponsiveContainer>
+          <div className="grid place-items-center">
+            {distribution.length ? (
+              <ResponsiveContainer width="100%" height={210}>
                 <PieChart>
-                  <Pie data={pieData} innerRadius={68} outerRadius={92} paddingAngle={2} dataKey="value">
-                    {pieData.map((entry, index) => (
-                      <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />
-                    ))}
+                  <Pie data={distribution} dataKey="value" innerRadius={56} outerRadius={78} paddingAngle={2}>
+                    {distribution.map((_, index) => <Cell key={index} fill={colors[index % colors.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(value: any) => [`${value} 次`, "评分"]} />
+                  <Tooltip />
+                  <text x="50%" y="48%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-3xl font-bold">
+                    {average.toFixed(1)}
+                  </text>
+                  <text x="50%" y="61%" textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground text-xs">
+                    {label.avgScore}
+                  </text>
                 </PieChart>
               </ResponsiveContainer>
-              <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
-                <div>
-                  <strong className="block text-3xl">{average ? average.toFixed(1) : "-"}</strong>
-                  <span className="text-xs text-muted-foreground">平均评分</span>
-                </div>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                {pieData.map((item, index) => (
-                  <span key={item.name} className="inline-flex items-center gap-1">
-                    <i className="h-2 w-2 rounded-full" style={{ backgroundColor: chartColors[index % chartColors.length] }} />
-                    {item.name} {total ? Math.round((item.value / total) * 100) : 0}%
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <EmptyChart />
-          )}
+            ) : <EmptyBox />}
+          </div>
         </div>
-      </div>
+      ) : <EmptyBox />}
     </Card>
   )
 }
 
-function EmotionPanel({ data }: { data: Record<string, number> }) {
-  const rows = Object.entries(data || {}).map(([name, value]) => ({ name, value: Number(value) }))
-  const max = Math.max(...rows.map((item) => item.value), 1)
-
-  return (
-    <Card className="animate-slide-in-up p-6 shadow-lg transition-all duration-500 hover:shadow-xl" style={{ animationDelay: "120ms" }}>
-      <PanelHeader title="情绪趋势" note="AI 回复情绪标签分布" range="最近 7 天" />
-      <div className="space-y-5">
-        {rows.length ? rows.map((item, index) => (
-          <div key={item.name} className="grid grid-cols-[52px_1fr_34px] items-center gap-3 text-sm">
-            <span className="truncate">{item.name}</span>
-            <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${Math.max(5, (item.value / max) * 100)}%`, backgroundColor: chartColors[index % chartColors.length] }}
-              />
-            </div>
-            <strong className="text-right">{item.value}</strong>
-          </div>
-        )) : <EmptyChart />}
-      </div>
-    </Card>
-  )
-}
-
-function InterestRadarPanel({ data }: { data: Record<string, number> }) {
-  const radarData = Object.entries(data || {}).map(([name, value]) => ({ name, value: Number(value) }))
-
-  return (
-    <Card className="animate-slide-in-up p-6 shadow-lg transition-all duration-500 hover:shadow-xl">
-      <PanelHeader title="兴趣分布" note="会话偏好标签统计" range="最近 30 天" />
-      <div className="h-80">
-        {radarData.length ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={radarData} outerRadius="72%">
-              <PolarGrid stroke="#dde7dd" />
-              <PolarAngleAxis dataKey="name" tick={{ fill: "#485148", fontSize: 12 }} />
-              <Radar dataKey="value" stroke="#007a2f" fill="#007a2f" fillOpacity={0.18} strokeWidth={2} />
-              <Tooltip formatter={(value: any) => [`${value}`, "兴趣次数"]} />
-            </RadarChart>
-          </ResponsiveContainer>
-        ) : (
-          <EmptyChart />
-        )}
-      </div>
-    </Card>
-  )
-}
-
-function HotQuestionsPanel({ items }: { items: any[] }) {
-  return (
-    <Card className="animate-slide-in-up p-6 shadow-lg transition-all duration-500 hover:shadow-xl" style={{ animationDelay: "180ms" }}>
-      <PanelHeader title="热门问题" note="高频咨询与关键词" range="最近 7 天" />
-      <div className="space-y-3">
-        {items.length ? items.slice(0, 6).map((item, index) => (
-          <div key={`${item.question_pattern}-${index}`} className="rounded-lg border border-border p-3 transition-all duration-300 hover:scale-[1.02] hover:bg-secondary">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-sm font-medium leading-6">{item.question_pattern}</p>
-              <strong className="text-sm text-primary">{item.count}</strong>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">咨询次数</p>
-          </div>
-        )) : <EmptyChart />}
-      </div>
-    </Card>
-  )
-}
-
-function HotSpotsPanel({ items }: { items: any[] }) {
-  const max = Math.max(...items.map((item) => Number(item.mention_count || 0)), 1)
-
-  return (
-    <Card className="animate-slide-in-up p-6 shadow-lg transition-all duration-500 hover:shadow-xl" style={{ animationDelay: "240ms" }}>
-      <PanelHeader title="热门景点" note="游客消息中的景点提及" range="最近 7 天" />
-      <div className="space-y-4">
-        {items.length ? items.map((item, index) => (
-          <div key={`${item.spot_name}-${index}`} className="grid grid-cols-[28px_1fr_48px] items-center gap-3 text-sm">
-            <span className="font-bold text-primary">{index + 1}</span>
-            <div>
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <strong className="truncate">{item.spot_name}</strong>
-              </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${Math.max(5, (Number(item.mention_count || 0) / max) * 100)}%` }} />
-              </div>
-            </div>
-            <span className="text-right text-muted-foreground">{item.mention_count}</span>
-          </div>
-        )) : <EmptyChart />}
-      </div>
-    </Card>
-  )
-}
-
-function TestReportPanel() {
-  const [report, setReport] = useState<any>(null)
-  const [status, setStatus] = useState("尚未读取测试报告")
-  const [loading, setLoading] = useState(false)
-
-  async function loadReport() {
-    setLoading(true)
-    try {
-      const data = await request("/api/admin/test-report", { headers: authHeaders() })
-      setReport(data)
-      setStatus("已读取后端测试报告")
-    } catch (error: any) {
-      setReport(null)
-      setStatus(error?.message || "暂无测试报告")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  async function runTests() {
-    setLoading(true)
-    setStatus("后端测试正在运行，请稍候...")
-    try {
-      const data = await request("/api/admin/test-report/run", { method: "POST", headers: authHeaders() })
-      setReport(data)
-      setStatus(Number((data as any).exit_code) === 0 ? "测试通过" : "测试完成，但存在失败项")
-    } catch (error: any) {
-      setStatus(error?.message || "测试运行失败")
-    } finally {
-      setLoading(false)
-    }
-  }
+function HotQuestionsPanel({ questions, range }: { questions: any[]; range: RangeValue }) {
+  const [selected, setSelected] = useState<any | null>(null)
+  const current = selected || questions[0] || null
 
   useEffect(() => {
-    loadReport()
-  }, [])
-
-  const unit = report?.unit_tests
-  const coverage = report?.coverage
-  const performance = report?.performance
+    setSelected(null)
+  }, [questions])
 
   return (
-    <Card className="animate-slide-in-up p-6 shadow-lg transition-all duration-500 hover:shadow-xl" style={{ animationDelay: "300ms" }}>
-      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">测试报告</h2>
-          <p className="mt-1 text-xs text-muted-foreground">{status}</p>
+    <Card className="p-6 shadow-lg">
+      <PanelHeader title={label.hotQuestions} note={label.hotQuestionsNote} range={rangeText(range)} />
+      {questions.length ? (
+        <div className="grid gap-4">
+          <div className="max-h-80 space-y-2 overflow-auto pr-1">
+            {questions.slice(0, 12).map((item, index) => {
+              const question = String(item.question_pattern || item.question || "-")
+              const active = current === item
+              return (
+                <button
+                  key={`${question}-${index}`}
+                  type="button"
+                  onClick={() => setSelected(item)}
+                  className={`${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"} grid h-11 w-full grid-cols-[1fr_52px] items-center gap-3 rounded-lg border px-3 text-left text-sm transition-colors`}
+                  title={question}
+                >
+                  <span className="truncate font-medium">{question}</span>
+                  <span className="text-right text-xs text-muted-foreground">{formatNumber(item.count)} {label.count}</span>
+                </button>
+              )
+            })}
+          </div>
+          {current && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <p className="mb-2 text-xs font-medium text-primary">{label.fullQuestion}</p>
+              <p className="text-sm leading-6 text-foreground">{String(current.question_pattern || current.question || "-")}</p>
+            </div>
+          )}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={loadReport} disabled={loading} className="bg-transparent">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            读取
-          </Button>
-          <Button size="sm" onClick={runTests} disabled={loading}>
-            <Play className="h-4 w-4" />
-            运行测试
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        <div className="rounded-xl border border-border p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium"><FlaskConical className="h-4 w-4 text-primary" />单元测试</div>
-          <strong className="text-2xl">{unit ? `${unit.passed}/${unit.total}` : "-"}</strong>
-          <p className="mt-1 text-xs text-muted-foreground">失败 {unit?.failed ?? "-"} · 跳过 {unit?.skipped ?? "-"}</p>
-        </div>
-        <div className="rounded-xl border border-border p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium"><Activity className="h-4 w-4 text-primary" />覆盖率</div>
-          <strong className="text-2xl">{coverage?.total_pct == null ? "-" : `${coverage.total_pct}%`}</strong>
-          <p className="mt-1 text-xs text-muted-foreground">按模块聚合覆盖率</p>
-        </div>
-        <div className="rounded-xl border border-border p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-medium"><Timer className="h-4 w-4 text-primary" />性能</div>
-          <strong className="text-2xl">{performance?.avg_ms == null ? "-" : `${performance.avg_ms}ms`}</strong>
-          <p className="mt-1 text-xs text-muted-foreground">RPS {performance?.rps ?? "-"} · P95 {performance?.p95_ms ?? "-"}</p>
-        </div>
-      </div>
-
-      {report?.pytest_output && (
-        <pre className="mt-4 max-h-40 overflow-auto rounded-xl bg-muted p-3 text-xs leading-6 text-muted-foreground">
-          {report.pytest_output}
-        </pre>
-      )}
+      ) : <EmptyBox />}
     </Card>
   )
 }
 
 export function DashboardContent() {
-  const [state, setState] = useState<DashboardState>(initialState)
-  const [loading, setLoading] = useState(false)
-  const [range, setRange] = useState<"today" | "week" | "month">("today")
+  const [range, setRange] = useState<RangeValue>("week")
+  const [data, setData] = useState<DashboardState>(emptyState)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [authReady, setAuthReady] = useState(false)
 
-  async function load() {
+  const load = useCallback(async () => {
+    if (!token()) {
+      setError(label.noToken)
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
-    const trendRange = range === "today" ? "week" : range
-    const results = await Promise.all([
-      requestAdminData(`/api/admin/stats/overview?range=${range}`, null),
-      requestAdminData(`/api/admin/stats/satisfaction?range=${trendRange}`, null),
-      requestAdminData(`/api/admin/stats/emotion-trend?range=${trendRange}`, { distribution: {} }),
-      requestAdminData(`/api/admin/stats/hot-questions?range=${trendRange}&limit=8`, { items: [] }),
-      requestAdminData(`/api/admin/stats/interest-distribution?range=${range === "today" ? "month" : range}`, {}),
-      requestAdminData(`/api/admin/stats/hot-spots?range=${trendRange}&limit=7`, { items: [] }),
+    setError("")
+    const [overview, satisfaction, emotionTrend, hotQuestions, interests, hotSpots] = await Promise.all([
+      safeRequest(`/api/admin/stats/overview?range=${range}`, {}),
+      safeRequest(`/api/admin/stats/satisfaction?range=${range}`, { trend: [], distribution: {} }),
+      safeRequest(`/api/admin/stats/emotion-trend?range=${range}`, { distribution: {} }),
+      safeRequest(`/api/admin/stats/hot-questions?range=${range}&limit=12`, { items: [] }),
+      safeRequest(`/api/admin/stats/interest-distribution?range=${range}`, {}),
+      safeRequest(`/api/admin/stats/hot-spots?range=${range}&limit=8`, { items: [] }),
     ])
-    setState({
-      overview: results[0].data,
-      satisfaction: results[1].data,
-      emotions: (results[2].data as any).distribution || results[2].data || {},
-      hotQuestions: (results[3].data as any).items || [],
-      interests: results[4].data as any || {},
-      hotSpots: (results[5].data as any).items || [],
-      source: "backend",
-    })
-    setLoading(false)
-  }
 
-  useEffect(() => {
-    load()
+    setData({
+      overview: overview.data || {},
+      satisfaction: satisfaction.data || { trend: [], distribution: {} },
+      emotions: (emotionTrend.data as any)?.distribution || {},
+      hotQuestions: itemsOf(hotQuestions.data),
+      interests: (interests.data as Record<string, number>) || {},
+      hotSpots: itemsOf(hotSpots.data),
+    })
+    setError([overview, satisfaction, emotionTrend, hotQuestions, interests, hotSpots].some((item) => !item.ok) ? label.partial : "")
+    setLoading(false)
   }, [range])
 
-  const stats = useMemo(() => {
-    const rag = state.overview.rag_hit_rate == null ? "-" : `${Math.round(Number(state.overview.rag_hit_rate) * 100)}%`
-    return [
-      { title: "总会话", value: state.overview.total_conversations ?? 0, note: "今日创建的游客会话", icon: MessageSquare, active: true },
-      { title: "总消息", value: state.overview.total_messages ?? 0, note: "游客与 AI 消息总量", icon: TrendingUp },
-      { title: "平均响应", value: responseTime(state.overview.avg_response_ms), note: "后端平均响应耗时", icon: Timer },
-      { title: "满意度", value: state.overview.avg_satisfaction == null ? "-" : Number(state.overview.avg_satisfaction).toFixed(1), note: `RAG 命中率 ${rag}`, icon: Star },
-    ]
-  }, [state.overview])
+  useEffect(() => {
+    if (token()) {
+      setAuthReady(true)
+      return
+    }
+
+    let attempts = 0
+    const id = window.setInterval(() => {
+      attempts += 1
+      if (token()) {
+        setAuthReady(true)
+        window.clearInterval(id)
+      }
+      if (attempts > 20) {
+        setLoading(false)
+        window.clearInterval(id)
+      }
+    }, 100)
+    return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    if (authReady) load()
+  }, [authReady, load])
+
+  const interestEntries = useMemo(
+    () => Object.entries(data.interests || {}).map(([name, value]) => ({ name, value: Number(value) })).sort((a, b) => b.value - a.value),
+    [data.interests],
+  )
+  const emotionEntries = useMemo(
+    () => Object.entries(data.emotions || {}).map(([name, value]) => ({ name, value: Number(value) })).sort((a, b) => b.value - a.value),
+    [data.emotions],
+  )
+  const spotEntries = useMemo(
+    () => (data.hotSpots || []).map((item) => ({ name: item.spot_name || item.name || "-", value: Number(item.mention_count || item.count || 0) })),
+    [data.hotSpots],
+  )
+
+  const actions = (
+    <>
+      <Button variant="outline" asChild><Link href="/settings">{label.backend}</Link></Button>
+      <Button onClick={load} disabled={loading || !authReady}>
+        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        {label.refresh}
+      </Button>
+    </>
+  )
 
   return (
-    <AdminFrame
-      title="Dashboard"
-      description="查看导览服务运行情况、游客偏好与知识命中表现。"
-      actions={
-        <>
-          <div className="flex rounded-lg border border-border bg-card p-1">
-            {[
-              ["today", "今日"],
-              ["week", "本周"],
-              ["month", "本月"],
-            ].map(([value, label]) => (
-              <Button
-                key={value}
-                size="sm"
-                variant={range === value ? "default" : "ghost"}
-                onClick={() => setRange(value as "today" | "week" | "month")}
-                className="h-7"
-              >
-                {label}
-              </Button>
-            ))}
-          </div>
-          <Button onClick={load} disabled={loading} className="h-9 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/30">
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            刷新数据
+    <AdminFrame title={label.title} description={label.desc} actions={actions}>
+      {!authReady && <Card className="mb-5 p-4 text-sm text-muted-foreground shadow-sm">{label.authWait}</Card>}
+      {error && <Card className="mb-5 border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive shadow-sm">{error}</Card>}
+
+      <div className="mb-5 flex flex-wrap gap-2">
+        {(["today", "week", "month"] as RangeValue[]).map((item) => (
+          <Button key={item} variant={range === item ? "default" : "outline"} size="sm" onClick={() => setRange(item)}>
+            {rangeText(item)}
           </Button>
-          <Button asChild variant="outline" className="h-9 bg-transparent">
-            <Link href="/settings">
-              {state.source === "backend" ? "后端实时数据" : state.source === "mixed" ? "部分演示数据" : "正在读取数据"}
-            </Link>
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((item, index) => (
-            <StatCard key={item.title} {...item} delay={`${index * 100}ms`} />
-          ))}
-        </div>
+        ))}
+      </div>
 
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.6fr_0.8fr]">
-          <SatisfactionPanel trend={state.satisfaction.trend || []} distribution={state.satisfaction.distribution || {}} />
-          <EmotionPanel data={state.emotions} />
+      <Card className="mb-5 p-4 shadow-lg">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold">{label.quickActions}</h2>
+          <AlertCircle className="h-4 w-4 text-muted-foreground" />
         </div>
-
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          <HotQuestionsPanel items={state.hotQuestions} />
-          <InterestRadarPanel data={state.interests} />
-          <HotSpotsPanel items={state.hotSpots} />
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <Button asChild variant="outline"><Link href="/knowledge"><Database className="h-4 w-4" />{label.uploadKnowledge}</Link></Button>
+          <Button asChild variant="outline"><Link href="/knowledge?tab=blind"><AlertCircle className="h-4 w-4" />{label.viewBlind}</Link></Button>
+          <Button asChild variant="outline"><Link href="/scenic"><Map className="h-4 w-4" />{label.manageScenic}</Link></Button>
+          <Button asChild variant="outline"><Link href="/human"><Bot className="h-4 w-4" />{label.configHuman}</Link></Button>
         </div>
+      </Card>
 
-        <TestReportPanel />
+      {loading ? (
+        <Card className="mb-5 p-6 text-sm text-muted-foreground shadow-lg">{label.loading}</Card>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <StatCard active title={label.conversations} value={formatNumber(data.overview.total_conversations)} note={label.today} icon={MessageSquare} />
+        <StatCard title={label.messages} value={formatNumber(data.overview.total_messages)} note={label.today} icon={FileText} />
+        <StatCard title={label.response} value={responseTime(data.overview.avg_response_ms)} note="Raw avg" icon={Timer} />
+        <StatCard title={label.satisfaction} value={data.overview.avg_satisfaction == null ? "-" : Number(data.overview.avg_satisfaction).toFixed(1)} note={label.avgScore} icon={Star} />
+        <StatCard title={label.rag} value={formatPercent(data.overview.rag_hit_rate)} note="Knowledge hit" icon={BarChart3} />
+      </div>
+
+      <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)]">
+        <SatisfactionPanel data={data.satisfaction} range={range} />
+        <Card className="p-6 shadow-lg">
+          <PanelHeader title={label.emotion} note={label.emotionNote} range={rangeText(range)} />
+          <ProgressList entries={emotionEntries} />
+        </Card>
+      </div>
+
+      <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)]">
+        <HotQuestionsPanel questions={data.hotQuestions} range={range} />
+        <div className="grid gap-5">
+          <Card className="p-6 shadow-lg">
+            <PanelHeader title={label.interests} note={label.interestsNote} range={rangeText(range)} />
+            <ProgressList entries={interestEntries} />
+          </Card>
+          <Card className="p-6 shadow-lg">
+            <PanelHeader title={label.spots} note={label.spotsNote} range={rangeText(range)} />
+            <ProgressList entries={spotEntries} />
+          </Card>
+        </div>
       </div>
     </AdminFrame>
   )

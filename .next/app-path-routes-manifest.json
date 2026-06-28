@@ -1,0 +1,17 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/admin/page": "/admin",
+  "/analytics/page": "/analytics",
+  "/calendar/page": "/calendar",
+  "/help/page": "/help",
+  "/human/page": "/human",
+  "/knowledge/page": "/knowledge",
+  "/logout/page": "/logout",
+  "/page": "/",
+  "/scenic/page": "/scenic",
+  "/settings/page": "/settings",
+  "/tasks/page": "/tasks",
+  "/team/page": "/team",
+  "/visitor/page": "/visitor"
+}

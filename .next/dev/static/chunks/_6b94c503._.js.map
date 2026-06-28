@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///C:/Project_vscode/DG/DG_frontend/app/logout/page.tsx"],"sourcesContent":["\"use client\"\n\nimport { useEffect } from \"react\"\nimport { useRouter } from \"next/navigation\"\nimport { authHeaders, clearToken, request } from \"@/components/dg/api\"\n\nexport default function LogoutPage() {\n  const router = useRouter()\n\n  useEffect(() => {\n    async function logout() {\n      await request(\"/api/auth/logout\", { method: \"POST\", headers: authHeaders() }).catch(() => null)\n      clearToken()\n      router.replace(\"/\")\n    }\n    logout()\n  }, [router])\n\n  return <main className=\"grid min-h-screen place-items-center bg-background text-sm text-muted-foreground\">正在退出登录...</main>\n}\n"],"names":[],"mappings":";;;;;AAEA;AACA;;;;;;;;AAHA;;;;AAMe,SAAS;;IACtB,MAAM,SAAS,IAAA,kRAAS;IAExB,IAAA,0SAAS;gCAAC;YACR,eAAe;gBACb,MAAM,QAAQ,oBAAoB;oBAAE,QAAQ;oBAAQ,SAAS;gBAAc,GAAG,KAAK;mDAAC,IAAM;;gBAC1F;gBACA,OAAO,OAAO,CAAC;YACjB;YACA;QACF;+BAAG;QAAC;KAAO;IAEX,qBAAO,6TAAC;QAAK,WAAU;kBAAmF;;;;;;AAC5G;GAbwB;;QACP,kRAAS;;;KADF"}},
+    {"offset": {"line": 65, "column": 0}, "map": {"version":3,"sources":["file:///C:/Project_vscode/DG/DG_frontend/node_modules/.pnpm/next%4016.0.10_react-dom%4019.2.0_react%4019.2.0__react%4019.2.0/node_modules/next/navigation.js"],"sourcesContent":["module.exports = require('./dist/client/components/navigation')\n"],"names":[],"mappings":"AAAA,OAAO,OAAO","ignoreList":[0]}}]
+}

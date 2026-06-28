@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 14, "column": 0}, "map": {"version":3,"sources":["file:///C:/Project_vscode/DG/DG_frontend/app/admin/page.tsx"],"sourcesContent":["import { DashboardContent } from \"@/components/dg/dashboard-content\"\n\nexport default function AdminPage() {\n  return <DashboardContent />\n}\n"],"names":[],"mappings":";;;;;;;;;;;;AAEe,SAAS;IACtB,qBAAO,8WAAC;;;;;AACV"}}]
+}

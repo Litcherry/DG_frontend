@@ -1,13 +1,14 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Bell, Mail, Search } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { authHeaders, requestWithTimeout, token } from "@/components/dg/api"
 import { MobileNav } from "./mobile-nav"
 
 interface HeaderProps {
@@ -19,6 +20,21 @@ interface HeaderProps {
 export function Header({ title, description, actions }: HeaderProps) {
   const router = useRouter()
   const [query, setQuery] = useState("")
+  const [blindCount, setBlindCount] = useState(0)
+
+  useEffect(() => {
+    if (!token()) return
+    let mounted = true
+    requestWithTimeout<any>("/api/admin/knowledge/blind-spots?range=week", { headers: authHeaders() }, 7000)
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data?.items || []
+        if (mounted) setBlindCount(items.length)
+      })
+      .catch(() => mounted && setBlindCount(0))
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   function submitSearch(event: React.FormEvent) {
     event.preventDefault()
@@ -60,7 +76,7 @@ export function Header({ title, description, actions }: HeaderProps) {
           <Button asChild variant="ghost" size="icon" className="relative hover:bg-secondary transition-all duration-300 hover:scale-110 h-8 w-8">
             <Link href="/knowledge?tab=blind" title="\u77E5\u8BC6\u76F2\u70B9">
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full animate-pulse" />
+              {blindCount > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold leading-none text-destructive-foreground">{blindCount}</span>}
             </Link>
           </Button>
 

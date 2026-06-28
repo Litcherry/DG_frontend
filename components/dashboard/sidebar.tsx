@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import { useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Bot, Database, LayoutDashboard, LogOut, Map, Route, Settings } from "lucide-react"
+import { authHeaders, requestWithTimeout, token } from "@/components/dg/api"
 import { cn } from "@/lib/utils"
 
 const menuItems = [
@@ -21,7 +23,22 @@ const generalItems = [
 
 export function Sidebar() {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const [blindCount, setBlindCount] = useState(0)
   const pathname = usePathname()
+
+  useEffect(() => {
+    if (!token()) return
+    let mounted = true
+    requestWithTimeout<any>("/api/admin/knowledge/blind-spots?range=week", { headers: authHeaders() }, 7000)
+      .then((data) => {
+        const items = Array.isArray(data) ? data : data?.items || []
+        if (mounted) setBlindCount(items.length)
+      })
+      .catch(() => mounted && setBlindCount(0))
+    return () => {
+      mounted = false
+    }
+  }, [pathname])
 
   return (
     <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen overflow-y-auto lg:block">
@@ -58,6 +75,11 @@ export function Sidebar() {
                 >
                   <item.icon className="w-4 h-4" />
                   <span className="text-sm">{item.label}</span>
+                  {item.href === "/knowledge" && blindCount > 0 && (
+                    <span className="ml-auto rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
+                      {blindCount}
+                    </span>
+                  )}
                 </Link>
               )
             })}

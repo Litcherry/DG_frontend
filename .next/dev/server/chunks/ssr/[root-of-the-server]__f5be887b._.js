@@ -958,12 +958,10 @@ __turbopack_context__.s([
     ()=>authHeaders,
     "clearToken",
     ()=>clearToken,
-    "demoData",
-    ()=>demoData,
     "request",
     ()=>request,
-    "requestAdminData",
-    ()=>requestAdminData,
+    "requestWithTimeout",
+    ()=>requestWithTimeout,
     "resolveMediaURL",
     ()=>resolveMediaURL,
     "setApiBase",
@@ -976,120 +974,6 @@ __turbopack_context__.s([
     ()=>token
 ]);
 "use client";
-const demoData = {
-    overview: {
-        total_conversations: 1286,
-        total_messages: 4932,
-        avg_response_ms: 1680,
-        avg_satisfaction: 4.7,
-        rag_hit_rate: 0.92
-    },
-    satisfaction: {
-        trend: [
-            {
-                date: "周一",
-                avg_rating: 4.3,
-                count: 18
-            },
-            {
-                date: "周二",
-                avg_rating: 4.5,
-                count: 22
-            },
-            {
-                date: "周三",
-                avg_rating: 4.6,
-                count: 25
-            },
-            {
-                date: "周四",
-                avg_rating: 4.4,
-                count: 19
-            },
-            {
-                date: "周五",
-                avg_rating: 4.8,
-                count: 31
-            },
-            {
-                date: "周六",
-                avg_rating: 4.9,
-                count: 42
-            },
-            {
-                date: "周日",
-                avg_rating: 4.7,
-                count: 37
-            }
-        ],
-        distribution: {
-            1: 3,
-            2: 5,
-            3: 18,
-            4: 61,
-            5: 107
-        }
-    },
-    emotions: {
-        积极: 64,
-        平稳: 25,
-        思考: 8,
-        致歉: 3
-    },
-    hotQuestions: [
-        {
-            question_pattern: "灵山大佛怎么游览？",
-            count: 86
-        },
-        {
-            question_pattern: "九龙灌浴表演有什么特色？",
-            count: 71
-        },
-        {
-            question_pattern: "适合老人的游玩路线？",
-            count: 54
-        },
-        {
-            question_pattern: "梵宫需要游览多久？",
-            count: 38
-        },
-        {
-            question_pattern: "停车场和餐饮在哪里？",
-            count: 29
-        }
-    ],
-    interests: {
-        自然风光: 26,
-        历史文化: 38,
-        佛教文化: 44,
-        休闲娱乐: 18,
-        拍照打卡: 25,
-        亲子游览: 17,
-        餐饮购物: 12
-    },
-    hotSpots: [
-        {
-            spot_name: "灵山大佛",
-            mention_count: 236
-        },
-        {
-            spot_name: "九龙灌浴",
-            mention_count: 198
-        },
-        {
-            spot_name: "灵山梵宫",
-            mention_count: 174
-        },
-        {
-            spot_name: "五印坛城",
-            mention_count: 126
-        },
-        {
-            spot_name: "五明桥",
-            mention_count: 93
-        }
-    ]
-};
 function apiBase() {
     if ("TURBOPACK compile-time truthy", 1) return "http://localhost:8000";
     //TURBOPACK unreachable
@@ -1124,7 +1008,7 @@ function readErrorMessage(text, fallback) {
     if (!text) return fallback;
     try {
         const data = JSON.parse(text);
-        if (Array.isArray(data.detail)) return data.detail.map((item)=>item.msg).join("，");
+        if (Array.isArray(data.detail)) return data.detail.map((item)=>item.msg).join(", ");
         return data.detail || data.message || fallback;
     } catch  {
         return text;
@@ -1134,25 +1018,21 @@ async function request(path, options = {}) {
     const res = await fetch(`${apiBase()}${path}`, options);
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(readErrorMessage(text, `请求失败（${res.status}）`));
+        throw new Error(readErrorMessage(text, `Request failed (${res.status})`));
     }
     const type = res.headers.get("content-type") || "";
     return type.includes("application/json") ? res.json() : res;
 }
-async function requestAdminData(path, fallback) {
+async function requestWithTimeout(path, options = {}, timeoutMs = 12000) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(()=>controller.abort(), timeoutMs);
     try {
-        return {
-            data: await request(path, {
-                headers: authHeaders()
-            }),
-            source: "backend"
-        };
-    } catch (error) {
-        console.warn(`[DG admin demo fallback] ${path}`, error);
-        return {
-            data: fallback,
-            source: "demo"
-        };
+        return await request(path, {
+            ...options,
+            signal: controller.signal
+        });
+    } finally{
+        window.clearTimeout(timer);
     }
 }
 function resolveMediaURL(value = "") {
