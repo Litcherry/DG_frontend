@@ -64,12 +64,13 @@ export function resolveMediaURL(value = "") {
   const source = String(value || "").trim()
   if (!source) return ""
   if (/^(?:https?:|data:|blob:)/i.test(source)) return source
-  return `${apiBase()}${source.startsWith("/") ? "" : "/"}${source}`
+  const normalized = source.startsWith("/") ? source : `/${source}`
+  return `${apiBase()}${normalized}`
 }
 
 export function splitTags(value: string) {
   return value
-    .split(/[,，、]/)
+    .split(/[,，、\s]+/)
     .map((item) => item.trim())
     .filter(Boolean)
 }

@@ -17,6 +17,21 @@ interface HeaderProps {
   actions?: ReactNode
 }
 
+const resolvedBlindStorageKey = "dg_resolved_blind_spots"
+
+function blindQuestion(item: any) {
+  return String(item.question_pattern || item.question || item.query || item.pattern || "-").trim().toLowerCase()
+}
+
+function readResolvedBlindKeys() {
+  try {
+    const value = JSON.parse(localStorage.getItem(resolvedBlindStorageKey) || "[]")
+    return Array.isArray(value) ? value.map(String) : []
+  } catch {
+    return []
+  }
+}
+
 export function Header({ title, description, actions }: HeaderProps) {
   const router = useRouter()
   const [query, setQuery] = useState("")
@@ -25,14 +40,18 @@ export function Header({ title, description, actions }: HeaderProps) {
   useEffect(() => {
     if (!token()) return
     let mounted = true
-    requestWithTimeout<any>("/api/admin/knowledge/blind-spots?range=week", { headers: authHeaders() }, 7000)
+    const loadBlindCount = () => requestWithTimeout<any>("/api/admin/knowledge/blind-spots?range=week", { headers: authHeaders() }, 7000)
       .then((data) => {
         const items = Array.isArray(data) ? data : data?.items || []
-        if (mounted) setBlindCount(items.length)
+        const resolved = readResolvedBlindKeys()
+        if (mounted) setBlindCount(items.filter((item: any) => !resolved.includes(blindQuestion(item))).length)
       })
       .catch(() => mounted && setBlindCount(0))
+    loadBlindCount()
+    window.addEventListener("dg-blind-spots-updated", loadBlindCount)
     return () => {
       mounted = false
+      window.removeEventListener("dg-blind-spots-updated", loadBlindCount)
     }
   }, [])
 
@@ -40,11 +59,10 @@ export function Header({ title, description, actions }: HeaderProps) {
     event.preventDefault()
     const keyword = query.trim().toLowerCase()
     if (!keyword) return
-    if (/\u77E5\u8BC6|faq|\u6587\u6863|\u76F2\u70B9|question|document|knowledge/.test(keyword)) router.push("/knowledge")
-    else if (/\u666F\u70B9|\u8DEF\u7EBF|route|spot|scenic|\u5730\u56FE/.test(keyword)) router.push("/scenic")
-    else if (/\u6570\u5B57\u4EBA|\u58F0\u97F3|\u5934\u50CF|human|voice|avatar/.test(keyword)) router.push("/human")
-    else if (/\u8BBE\u7F6E|\u63A5\u53E3|api|setting|base/.test(keyword)) router.push("/settings")
-    else router.push(`/knowledge?search=${encodeURIComponent(query.trim())}`)
+    if (/\u77E5\u8BC6|faq|\u6587\u6863|\u76F2\u70B9|question|document|knowledge/.test(keyword)) router.push("/admin/knowledge")
+    else if (/\u666F\u70B9|\u8DEF\u7EBF|route|spot|scenic|\u5730\u56FE/.test(keyword)) router.push("/admin/scenic")
+    else if (/\u6570\u5B57\u4EBA|\u58F0\u97F3|\u5934\u50CF|human|voice|avatar/.test(keyword)) router.push("/admin/human")
+    else router.push(`/admin/knowledge?search=${encodeURIComponent(query.trim())}`)
   }
 
   return (
@@ -69,12 +87,12 @@ export function Header({ title, description, actions }: HeaderProps) {
 
         <div className="flex items-center gap-1.5 md:gap-2">
           <Button asChild variant="ghost" size="icon" className="relative hover:bg-secondary transition-all duration-300 hover:scale-110 h-8 w-8">
-            <Link href="/knowledge?tab=conversations" title="\u6E38\u5BA2\u5BF9\u8BDD\u8BB0\u5F55">
+            <Link href="/admin/knowledge?tab=conversations" title="\u6E38\u5BA2\u5BF9\u8BDD\u8BB0\u5F55">
               <Mail className="w-4 h-4" />
             </Link>
           </Button>
           <Button asChild variant="ghost" size="icon" className="relative hover:bg-secondary transition-all duration-300 hover:scale-110 h-8 w-8">
-            <Link href="/knowledge?tab=blind" title="\u77E5\u8BC6\u76F2\u70B9">
+            <Link href="/admin/knowledge?tab=blind" title="\u77E5\u8BC6\u76F2\u70B9">
               <Bell className="w-4 h-4" />
               {blindCount > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold leading-none text-destructive-foreground">{blindCount}</span>}
             </Link>

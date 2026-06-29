@@ -29,7 +29,7 @@ const defaultInterests = [
   "\u62CD\u7167\u6253\u5361",
 ]
 
-export function VisitorContent() {
+export function VisitorContent({ embedded = false }: { embedded?: boolean } = {}) {
   const [visitorName, setVisitorName] = useState(labels.tempVisitor)
   const [conversationId, setConversationId] = useState("")
   const [interests, setInterests] = useState<string[]>([])
@@ -237,23 +237,23 @@ export function VisitorContent() {
   }
 
   return (
-    <main className="min-h-screen bg-background p-3 md:p-5">
-      <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-[340px_1fr_280px]">
+    <main className={embedded ? "h-full bg-transparent" : "min-h-screen bg-background p-3 md:p-5"}>
+      <div className={`${embedded ? "h-full" : "mx-auto max-w-7xl"} grid gap-4 lg:grid-cols-[360px_1fr_280px]`}>
         <section className="space-y-4">
           <Card className="animate-slide-in-up overflow-hidden p-5 shadow-lg">
-            <div className="mb-5 flex items-center justify-between">
+            {!embedded && <div className="mb-5 flex items-center justify-between">
               <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground">DG</span>
                 &#x6E38;&#x5BA2;&#x5BFC;&#x89C8;&#x7AEF;
               </Link>
-              <Link href="/admin" className="text-xs font-semibold text-primary">
+              <Link href="/?adminLogin=1" className="text-xs font-semibold text-primary">
                 &#x7BA1;&#x7406;&#x540E;&#x53F0;
               </Link>
-            </div>
-            <div className="grid h-72 place-items-center rounded-xl bg-gradient-to-br from-emerald-50 to-background">
+            </div>}
+            <div className={`${embedded ? "h-[420px]" : "h-72"} grid place-items-center rounded-xl bg-gradient-to-br from-emerald-50 to-background`}>
               <div className="grid place-items-center gap-3 text-center">
-                <div className="grid h-24 w-24 place-items-center rounded-full bg-primary text-primary-foreground shadow-2xl shadow-primary/20">
-                  <Bot className="h-12 w-12" />
+                <div className={`${embedded ? "h-36 w-36" : "h-24 w-24"} grid place-items-center rounded-full bg-primary text-primary-foreground shadow-2xl shadow-primary/20`}>
+                  <Bot className={embedded ? "h-20 w-20" : "h-12 w-12"} />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold">AI &#x5BFC;&#x89C8;&#x5458;</h1>
@@ -291,7 +291,7 @@ export function VisitorContent() {
           </Card>
         </section>
 
-        <Card className="animate-slide-in-up flex h-[calc(100vh-2.5rem)] min-h-[680px] p-0 shadow-lg" style={{ animationDelay: "80ms" }}>
+        <Card className={`animate-slide-in-up flex ${embedded ? "h-full min-h-0" : "h-[calc(100vh-2.5rem)] min-h-[680px]"} p-0 shadow-lg`} style={{ animationDelay: "80ms" }}>
           <div className="flex h-full w-full flex-col">
             <header className="flex h-16 items-center justify-between border-b border-border px-5">
               <div>

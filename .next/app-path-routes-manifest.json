@@ -1,17 +1,22 @@
 {
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/admin/human/page": "/admin/human",
+  "/admin/knowledge/page": "/admin/knowledge",
+  "/admin/logout/page": "/admin/logout",
   "/admin/page": "/admin",
+  "/admin/scenic/page": "/admin/scenic",
   "/analytics/page": "/analytics",
+  "/api/[...path]/route": "/api/[...path]",
   "/calendar/page": "/calendar",
+  "/files/[...path]/route": "/files/[...path]",
   "/help/page": "/help",
   "/human/page": "/human",
   "/knowledge/page": "/knowledge",
   "/logout/page": "/logout",
   "/page": "/",
   "/scenic/page": "/scenic",
-  "/settings/page": "/settings",
   "/tasks/page": "/tasks",
   "/team/page": "/team",
-  "/visitor/page": "/visitor"
+  "/visitor/route": "/visitor"
 }

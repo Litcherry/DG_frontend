@@ -2,7 +2,7 @@
 
 import type { ChangeEvent, FormEvent } from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { FileUp, RefreshCw, Save, Trash2 } from "lucide-react"
+import { CheckCircle2, Circle, FileUp, PlusCircle, RefreshCw, Save, Trash2 } from "lucide-react"
 import { AdminFrame } from "@/components/dg/admin-frame"
 import { authHeaders, request, requestWithTimeout, token } from "@/components/dg/api"
 import { Button } from "@/components/ui/button"
@@ -77,6 +77,31 @@ function EmptyRow({ colSpan }: { colSpan: number }) {
   )
 }
 
+const resolvedBlindStorageKey = "dg_resolved_blind_spots"
+
+function blindQuestion(item: any) {
+  return String(item.question_pattern || item.question || item.query || item.pattern || "-")
+}
+
+function blindKey(item: any) {
+  return blindQuestion(item).trim().toLowerCase()
+}
+
+function readResolvedBlindKeys() {
+  if (typeof window === "undefined") return []
+  try {
+    const value = JSON.parse(localStorage.getItem(resolvedBlindStorageKey) || "[]")
+    return Array.isArray(value) ? value.map(String) : []
+  } catch {
+    return []
+  }
+}
+
+function saveResolvedBlindKeys(keys: string[]) {
+  localStorage.setItem(resolvedBlindStorageKey, JSON.stringify(Array.from(new Set(keys))))
+  window.dispatchEvent(new Event("dg-blind-spots-updated"))
+}
+
 export function KnowledgeContent() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [tab, setTab] = useState("documents")
@@ -96,6 +121,7 @@ export function KnowledgeContent() {
   const [faqCategory, setFaqCategory] = useState("general")
   const [faqActive, setFaqActive] = useState(true)
   const [conversations, setConversations] = useState<any[]>([])
+  const [resolvedBlindKeys, setResolvedBlindKeys] = useState<string[]>([])
 
   const filteredDocs = useMemo(
     () => documents.filter((item) => `${item.original_name || item.filename || item.name || ""} ${item.category || ""} ${item.status || ""}`.toLowerCase().includes(search.toLowerCase())),
@@ -104,6 +130,10 @@ export function KnowledgeContent() {
   const filteredFaqs = useMemo(
     () => faqs.filter((item) => `${item.question || ""} ${item.answer || ""} ${item.category || ""}`.toLowerCase().includes(search.toLowerCase())),
     [faqs, search],
+  )
+  const unresolvedBlindSpots = useMemo(
+    () => blindSpots.filter((item) => !resolvedBlindKeys.includes(blindKey(item))),
+    [blindSpots, resolvedBlindKeys],
   )
 
   const load = useCallback(async () => {
@@ -145,6 +175,7 @@ export function KnowledgeContent() {
     } catch {
       setConversations([])
     }
+    setResolvedBlindKeys(readResolvedBlindKeys())
     if (token()) {
       load()
       return
@@ -200,6 +231,27 @@ export function KnowledgeContent() {
     setFaqCategory(item.category || "general")
     setFaqActive(Boolean(item.is_active))
     setTab("faq")
+  }
+
+  function prefillFAQFromBlind(item: any) {
+    setFaqId("")
+    setFaqQuestion(blindQuestion(item))
+    setFaqAnswer(item.suggestion || item.answer || item.reason || "")
+    setFaqCategory(item.category || "general")
+    setFaqActive(true)
+    setTab("faq")
+    setMessage("已把知识盲点填入 FAQ，请补充答案后保存。")
+    setError("")
+  }
+
+  function markBlindResolved(item: any) {
+    const key = blindKey(item)
+    if (!key || key === "-") return
+    const next = Array.from(new Set([...resolvedBlindKeys, key]))
+    setResolvedBlindKeys(next)
+    saveResolvedBlindKeys(next)
+    setMessage("已标记为已解决。")
+    setError("")
   }
 
   function resetFAQ() {
@@ -272,7 +324,7 @@ export function KnowledgeContent() {
           <TabsTrigger value="conversations">{label.conversations}</TabsTrigger>
           <TabsTrigger value="blind" className="relative">
             {label.blind}
-            {blindSpots.length > 0 && <span className="ml-2 rounded-full bg-destructive px-2 py-0.5 text-[10px] text-destructive-foreground">{blindSpots.length}</span>}
+            {unresolvedBlindSpots.length > 0 && <span className="ml-2 rounded-full bg-destructive px-2 py-0.5 text-[10px] text-destructive-foreground">{unresolvedBlindSpots.length}</span>}
           </TabsTrigger>
         </TabsList>
 
@@ -392,13 +444,13 @@ export function KnowledgeContent() {
               <h2 className="text-xl font-semibold">{label.conversations}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{label.localHistory}</p>
             </div>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="space-y-2">
               {conversations.length ? conversations.map((item, index) => (
-                <div key={item.id || index} className="rounded-xl border border-border p-4">
-                  <strong className="block truncate">{item.title || label.conversations}</strong>
-                  <p className="mt-2 truncate text-xs text-muted-foreground">{item.updatedAt || item.id || "-"}</p>
+                <div key={item.id || index} className="grid min-h-14 grid-cols-[1fr_auto] items-center gap-4 rounded-[8px] border border-border px-4 py-3">
+                  <strong className="truncate text-sm">{item.title || label.conversations}</strong>
+                  <p className="shrink-0 text-xs text-muted-foreground">{item.updatedAt || item.id || "-"}</p>
                 </div>
-              )) : <div className="col-span-full grid min-h-36 place-items-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">{label.empty}</div>}
+              )) : <div className="grid min-h-36 place-items-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">{label.empty}</div>}
             </div>
           </Card>
         </TabsContent>
@@ -410,15 +462,30 @@ export function KnowledgeContent() {
               <p className="mt-1 text-sm text-muted-foreground">{label.blindHint}</p>
             </div>
             <div className="max-h-[520px] space-y-3 overflow-auto pr-1">
-              {blindSpots.length ? blindSpots.map((item, index) => {
-                const question = item.question_pattern || item.question || item.query || item.pattern || "-"
+              {unresolvedBlindSpots.length ? unresolvedBlindSpots.map((item, index) => {
+                const question = blindQuestion(item)
                 return (
                 <div key={`${question}-${index}`} className="rounded-xl border border-border p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-medium">{question}</p>
-                    <span className="shrink-0 rounded-full bg-destructive/10 px-3 py-1 text-xs text-destructive">{item.count || item.frequency || item.total || 1}</span>
+                  <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+                    <div className="min-w-0">
+                      <div className="flex items-start gap-2">
+                        <Circle className="mt-1 h-3.5 w-3.5 shrink-0 text-destructive" />
+                        <p className="font-medium leading-6">{question}</p>
+                      </div>
+                      {(item.suggestion || item.answer || item.reason) && <p className="mt-2 text-sm text-muted-foreground">{item.suggestion || item.answer || item.reason}</p>}
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <span className="rounded-full bg-destructive/10 px-3 py-1 text-xs text-destructive">{item.count || item.frequency || item.total || 1}</span>
+                      <Button type="button" size="sm" variant="outline" onClick={() => prefillFAQFromBlind(item)}>
+                        <PlusCircle className="h-4 w-4" />
+                        添加到 FAQ
+                      </Button>
+                      <Button type="button" size="sm" onClick={() => markBlindResolved(item)}>
+                        <CheckCircle2 className="h-4 w-4" />
+                        标记已解决
+                      </Button>
+                    </div>
                   </div>
-                  {(item.suggestion || item.answer || item.reason) && <p className="mt-2 text-sm text-muted-foreground">{item.suggestion || item.answer || item.reason}</p>}
                 </div>
               )}) : <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">{label.empty}</div>}
             </div>

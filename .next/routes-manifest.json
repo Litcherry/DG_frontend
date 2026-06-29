@@ -19,7 +19,24 @@
     "afterFiles": [],
     "fallback": []
   },
-  "dynamicRoutes": [],
+  "dynamicRoutes": [
+    {
+      "page": "/api/[...path]",
+      "regex": "^/api/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPpath": "nxtPpath"
+      },
+      "namedRegex": "^/api/(?<nxtPpath>.+?)(?:/)?$"
+    },
+    {
+      "page": "/files/[...path]",
+      "regex": "^/files/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPpath": "nxtPpath"
+      },
+      "namedRegex": "^/files/(?<nxtPpath>.+?)(?:/)?$"
+    }
+  ],
   "staticRoutes": [
     {
       "page": "/",
@@ -44,6 +61,30 @@
       "regex": "^/admin(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/admin/human",
+      "regex": "^/admin/human(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/human(?:/)?$"
+    },
+    {
+      "page": "/admin/knowledge",
+      "regex": "^/admin/knowledge(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/knowledge(?:/)?$"
+    },
+    {
+      "page": "/admin/logout",
+      "regex": "^/admin/logout(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/logout(?:/)?$"
+    },
+    {
+      "page": "/admin/scenic",
+      "regex": "^/admin/scenic(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/scenic(?:/)?$"
     },
     {
       "page": "/analytics",
@@ -86,12 +127,6 @@
       "regex": "^/scenic(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/scenic(?:/)?$"
-    },
-    {
-      "page": "/settings",
-      "regex": "^/settings(?:/)?$",
-      "routeKeys": {},
-      "namedRegex": "^/settings(?:/)?$"
     },
     {
       "page": "/tasks",

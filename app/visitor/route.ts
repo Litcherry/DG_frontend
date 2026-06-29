@@ -12,7 +12,7 @@ function escapeScript(value: string) {
   return value.replace(/<\/script/gi, "<\\/script")
 }
 
-function buildLegacyRuntime() {
+function buildLegacyRuntime(initialView: "visitor" | "routeMap") {
   const config = readText("src/config/live2d.js").replaceAll("export const", "const")
   const runtimeSource = readText("src/legacy/runtime.js")
     .replace(/import\s*\{[\s\S]*?\}\s*from\s*["']\.\.\/config\/live2d\.js["'];?/, "")
@@ -24,9 +24,14 @@ function buildLegacyRuntime() {
     localStorage.setItem("dg_visitor_name", localStorage.getItem("dg_visitor_name") || "访客");
     sessionStorage.setItem("dg_runtime_role", "visitor");
     sessionStorage.setItem("dg_visitor_entry", "next");
+    window.__DG_INITIAL_VIEW = ${JSON.stringify(initialView)};
     ${config}
     ${runtimeSource}
-    bootstrapLegacyApp().catch((error) => {
+    bootstrapLegacyApp().then(() => {
+      if (window.__DG_INITIAL_VIEW && window.__DG_INITIAL_VIEW !== "visitor") {
+        window.setTimeout(() => switchView(window.__DG_INITIAL_VIEW), 120);
+      }
+    }).catch((error) => {
       console.error(error);
       const toast = document.getElementById("toast");
       if (toast) {
@@ -37,13 +42,16 @@ function buildLegacyRuntime() {
   `
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url)
+  const embedded = url.searchParams.get("embed") === "1"
+  const initialView = url.searchParams.get("view") === "routeMap" ? "routeMap" : "visitor"
   const visitorTemplate = readText("src/templates/visitor.html")
   const routeTemplate = readText("src/templates/route-map.html")
   const feedbackTemplate = readText("src/templates/feedback.html")
   const adminTemplate = readText("src/templates/admin.html")
   const legacyCss = readText("src/styles/legacy.css")
-  const legacyRuntime = buildLegacyRuntime()
+  const legacyRuntime = buildLegacyRuntime(initialView)
 
   const html = `<!doctype html>
 <html lang="zh-CN">
@@ -53,9 +61,57 @@ export async function GET() {
     <meta name="theme-color" content="#168f91" />
     <title>DG 游客导览端</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>${legacyCss}</style>
+    <style>${legacyCss}${embedded ? `
+      body.embedded-visitor {
+        min-height: 100vh;
+        overflow: hidden;
+        background: #fff;
+      }
+      body.embedded-visitor .app-shell {
+        grid-template-columns: 1fr;
+        height: 100vh;
+        min-height: 100vh;
+      }
+      body.embedded-visitor .sidebar {
+        display: none !important;
+      }
+      body.embedded-visitor .main-area {
+        min-height: 100vh;
+        height: 100vh;
+        padding: 0;
+        overflow: hidden;
+      }
+      body.embedded-visitor .view.active {
+        min-height: 100vh;
+        height: 100vh;
+      }
+      body.embedded-visitor .visitor-layout {
+        min-height: 100vh;
+        height: 100vh;
+      }
+      body.embedded-visitor.history-open .visitor-layout,
+      body.embedded-visitor:not(.history-open) .visitor-layout {
+        height: 100vh;
+        min-height: 100vh;
+      }
+      body.embedded-visitor .guide-column,
+      body.embedded-visitor .chat-shell,
+      body.embedded-visitor .history-panel {
+        height: 100vh;
+        max-height: 100vh;
+      }
+      body.embedded-visitor .chat-messages,
+      body.embedded-visitor .history-list {
+        min-height: 0;
+      }
+      body.embedded-visitor #routeMapView.active,
+      body.embedded-visitor #routeMapView .route-page {
+        min-height: 100vh;
+        height: 100vh;
+      }
+    ` : ""}</style>
   </head>
-  <body class="in-app role-visitor" data-visitor-entry="next">
+  <body class="in-app role-visitor${embedded ? " embedded-visitor" : ""}" data-visitor-entry="next">
     <div id="appShell" class="app-shell">
       <aside id="sidebar" class="sidebar">
         <button id="sidebarToggle" class="sidebar-toggle" type="button" title="收起侧栏" aria-label="收起侧栏">
