@@ -7599,6 +7599,98 @@ body.role-visitor:not(.history-open) .history-list {
   }
 }
 
+/* VRM digital-human stage for the AI conversation page. */
+body.role-visitor #visitorView .guide-column {
+  flex: 0 0 700px;
+  width: 700px;
+  max-width: 700px;
+  grid-template-rows: 790px auto auto;
+}
+
+body.role-visitor #visitorView .human-panel {
+  width: 700px;
+  height: 790px;
+  min-height: 790px;
+  padding: 0;
+  border-radius: 24px;
+  background: #e8ebe8;
+  box-shadow: 0 24px 70px rgba(24, 38, 32, 0.16);
+}
+
+body.role-visitor #visitorView .vrm-avatar-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+}
+
+body.role-visitor #visitorView .human-panel .stage-glow,
+body.role-visitor #visitorView .human-panel .live2d-home-dock,
+body.role-visitor #visitorView .human-panel .virtual-anchor,
+body.role-visitor #visitorView .human-panel .digital-human {
+  display: none;
+}
+
+body.role-visitor #visitorView .human-meta {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 22px;
+  z-index: 5;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.54);
+  padding: 12px 14px;
+  color: #22312b;
+  box-shadow: 0 18px 40px rgba(24, 38, 32, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+body.role-visitor #visitorView .human-meta strong,
+body.role-visitor #visitorView .human-meta span {
+  color: inherit;
+}
+
+body.role-visitor #visitorView .chat-shell {
+  min-width: 420px;
+}
+
+@media (max-width: 1520px) {
+  body.role-visitor #visitorView .guide-column {
+    flex-basis: 560px;
+    width: 560px;
+    max-width: 560px;
+    grid-template-rows: 632px auto auto;
+  }
+
+  body.role-visitor #visitorView .human-panel {
+    width: 560px;
+    height: 632px;
+    min-height: 632px;
+  }
+}
+
+@media (max-width: 1120px) {
+  body.role-visitor #visitorView .guide-column,
+  body.role-visitor #visitorView .human-panel {
+    width: 100%;
+    max-width: none;
+  }
+
+  body.role-visitor #visitorView .guide-column {
+    grid-template-rows: minmax(520px, 70vh) auto auto;
+  }
+
+  body.role-visitor #visitorView .human-panel {
+    height: min(790px, 70vh);
+    min-height: 520px;
+  }
+}
+
 /* Route image cards and sidebar detail: final layout overrides. */
 .route-spot-card,
 .route-spot-card.has-image {

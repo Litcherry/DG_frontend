@@ -952,6 +952,19 @@ function styleLive2DModel() {
   model.tint = 0xffffff;
 }
 
+function syncVRMAvatarState({ speaking = false, thinking = false, emotion = "neutral" } = {}) {
+  const frame = $("vrmAvatarFrame");
+  if (!frame?.contentWindow) return;
+  const mode = speaking
+    ? "talk"
+    : thinking || emotion === "thinking"
+      ? "think"
+      : emotion === "happy"
+        ? "happy"
+        : "idle";
+  frame.contentWindow.postMessage({ source: "dg-vrm-avatar-host", type: "mode", payload: mode }, "*");
+}
+
 function setHumanState({ speaking = false, thinking = false, emotion = "neutral" } = {}) {
   const human = $("digitalHuman");
   const anchor = $("virtualAnchor");
@@ -984,6 +997,7 @@ function setHumanState({ speaking = false, thinking = false, emotion = "neutral"
       }
     } catch {}
   }
+  syncVRMAvatarState({ speaking, thinking, emotion });
 }
 
 function describeVoice(cfg = {}) {
@@ -3774,6 +3788,9 @@ function bindEvents() {
   if ($("homeBtn")) $("homeBtn").onclick = goHome;
   $("logoutBtn").onclick = logout;
   $("sidebarToggle").onclick = toggleSidebar;
+  if ($("vrmAvatarFrame")) {
+    $("vrmAvatarFrame").onload = () => syncVRMAvatarState({ emotion: "neutral" });
+  }
   const historyToggle = $("historyToggleBtn");
   if (historyToggle) historyToggle.onclick = () => setHistoryOpen(!document.body.classList.contains("history-open"));
   $("historyCloseBtn").onclick = () => setHistoryOpen(!document.body.classList.contains("history-open"));

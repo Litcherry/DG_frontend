@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SaveData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <IsInternalSaveFile>false</IsInternalSaveFile>
+  <LastLoadedVrmFilePath />
+  <LastLoadedVRoidModelId />
+  <LastLoadedVrmName />
+  <AutoLoadLastLoadedVrm>false</AutoLoadLastLoadedVrm>
+  <PreferredLanguageName />
+  <LoadCharacterWhenLoad>true</LoadCharacterWhenLoad>
+  <LoadNonCharacterWhenLoad>false</LoadNonCharacterWhenLoad>
+  <WindowSetting>
+    <R>0</R>
+    <G>255</G>
+    <B>0</B>
+    <IsTransparent>true</IsTransparent>
+    <WindowDraggable>true</WindowDraggable>
+    <TopMost>true</TopMost>
+    <BackgroundImagePath />
+    <WholeWindowTransparencyLevel>2</WholeWindowTransparencyLevel>
+    <AlphaValueOnTransparent>128</AlphaValueOnTransparent>
+  </WindowSetting>
+  <MotionSetting>
+    <EnableNoHandTrackMode>false</EnableNoHandTrackMode>
+    <EnableFaceTracking>true</EnableFaceTracking>
+    <AutoBlinkDuringFaceTracking>true</AutoBlinkDuringFaceTracking>
+    <EnableBodyLeanZ>false</EnableBodyLeanZ>
+    <EnableBlinkAdjust>true</EnableBlinkAdjust>
+    <EnableVoiceBasedMotion>true</EnableVoiceBasedMotion>
+    <DisableFaceTrackingHorizontalFlip>false</DisableFaceTrackingHorizontalFlip>
+    <EnableWebCamHighPowerMode>true</EnableWebCamHighPowerMode>
+    <EnableImageBasedHandTracking>false</EnableImageBasedHandTracking>
+    <CameraDeviceName />
+    <CalibrateFaceData />
+    <FaceDefaultFun>0</FaceDefaultFun>
+    <FaceNeutralClip />
+    <FaceOffsetClip />
+    <UseLookAtPointNone>false</UseLookAtPointNone>
+    <UseLookAtPointMousePointer>true</UseLookAtPointMousePointer>
+    <UseLookAtPointMainCamera>false</UseLookAtPointMainCamera>
+    <EyeBoneRotationScale>100</EyeBoneRotationScale>
+    <EnableLipSync>true</EnableLipSync>
+    <LipSyncMicrophoneDeviceName />
+    <MicrophoneSensitivity>0</MicrophoneSensitivity>
+    <KeyboardAndMouseMotionMode>0</KeyboardAndMouseMotionMode>
+    <GamepadMotionMode>0</GamepadMotionMode>
+    <EnableHidRandomTyping>false</EnableHidRandomTyping>
+    <EnableShoulderMotionModify>true</EnableShoulderMotionModify>
+    <EnableHandDownTimeout>true</EnableHandDownTimeout>
+    <WaistWidth>30</WaistWidth>
+    <ElbowCloseStrength>30</ElbowCloseStrength>
+    <EnableFpsAssumedRightHand>false</EnableFpsAssumedRightHand>
+    <ShowPresentationPointer>false</ShowPresentationPointer>
+    <PresentationArmRadiusMin>20</PresentationArmRadiusMin>
+    <LengthFromWristToTip>12</LengthFromWristToTip>
+    <HandYOffsetBasic>3</HandYOffsetBasic>
+    <HandYOffsetAfterKeyDown>2</HandYOffsetAfterKeyDown>
+    <EnableWaitMotion>true</EnableWaitMotion>
+    <WaitMotionScale>125</WaitMotionScale>
+    <WaitMotionPeriod>10</WaitMotionPeriod>
+  </MotionSetting>
+  <LayoutSetting>
+    <Gamepad>
+      <GamepadEnabled>true</GamepadEnabled>
+      <PreferDirectInputGamepad>false</PreferDirectInputGamepad>
+      <GamepadVisibility>false</GamepadVisibility>
+      <GamepadLeanNone>false</GamepadLeanNone>
+      <GamepadLeanLeftButtons>false</GamepadLeanLeftButtons>
+      <GamepadLeanLeftStick>true</GamepadLeanLeftStick>
+      <GamepadLeanRightStick>false</GamepadLeanRightStick>
+      <GamepadLeanReverseHorizontal>false</GamepadLeanReverseHorizontal>
+      <GamepadLeanReverseVertical>false</GamepadLeanReverseVertical>
+    </Gamepad>
+    <CameraFov>40</CameraFov>
+    <EnableMidiRead>false</EnableMidiRead>
+    <MidiControllerVisibility>false</MidiControllerVisibility>
+    <CameraPosition>{"values":[-0.2765991687774658,1.660569429397583,1.7826787233352662,5.700003147125244,174.00001525878907,-6.166990260680905e-7]}</CameraPosition>
+    <DeviceLayout />
+    <QuickSave1 />
+    <QuickSave2 />
+    <QuickSave3 />
+    <HidVisibility>true</HidVisibility>
+    <PenVisibility>true</PenVisibility>
+    <SelectedTypingEffectId>-1</SelectedTypingEffectId>
+  </LayoutSetting>
+  <LightSetting>
+    <HalfFpsMode>false</HalfFpsMode>
+    <LightIntensity>100</LightIntensity>
+    <LightYaw>-30</LightYaw>
+    <LightPitch>50</LightPitch>
+    <LightR>255</LightR>
+    <LightG>255</LightG>
+    <LightB>255</LightB>
+    <EnableShadow>false</EnableShadow>
+    <ShadowIntensity>65</ShadowIntensity>
+    <ShadowYaw>-20</ShadowYaw>
+    <ShadowPitch>8</ShadowPitch>
+    <ShadowDepthOffset>40</ShadowDepthOffset>
+    <BloomIntensity>42</BloomIntensity>
+    <BloomThreshold>102</BloomThreshold>
+    <BloomR>255</BloomR>
+    <BloomG>255</BloomG>
+    <BloomB>255</BloomB>
+    <EnableWind>true</EnableWind>
+    <WindStrength>44</WindStrength>
+    <WindInterval>77</WindInterval>
+    <WindYaw>-20</WindYaw>
+  </LightSetting>
+  <WordToMotionSetting>
+    <SelectedDeviceType>2</SelectedDeviceType>
+    <ExtraBlendShapeClipNames>
+      <string>Surprised</string>
+      <string>Extra</string>
+      <string>BrowDownLeft</string>
+      <string>BrowDownRight</string>
+      <string>BrowInnerUp</string>
+      <string>BrowOuterUpLeft</string>
+      <string>BrowOuterUpRight</string>
+      <string>CheekPuff</string>
+      <string>CheekSquintLeft</string>
+      <string>CheekSquintRight</string>
+      <string>EyeBlinkLeft</string>
+      <string>EyeBlinkRight</string>
+      <string>EyeLookDownLeft</string>
+      <string>EyeLookDownRight</string>
+      <string>EyeLookInLeft</string>
+      <string>EyeLookInRight</string>
+      <string>EyeLookOutLeft</string>
+      <string>EyeLookOutRight</string>
+      <string>EyeLookUpLeft</string>
+      <string>EyeLookUpRight</string>
+      <string>EyeSquintLeft</string>
+      <string>EyeSquintRight</string>
+      <string>EyeWideLeft</string>
+      <string>EyeWideRight</string>
+      <string>JawForward</string>
+      <string>JawLeft</string>
+      <string>JawOpen</string>
+      <string>JawRight</string>
+      <string>MouthClose</string>
+      <string>MouthDimpleLeft</string>
+      <string>MouthDimpleRight</string>
+      <string>MouthFrownLeft</string>
+      <string>MouthFrownRight</string>
+      <string>MouthFunnel</string>
+      <string>MouthLeft</string>
+      <string>MouthLowerDownLeft</string>
+      <string>MouthLowerDownRight</string>
+      <string>MouthPressLeft</string>
+      <string>MouthPressRight</string>
+      <string>MouthPucker</string>
+      <string>MouthRight</string>
+      <string>MouthRollLower</string>
+      <string>MouthRollUpper</string>
+      <string>MouthShrugLower</string>
+      <string>MouthShrugUpper</string>
+      <string>MouthSmileLeft</string>
+      <string>MouthSmileRight</string>
+      <string>MouthStretchLeft</string>
+      <string>MouthStretchRight</string>
+      <string>MouthUpperUpLeft</string>
+      <string>MouthUpperUpRight</string>
+      <string>NoseSneerLeft</string>
+      <string>NoseSneerRight</string>
+      <string>TongueOut</string>
+    </ExtraBlendShapeClipNames>
+    <ItemsContentString>{"Requests":[{"MotionType":0,"Word":"reset","BuiltInAnimationClipName":"","CustomMotionClipName":"","DurationWhenOnlyBlendShape":0.1,"UseBlendShape":true,"HoldBlendShape":false,"PreferLipSync":false,"BlendShapeValues":{},"ExtraBlendShapeValues":[{"Name":"Surprised","Value":0},{"Name":"Extra","Value":0},{"Name":"BrowDownLeft","Value":0},{"Name":"BrowDownRight","Value":0},{"Name":"BrowInnerUp","Value":0},{"Name":"BrowOuterUpLeft","Value":0},{"Name":"BrowOuterUpRight","Value":0},{"Name":"CheekPuff","Value":0},{"Name":"CheekSquintLeft","Value":0},{"Name":"CheekSquintRight","Value":0},{"Name":"EyeBlinkLeft","Value":0},{"Name":"EyeBlinkRight","Value":0},{"Name":"EyeLookDownLeft","Value":0},{"Name":"EyeLookDownRight","Value":0},{"Name":"EyeLookInLeft","Value":0},{"Name":"EyeLookInRight","Value":0},{"Name":"EyeLookOutLeft","Value":0},{"Name":"EyeLookOutRight","Value":0},{"Name":"EyeLookUpLeft","Value":0},{"Name":"EyeLookUpRight","Value":0},{"Name":"EyeSquintLeft","Value":0},{"Name":"EyeSquintRight","Value":0},{"Name":"EyeWideLeft","Value":0},{"Name":"EyeWideRight","Value":0},{"Name":"JawForward","Value":0},{"Name":"JawLeft","Value":0},{"Name":"JawOpen","Value":0},{"Name":"JawRight","Value":0},{"Name":"MouthClose","Value":0},{"Name":"MouthDimpleLeft","Value":0},{"Name":"MouthDimpleRight","Value":0},{"Name":"MouthFrownLeft","Value":0},{"Name":"MouthFrownRight","Value":0},{"Name":"MouthFunnel","Value":0},{"Name":"MouthLeft","Value":0},{"Name":"MouthLowerDownLeft","Value":0},{"Name":"MouthLowerDownRight","Value":0},{"Name":"MouthPressLeft","Value":0},{"Name":"MouthPressRight","Value":0},{"Name":"MouthPucker","Value":0},{"Name":"MouthRight","Value":0},{"Name":"MouthRollLower","Value":0},{"Name":"MouthRollUpper","Value":0},{"Name":"MouthShrugLower","Value":0},{"Name":"MouthShrugUpper","Value":0},{"Name":"MouthSmileLeft","Value":0},{"Name":"MouthSmileRight","Value":0},{"Name":"MouthStretchLeft","Value":0},{"Name":"MouthStretchRight","Value":0},{"Name":"MouthUpperUpLeft","Value":0},{"Name":"MouthUpperUpRight","Value":0},{"Name":"NoseSneerLeft","Value":0},{"Name":"NoseSneerRight","Value":0},{"Name":"TongueOut","Value":0}]},{"MotionType":0,"Word":"joy","BuiltInAnimationClipName":"","CustomMotionClipName":"","DurationWhenOnlyBlendShape":3.0,"UseBlendShape":true,"HoldBlendShape":false,"PreferLipSync":true,"BlendShapeValues":{"Joy":100,"Angry":0,"Sorrow":0,"Fun":0,"A":0,"I":0,"U":0,"E":0,"O":0,"Neutral":0,"Blink":0,"Blink_L":0,"Blink_R":0,"LookUp":0,"LookDown":0,"LookLeft":0,"LookRight":0},"ExtraBlendShapeValues":[{"Name":"Surprised","Value":0},{"Name":"Extra","Value":0},{"Name":"BrowDownLeft","Value":0},{"Name":"BrowDownRight","Value":0},{"Name":"BrowInnerUp","Value":0},{"Name":"BrowOuterUpLeft","Value":0},{"Name":"BrowOuterUpRight","Value":0},{"Name":"CheekPuff","Value":0},{"Name":"CheekSquintLeft","Value":0},{"Name":"CheekSquintRight","Value":0},{"Name":"EyeBlinkLeft","Value":0},{"Name":"EyeBlinkRight","Value":0},{"Name":"EyeLookDownLeft","Value":0},{"Name":"EyeLookDownRight","Value":0},{"Name":"EyeLookInLeft","Value":0},{"Name":"EyeLookInRight","Value":0},{"Name":"EyeLookOutLeft","Value":0},{"Name":"EyeLookOutRight","Value":0},{"Name":"EyeLookUpLeft","Value":0},{"Name":"EyeLookUpRight","Value":0},{"Name":"EyeSquintLeft","Value":0},{"Name":"EyeSquintRight","Value":0},{"Name":"EyeWideLeft","Value":0},{"Name":"EyeWideRight","Value":0},{"Name":"JawForward","Value":0},{"Name":"JawLeft","Value":0},{"Name":"JawOpen","Value":0},{"Name":"JawRight","Value":0},{"Name":"MouthClose","Value":0},{"Name":"MouthDimpleLeft","Value":0},{"Name":"MouthDimpleRight","Value":0},{"Name":"MouthFrownLeft","Value":0},{"Name":"MouthFrownRight","Value":0},{"Name":"MouthFunnel","Value":0},{"Name":"MouthLeft","Value":0},{"Name":"MouthLowerDownLeft","Value":0},{"Name":"MouthLowerDownRight","Value":0},{"Name":"MouthPressLeft","Value":0},{"Name":"MouthPressRight","Value":0},{"Name":"MouthPucker","Value":0},{"Name":"MouthRight","Value":0},{"Name":"MouthRollLower","Value":0},{"Name":"MouthRollUpper","Value":0},{"Name":"MouthShrugLower","Value":0},{"Name":"MouthShrugUpper","Value":0},{"Name":"MouthSmileLeft","Value":0},{"Name":"MouthSmileRight","Value":0},{"Name":"MouthStretchLeft","Value":0},{"Name":"MouthStretchRight","Value":0},{"Name":"MouthUpperUpLeft","Value":0},{"Name":"MouthUpperUpRight","Value":0},{"Name":"NoseSneerLeft","Value":0},{"Name":"NoseSneerRight","Value":0},{"Name":"TongueOut","Value":0}]},{"MotionType":0,"Word":"fun","BuiltInAnimationClipName":"","CustomMotionClipName":"","DurationWhenOnlyBlendShape":3.0,"UseBlendShape":true,"HoldBlendShape":false,"PreferLipSync":false,"BlendShapeValues":{"Fun":100},"ExtraBlendShapeValues":[{"Name":"Surprised","Value":0},{"Name":"Extra","Value":0},{"Name":"BrowDownLeft","Value":0},{"Name":"BrowDownRight","Value":0},{"Name":"BrowInnerUp","Value":0},{"Name":"BrowOuterUpLeft","Value":0},{"Name":"BrowOuterUpRight","Value":0},{"Name":"CheekPuff","Value":0},{"Name":"CheekSquintLeft","Value":0},{"Name":"CheekSquintRight","Value":0},{"Name":"EyeBlinkLeft","Value":0},{"Name":"EyeBlinkRight","Value":0},{"Name":"EyeLookDownLeft","Value":0},{"Name":"EyeLookDownRight","Value":0},{"Name":"EyeLookInLeft","Value":0},{"Name":"EyeLookInRight","Value":0},{"Name":"EyeLookOutLeft","Value":0},{"Name":"EyeLookOutRight","Value":0},{"Name":"EyeLookUpLeft","Value":0},{"Name":"EyeLookUpRight","Value":0},{"Name":"EyeSquintLeft","Value":0},{"Name":"EyeSquintRight","Value":0},{"Name":"EyeWideLeft","Value":0},{"Name":"EyeWideRight","Value":0},{"Name":"JawForward","Value":0},{"Name":"JawLeft","Value":0},{"Name":"JawOpen","Value":0},{"Name":"JawRight","Value":0},{"Name":"MouthClose","Value":0},{"Name":"MouthDimpleLeft","Value":0},{"Name":"MouthDimpleRight","Value":0},{"Name":"MouthFrownLeft","Value":0},{"Name":"MouthFrownRight","Value":0},{"Name":"MouthFunnel","Value":0},{"Name":"MouthLeft","Value":0},{"Name":"MouthLowerDownLeft","Value":0},{"Name":"MouthLowerDownRight","Value":0},{"Name":"MouthPressLeft","Value":0},{"Name":"MouthPressRight","Value":0},{"Name":"MouthPucker","Value":0},{"Name":"MouthRight","Value":0},{"Name":"MouthRollLower","Value":0},{"Name":"MouthRollUpper","Value":0},{"Name":"MouthShrugLower","Value":0},{"Name":"MouthShrugUpper","Value":0},{"Name":"MouthSmileLeft","Value":0},{"Name":"MouthSmileRight","Value":0},{"Name":"MouthStretchLeft","Value":0},{"Name":"MouthStretchRight","Value":0},{"Name":"MouthUpperUpLeft","Value":0},{"Name":"MouthUpperUpRight","Value":0},{"Name":"NoseSneerLeft","Value":0},{"Name":"NoseSneerRight","Value":0},{"Name":"TongueOut","Value":0}]},{"MotionType":0,"Word":"angry","BuiltInAnimationClipName":"","CustomMotionClipName":"","DurationWhenOnlyBlendShape":3.0,"UseBlendShape":true,"HoldBlendShape":false,"PreferLipSync":true,"BlendShapeValues":{"Joy":0,"Angry":100,"Sorrow":0,"Fun":0,"A":0,"I":0,"U":0,"E":0,"O":0,"Neutral":0,"Blink":0,"Blink_L":0,"Blink_R":0,"LookUp":0,"LookDown":0,"LookLeft":0,"LookRight":0},"ExtraBlendShapeValues":[{"Name":"Surprised","Value":0},{"Name":"Extra","Value":0},{"Name":"BrowDownLeft","Value":0},{"Name":"BrowDownRight","Value":0},{"Name":"BrowInnerUp","Value":0},{"Name":"BrowOuterUpLeft","Value":0},{"Name":"BrowOuterUpRight","Value":0},{"Name":"CheekPuff","Value":0},{"Name":"CheekSquintLeft","Value":0},{"Name":"CheekSquintRight","Value":0},{"Name":"EyeBlinkLeft","Value":0},{"Name":"EyeBlinkRight","Value":0},{"Name":"EyeLookDownLeft","Value":0},{"Name":"EyeLookDownRight","Value":0},{"Name":"EyeLookInLeft","Value":0},{"Name":"EyeLookInRight","Value":0},{"Name":"EyeLookOutLeft","Value":0},{"Name":"EyeLookOutRight","Value":0},{"Name":"EyeLookUpLeft","Value":0},{"Name":"EyeLookUpRight","Value":0},{"Name":"EyeSquintLeft","Value":0},{"Name":"EyeSquintRight","Value":0},{"Name":"EyeWideLeft","Value":0},{"Name":"EyeWideRight","Value":0},{"Name":"JawForward","Value":0},{"Name":"JawLeft","Value":0},{"Name":"JawOpen","Value":0},{"Name":"JawRight","Value":0},{"Name":"MouthClose","Value":0},{"Name":"MouthDimpleLeft","Value":0},{"Name":"MouthDimpleRight","Value":0},{"Name":"MouthFrownLeft","Value":0},{"Name":"MouthFrownRight","Value":0},{"Name":"MouthFunnel","Value":0},{"Name":"MouthLeft","Value":0},{"Name":"MouthLowerDownLeft","Value":0},{"Name":"MouthLowerDownRight","Value":0},{"Name":"MouthPressLeft","Value":0},{"Name":"MouthPressRight","Value":0},{"Name":"MouthPucker","Value":0},{"Name":"MouthRight","Value":0},{"Name":"MouthRollLower","Value":0},{"Name":"MouthRollUpper","Value":0},{"Name":"MouthShrugLower","Value":0},{"Name":"MouthShrugUpper","Value":0},{"Name":"MouthSmileLeft","Value":0},{"Name":"MouthSmileRight","Value":0},{"Name":"MouthStretchLeft","Value":0},{"Name":"MouthStretchRight","Value":0},{"Name":"MouthUpperUpLeft","Value":0},{"Name":"MouthUpperUpRight","Value":0},{"Name":"NoseSneerLeft","Value":0},{"Name":"NoseSneerRight","Value":0},{"Name":"TongueOut","Value":0}]},{"MotionType":0,"Word":"sorrow","BuiltInAnimationClipName":"","CustomMotionClipName":"","DurationWhenOnlyBlendShape":3.0,"UseBlendShape":true,"HoldBlendShape":false,"PreferLipSync":true,"BlendShapeValues":{"Joy":0,"Angry":0,"Sorrow":100,"Fun":0,"A":0,"I":0,"U":0,"E":0,"O":0,"Neutral":0,"Blink":0,"Blink_L":0,"Blink_R":0,"LookUp":0,"LookDown":0,"LookLeft":0,"LookRight":0},"ExtraBlendShapeValues":[{"Name":"Surprised","Value":0},{"Name":"Extra","Value":0},{"Name":"BrowDownLeft","Value":0},{"Name":"BrowDownRight","Value":0},{"Name":"BrowInnerUp","Value":0},{"Name":"BrowOuterUpLeft","Value":0},{"Name":"BrowOuterUpRight","Value":0},{"Name":"CheekPuff","Value":0},{"Name":"CheekSquintLeft","Value":0},{"Name":"CheekSquintRight","Value":0},{"Name":"EyeBlinkLeft","Value":0},{"Name":"EyeBlinkRight","Value":0},{"Name":"EyeLookDownLeft","Value":0},{"Name":"EyeLookDownRight","Value":0},{"Name":"EyeLookInLeft","Value":0},{"Name":"EyeLookInRight","Value":0},{"Name":"EyeLookOutLeft","Value":0},{"Name":"EyeLookOutRight","Value":0},{"Name":"EyeLookUpLeft","Value":0},{"Name":"EyeLookUpRight","Value":0},{"Name":"EyeSquintLeft","Value":0},{"Name":"EyeSquintRight","Value":0},{"Name":"EyeWideLeft","Value":0},{"Name":"EyeWideRight","Value":0},{"Name":"JawForward","Value":0},{"Name":"JawLeft","Value":0},{"Name":"JawOpen","Value":0},{"Name":"JawRight","Value":0},{"Name":"MouthClose","Value":0},{"Name":"MouthDimpleLeft","Value":0},{"Name":"MouthDimpleRight","Value":0},{"Name":"MouthFrownLeft","Value":0},{"Name":"MouthFrownRight","Value":0},{"Name":"MouthFunnel","Value":0},{"Name":"MouthLeft","Value":0},{"Name":"MouthLowerDownLeft","Value":0},{"Name":"MouthLowerDownRight","Value":0},{"Name":"MouthPressLeft","Value":0},{"Name":"MouthPressRight","Value":0},{"Name":"MouthPucker","Value":0},{"Name":"MouthRight","Value":0},{"Name":"MouthRollLower","Value":0},{"Name":"MouthRollUpper","Value":0},{"Name":"MouthShrugLower","Value":0},{"Name":"MouthShrugUpper","Value":0},{"Name":"MouthSmileLeft","Value":0},{"Name":"MouthSmileRight","Value":0},{"Name":"MouthStretchLeft","Value":0},{"Name":"MouthStretchRight","Value":0},{"Name":"MouthUpperUpLeft","Value":0},{"Name":"MouthUpperUpRight","Value":0},{"Name":"NoseSneerLeft","Value":0},{"Name":"NoseSneerRight","Value":0},{"Name":"TongueOut","Value":0}]},{"MotionType":1,"Word":"CheekPuff","BuiltInAnimationClipName":"Wave","CustomMotionClipName":"","DurationWhenOnlyBlendShape":3.0,"UseBlendShape":true,"HoldBlendShape":false,"PreferLipSync":false,"BlendShapeValues":{"Joy":0,"Angry":0,"Sorrow":0,"Fun":0,"A":0,"I":0,"U":0,"E":0,"O":0,"Neutral":0,"Blink":0,"Blink_L":0,"Blink_R":0,"LookUp":0,"LookDown":0,"LookLeft":0,"LookRight":0},"ExtraBlendShapeValues":[{"Name":"Surprised","Value":0},{"Name":"Extra","Value":0},{"Name":"BrowDownLeft","Value":0},{"Name":"BrowDownRight","Value":100},{"Name":"BrowInnerUp","Value":0},{"Name":"BrowOuterUpLeft","Value":0},{"Name":"BrowOuterUpRight","Value":0},{"Name":"CheekPuff","Value":100},{"Name":"CheekSquintLeft","Value":0},{"Name":"CheekSquintRight","Value":0},{"Name":"EyeBlinkLeft","Value":0},{"Name":"EyeBlinkRight","Value":0},{"Name":"EyeLookDownLeft","Value":0},{"Name":"EyeLookDownRight","Value":0},{"Name":"EyeLookInLeft","Value":0},{"Name":"EyeLookInRight","Value":0},{"Name":"EyeLookOutLeft","Value":0},{"Name":"EyeLookOutRight","Value":0},{"Name":"EyeLookUpLeft","Value":0},{"Name":"EyeLookUpRight","Value":0},{"Name":"EyeSquintLeft","Value":0},{"Name":"EyeSquintRight","Value":0},{"Name":"EyeWideLeft","Value":0},{"Name":"EyeWideRight","Value":0},{"Name":"JawForward","Value":0},{"Name":"JawLeft","Value":0},{"Name":"JawOpen","Value":0},{"Name":"JawRight","Value":0},{"Name":"MouthClose","Value":0},{"Name":"MouthDimpleLeft","Value":0},{"Name":"MouthDimpleRight","Value":0},{"Name":"MouthFrownLeft","Value":0},{"Name":"MouthFrownRight","Value":0},{"Name":"MouthFunnel","Value":0},{"Name":"MouthLeft","Value":0},{"Name":"MouthLowerDownLeft","Value":0},{"Name":"MouthLowerDownRight","Value":0},{"Name":"MouthPressLeft","Value":0},{"Name":"MouthPressRight","Value":0},{"Name":"MouthPucker","Value":0},{"Name":"MouthRight","Value":0},{"Name":"MouthRollLower","Value":0},{"Name":"MouthRollUpper","Value":0},{"Name":"MouthShrugLower","Value":0},{"Name":"MouthShrugUpper","Value":0},{"Name":"MouthSmileLeft","Value":0},{"Name":"MouthSmileRight","Value":0},{"Name":"MouthStretchLeft","Value":0},{"Name":"MouthStretchRight","Value":0},{"Name":"MouthUpperUpLeft","Value":0},{"Name":"MouthUpperUpRight","Value":0},{"Name":"NoseSneerLeft","Value":0},{"Name":"NoseSneerRight","Value":0},{"Name":"TongueOut","Value":0}]},{"MotionType":0,"Word":"Surprise","BuiltInAnimationClipName":"","CustomMotionClipName":"","DurationWhenOnlyBlendShape":3.0,"UseBlendShape":true,"HoldBlendShape":false,"PreferLipSync":false,"BlendShapeValues":{"Joy":0,"Angry":0,"Sorrow":0,"Fun":0,"A":0,"I":0,"U":0,"E":0,"O":0,"Neutral":0,"Blink":0,"Blink_L":0,"Blink_R":0,"LookUp":0,"LookDown":0,"LookLeft":0,"LookRight":0},"ExtraBlendShapeValues":[{"Name":"Surprised","Value":100},{"Name":"Extra","Value":0},{"Name":"BrowDownLeft","Value":0},{"Name":"BrowDownRight","Value":0},{"Name":"BrowInnerUp","Value":0},{"Name":"BrowOuterUpLeft","Value":0},{"Name":"BrowOuterUpRight","Value":0},{"Name":"CheekPuff","Value":0},{"Name":"CheekSquintLeft","Value":0},{"Name":"CheekSquintRight","Value":0},{"Name":"EyeBlinkLeft","Value":0},{"Name":"EyeBlinkRight","Value":0},{"Name":"EyeLookDownLeft","Value":0},{"Name":"EyeLookDownRight","Value":0},{"Name":"EyeLookInLeft","Value":0},{"Name":"EyeLookInRight","Value":0},{"Name":"EyeLookOutLeft","Value":0},{"Name":"EyeLookOutRight","Value":0},{"Name":"EyeLookUpLeft","Value":0},{"Name":"EyeLookUpRight","Value":0},{"Name":"EyeSquintLeft","Value":0},{"Name":"EyeSquintRight","Value":0},{"Name":"EyeWideLeft","Value":0},{"Name":"EyeWideRight","Value":0},{"Name":"JawForward","Value":0},{"Name":"JawLeft","Value":0},{"Name":"JawOpen","Value":0},{"Name":"JawRight","Value":0},{"Name":"MouthClose","Value":0},{"Name":"MouthDimpleLeft","Value":0},{"Name":"MouthDimpleRight","Value":0},{"Name":"MouthFrownLeft","Value":0},{"Name":"MouthFrownRight","Value":0},{"Name":"MouthFunnel","Value":0},{"Name":"MouthLeft","Value":0},{"Name":"MouthLowerDownLeft","Value":0},{"Name":"MouthLowerDownRight","Value":0},{"Name":"MouthPressLeft","Value":0},{"Name":"MouthPressRight","Value":0},{"Name":"MouthPucker","Value":0},{"Name":"MouthRight","Value":0},{"Name":"MouthRollLower","Value":0},{"Name":"MouthRollUpper","Value":0},{"Name":"MouthShrugLower","Value":0},{"Name":"MouthShrugUpper","Value":0},{"Name":"MouthSmileLeft","Value":0},{"Name":"MouthSmileRight","Value":0},{"Name":"MouthStretchLeft","Value":0},{"Name":"MouthStretchRight","Value":0},{"Name":"MouthUpperUpLeft","Value":0},{"Name":"MouthUpperUpRight","Value":0},{"Name":"NoseSneerLeft","Value":0},{"Name":"NoseSneerRight","Value":0},{"Name":"TongueOut","Value":0}]},{"MotionType":1,"Word":"good","BuiltInAnimationClipName":"Good","CustomMotionClipName":"","DurationWhenOnlyBlendShape":3.0,"UseBlendShape":false,"HoldBlendShape":false,"PreferLipSync":false,"BlendShapeValues":{},"ExtraBlendShapeValues":[{"Name":"Surprised","Value":0},{"Name":"Extra","Value":0},{"Name":"BrowDownLeft","Value":0},{"Name":"BrowDownRight","Value":0},{"Name":"BrowInnerUp","Value":0},{"Name":"BrowOuterUpLeft","Value":0},{"Name":"BrowOuterUpRight","Value":0},{"Name":"CheekPuff","Value":0},{"Name":"CheekSquintLeft","Value":0},{"Name":"CheekSquintRight","Value":0},{"Name":"EyeBlinkLeft","Value":0},{"Name":"EyeBlinkRight","Value":0},{"Name":"EyeLookDownLeft","Value":0},{"Name":"EyeLookDownRight","Value":0},{"Name":"EyeLookInLeft","Value":0},{"Name":"EyeLookInRight","Value":0},{"Name":"EyeLookOutLeft","Value":0},{"Name":"EyeLookOutRight","Value":0},{"Name":"EyeLookUpLeft","Value":0},{"Name":"EyeLookUpRight","Value":0},{"Name":"EyeSquintLeft","Value":0},{"Name":"EyeSquintRight","Value":0},{"Name":"EyeWideLeft","Value":0},{"Name":"EyeWideRight","Value":0},{"Name":"JawForward","Value":0},{"Name":"JawLeft","Value":0},{"Name":"JawOpen","Value":0},{"Name":"JawRight","Value":0},{"Name":"MouthClose","Value":0},{"Name":"MouthDimpleLeft","Value":0},{"Name":"MouthDimpleRight","Value":0},{"Name":"MouthFrownLeft","Value":0},{"Name":"MouthFrownRight","Value":0},{"Name":"MouthFunnel","Value":0},{"Name":"MouthLeft","Value":0},{"Name":"MouthLowerDownLeft","Value":0},{"Name":"MouthLowerDownRight","Value":0},{"Name":"MouthPressLeft","Value":0},{"Name":"MouthPressRight","Value":0},{"Name":"MouthPucker","Value":0},{"Name":"MouthRight","Value":0},{"Name":"MouthRollLower","Value":0},{"Name":"MouthRollUpper","Value":0},{"Name":"MouthShrugLower","Value":0},{"Name":"MouthShrugUpper","Value":0},{"Name":"MouthSmileLeft","Value":0},{"Name":"MouthSmileRight","Value":0},{"Name":"MouthStretchLeft","Value":0},{"Name":"MouthStretchRight","Value":0},{"Name":"MouthUpperUpLeft","Value":0},{"Name":"MouthUpperUpRight","Value":0},{"Name":"NoseSneerLeft","Value":0},{"Name":"NoseSneerRight","Value":0},{"Name":"TongueOut","Value":0}]},{"MotionType":0,"Word":"Extra","BuiltInAnimationClipName":"","CustomMotionClipName":"","DurationWhenOnlyBlendShape":3.0,"UseBlendShape":true,"HoldBlendShape":false,"PreferLipSync":true,"BlendShapeValues":{"Joy":0,"Angry":0,"Sorrow":0,"Fun":0,"A":0,"I":0,"U":1,"E":0,"O":0,"Neutral":0,"Blink":0,"Blink_L":0,"Blink_R":0,"LookUp":0,"LookDown":0,"LookLeft":0,"LookRight":0},"ExtraBlendShapeValues":[{"Name":"Surprised","Value":0},{"Name":"Extra","Value":100},{"Name":"BrowDownLeft","Value":0},{"Name":"BrowDownRight","Value":0},{"Name":"BrowInnerUp","Value":0},{"Name":"BrowOuterUpLeft","Value":0},{"Name":"BrowOuterUpRight","Value":100},{"Name":"CheekPuff","Value":0},{"Name":"CheekSquintLeft","Value":0},{"Name":"CheekSquintRight","Value":0},{"Name":"EyeBlinkLeft","Value":0},{"Name":"EyeBlinkRight","Value":0},{"Name":"EyeLookDownLeft","Value":0},{"Name":"EyeLookDownRight","Value":0},{"Name":"EyeLookInLeft","Value":0},{"Name":"EyeLookInRight","Value":0},{"Name":"EyeLookOutLeft","Value":0},{"Name":"EyeLookOutRight","Value":0},{"Name":"EyeLookUpLeft","Value":0},{"Name":"EyeLookUpRight","Value":0},{"Name":"EyeSquintLeft","Value":100},{"Name":"EyeSquintRight","Value":0},{"Name":"EyeWideLeft","Value":0},{"Name":"EyeWideRight","Value":100},{"Name":"JawForward","Value":0},{"Name":"JawLeft","Value":0},{"Name":"JawOpen","Value":100},{"Name":"JawRight","Value":0},{"Name":"MouthClose","Value":0},{"Name":"MouthDimpleLeft","Value":0},{"Name":"MouthDimpleRight","Value":0},{"Name":"MouthFrownLeft","Value":0},{"Name":"MouthFrownRight","Value":2},{"Name":"MouthFunnel","Value":0},{"Name":"MouthLeft","Value":0},{"Name":"MouthLowerDownLeft","Value":0},{"Name":"MouthLowerDownRight","Value":0},{"Name":"MouthPressLeft","Value":0},{"Name":"MouthPressRight","Value":0},{"Name":"MouthPucker","Value":0},{"Name":"MouthRight","Value":0},{"Name":"MouthRollLower","Value":0},{"Name":"MouthRollUpper","Value":0},{"Name":"MouthShrugLower","Value":0},{"Name":"MouthShrugUpper","Value":0},{"Name":"MouthSmileLeft","Value":0},{"Name":"MouthSmileRight","Value":0},{"Name":"MouthStretchLeft","Value":0},{"Name":"MouthStretchRight","Value":0},{"Name":"MouthUpperUpLeft","Value":0},{"Name":"MouthUpperUpRight","Value":0},{"Name":"NoseSneerLeft","Value":0},{"Name":"NoseSneerRight","Value":0},{"Name":"TongueOut","Value":0}]}]}</ItemsContentString>
+    <MidiNoteMapString>{"Items":[{"ItemIndex":0,"NoteNumber":-1},{"ItemIndex":1,"NoteNumber":-1},{"ItemIndex":2,"NoteNumber":-1},{"ItemIndex":3,"NoteNumber":-1},{"ItemIndex":4,"NoteNumber":-1},{"ItemIndex":5,"NoteNumber":-1},{"ItemIndex":6,"NoteNumber":-1},{"ItemIndex":7,"NoteNumber":-1},{"ItemIndex":8,"NoteNumber":-1}]}</MidiNoteMapString>
+  </WordToMotionSetting>
+  <ExternalTrackerSetting>
+    <EnableExternalTracking>false</EnableExternalTracking>
+    <EnableExternalTrackerLipSync>true</EnableExternalTrackerLipSync>
+    <EnableExternalTrackerPerfectSync>false</EnableExternalTrackerPerfectSync>
+    <TrackSourceType>0</TrackSourceType>
+    <IFacialMocapTargetIpAddress />
+    <CalibrateData />
+    <SerializedFaceSwitchSetting>{"items":[{"source":"mouthSmile","threshold":70,"clipName":"Joy","keepLipSync":false},{"source":"eyeSquint","threshold":70,"clipName":"","keepLipSync":false},{"source":"eyeWide","threshold":70,"clipName":"","keepLipSync":false},{"source":"browUp","threshold":70,"clipName":"","keepLipSync":false},{"source":"browDown","threshold":70,"clipName":"Sorrow","keepLipSync":false},{"source":"cheekPuff","threshold":70,"clipName":"","keepLipSync":false},{"source":"tongueOut","threshold":70,"clipName":"","keepLipSync":false}]}</SerializedFaceSwitchSetting>
+  </ExternalTrackerSetting>
+  <AutomationSetting>
+    <IsAutomationEnabled>false</IsAutomationEnabled>
+    <AutomationPortNumber>56131</AutomationPortNumber>
+  </AutomationSetting>
+</SaveData>
