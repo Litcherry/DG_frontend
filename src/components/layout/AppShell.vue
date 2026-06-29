@@ -18,7 +18,10 @@ const emit = defineEmits(["views-ready"]);
         </div>
       </div>
       <nav id="roleNav" class="nav"></nav>
-      <button id="logoutBtn" class="ghost wide" type="button">退出当前身份</button>
+      <div class="sidebar-footer-actions">
+        <button id="homeBtn" class="ghost wide" type="button">返回首页</button>
+        <button id="logoutBtn" class="ghost wide" type="button">退出当前身份</button>
+      </div>
     </aside>
     <main class="main-area">
       <LegacyViews @ready="emit('views-ready')" />

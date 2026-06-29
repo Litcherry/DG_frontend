@@ -363,11 +363,24 @@ function toast(message) {
   toast.timer = window.setTimeout(() => el.classList.remove("show"), 2600);
 }
 
+function hasAuthView() {
+  return Boolean($("authView"));
+}
+
+function isVisitorOnlyEntry() {
+  return document.body?.dataset?.visitorEntry === "next" || !hasAuthView();
+}
+
+function goHome() {
+  window.location.href = "/";
+}
+
 function setRoleForm(role) {
-  $("visitorRoleBtn").classList.toggle("active", role === "visitor");
-  $("adminRoleBtn").classList.toggle("active", role === "admin");
-  $("visitorLoginForm").classList.toggle("active", role === "visitor");
-  $("adminLoginForm").classList.toggle("active", role === "admin");
+  if (!hasAuthView()) return;
+  $("visitorRoleBtn")?.classList.toggle("active", role === "visitor");
+  $("adminRoleBtn")?.classList.toggle("active", role === "admin");
+  $("visitorLoginForm")?.classList.toggle("active", role === "visitor");
+  $("adminLoginForm")?.classList.toggle("active", role === "admin");
 }
 
 function clearExpiredLogin() {
@@ -375,8 +388,12 @@ function clearExpiredLogin() {
   state.role = "";
   localStorage.removeItem("dg_admin_token");
   localStorage.removeItem("dg_role");
-  $("authView").classList.remove("hidden");
-  $("appShell").classList.add("hidden");
+  if (isVisitorOnlyEntry()) {
+    goHome();
+    return;
+  }
+  $("authView")?.classList.remove("hidden");
+  $("appShell")?.classList.add("hidden");
   document.body.classList.remove("in-app", "role-visitor", "role-admin", "history-open");
   setRoleForm("admin");
 }
@@ -395,8 +412,8 @@ function enterApp(role) {
   sessionStorage.setItem("dg_runtime_role", role);
   state.role = role;
   localStorage.setItem("dg_role", role);
-  $("authView").classList.add("hidden");
-  $("appShell").classList.remove("hidden");
+  $("authView")?.classList.add("hidden");
+  $("appShell")?.classList.remove("hidden");
   document.body.classList.add("in-app");
   document.body.classList.toggle("role-visitor", role === "visitor");
   document.body.classList.toggle("role-admin", role === "admin");
@@ -457,6 +474,11 @@ function logout() {
   localStorage.removeItem("dg_admin_token");
   sessionStorage.removeItem("dg_runtime_role");
   sessionStorage.removeItem("dg_visitor_reload_guard");
+  sessionStorage.removeItem("dg_visitor_entry");
+  if (isVisitorOnlyEntry()) {
+    goHome();
+    return;
+  }
   // Recreate the whole document instead of restoring a hidden WebGL canvas.
   // Do not call WEBGL_lose_context: Chromium may carry that loss into the next
   // context created immediately in the same renderer process.
@@ -3736,15 +3758,20 @@ function previewAdminHumanState(stateName) {
 
 function bindEvents() {
   if ($("apiBase")) $("apiBase").value = state.apiBase;
-  $("visitorRoleBtn").onclick = () => setRoleForm("visitor");
-  $("adminRoleBtn").onclick = () => setRoleForm("admin");
-  $("visitorLoginForm").onsubmit = (event) => {
-    event.preventDefault();
-    state.visitorName = $("visitorNameInput").value.trim() || "临时游客";
-    localStorage.setItem("dg_visitor_name", state.visitorName);
-    enterApp("visitor");
-  };
-  $("adminLoginForm").onsubmit = (event) => adminLogin(event).catch((err) => toast(err.message));
+  if ($("visitorRoleBtn")) $("visitorRoleBtn").onclick = () => setRoleForm("visitor");
+  if ($("adminRoleBtn")) $("adminRoleBtn").onclick = () => setRoleForm("admin");
+  if ($("visitorLoginForm")) {
+    $("visitorLoginForm").onsubmit = (event) => {
+      event.preventDefault();
+      state.visitorName = $("visitorNameInput")?.value.trim() || "临时游客";
+      localStorage.setItem("dg_visitor_name", state.visitorName);
+      enterApp("visitor");
+    };
+  }
+  if ($("adminLoginForm")) {
+    $("adminLoginForm").onsubmit = (event) => adminLogin(event).catch((err) => toast(err.message));
+  }
+  if ($("homeBtn")) $("homeBtn").onclick = goHome;
   $("logoutBtn").onclick = logout;
   $("sidebarToggle").onclick = toggleSidebar;
   const historyToggle = $("historyToggleBtn");
@@ -3853,7 +3880,17 @@ export async function bootstrapLegacyApp() {
   });
   setAvatarEngine(state.avatarEngine || "live2d", false);
   addMessage("assistant", `您好，我是${digitalHumanName()}。点击“新建会话”，即可开始询问当前场景内容、路线和服务信息。`, undefined, false);
-  if (state.visitorName) $("visitorNameInput").value = state.visitorName;
+  if (!state.visitorName) {
+    state.visitorName = localStorage.getItem("dg_visitor_name") || "访客";
+  }
+  localStorage.setItem("dg_visitor_name", state.visitorName);
+  if ($("visitorNameInput")) $("visitorNameInput").value = state.visitorName;
+  if (isVisitorOnlyEntry()) {
+    state.role = "visitor";
+    localStorage.setItem("dg_role", "visitor");
+    enterApp("visitor");
+    return;
+  }
   if (state.role === "admin" && state.token) enterApp("admin");
   if (state.role === "visitor") enterApp("visitor");
 }

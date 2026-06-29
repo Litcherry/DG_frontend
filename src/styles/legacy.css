@@ -595,7 +595,7 @@ body.sidebar-collapsed .brand-mark {
 body.sidebar-collapsed .sidebar-text,
 body.sidebar-collapsed .nav-label,
 body.sidebar-collapsed .sidebar-card,
-body.sidebar-collapsed #logoutBtn {
+body.sidebar-collapsed .sidebar-footer-actions {
   display: none;
 }
 
@@ -3302,8 +3302,15 @@ body.role-visitor .nav-item[data-view="admin"] {
   }
 }
 
-#logoutBtn {
+.sidebar-footer-actions {
   margin-top: auto;
+  display: grid;
+  gap: 8px;
+}
+
+#homeBtn,
+#logoutBtn {
+  margin-top: 0;
 }
 
 body.role-visitor .sidebar {
@@ -4285,7 +4292,7 @@ body.sidebar-collapsed .nav-icon {
 body.sidebar-collapsed .sidebar-text,
 body.sidebar-collapsed .nav-label,
 body.sidebar-collapsed .sidebar-card,
-body.sidebar-collapsed #logoutBtn {
+body.sidebar-collapsed .sidebar-footer-actions {
   display: none;
 }
 

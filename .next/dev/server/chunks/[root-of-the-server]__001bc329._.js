@@ -67,9 +67,6 @@ const runtime = "nodejs";
 function readText(relativePath) {
     return __TURBOPACK__imported__module__$5b$externals$5d2f$node$3a$fs__$5b$external$5d$__$28$node$3a$fs$2c$__cjs$29$__["default"].readFileSync(__TURBOPACK__imported__module__$5b$externals$5d2f$node$3a$path__$5b$external$5d$__$28$node$3a$path$2c$__cjs$29$__["default"].join(process.cwd(), relativePath), "utf8");
 }
-function extractTemplate(vueSource) {
-    return vueSource.replace(/^[\s\S]*?<template>/, "").replace(/<\/template>[\s\S]*$/, "").trim();
-}
 function escapeScript(value) {
     return value.replace(/<\/script/gi, "<\\/script");
 }
@@ -81,6 +78,7 @@ function buildLegacyRuntime() {
     localStorage.setItem("dg_role", "visitor");
     localStorage.setItem("dg_visitor_name", localStorage.getItem("dg_visitor_name") || "访客");
     sessionStorage.setItem("dg_runtime_role", "visitor");
+    sessionStorage.setItem("dg_visitor_entry", "next");
     ${config}
     ${runtimeSource}
     bootstrapLegacyApp().catch((error) => {
@@ -94,7 +92,6 @@ function buildLegacyRuntime() {
   `;
 }
 async function GET() {
-    const authTemplate = extractTemplate(readText("src/components/views/AuthView.vue"));
     const visitorTemplate = readText("src/templates/visitor.html");
     const routeTemplate = readText("src/templates/route-map.html");
     const feedbackTemplate = readText("src/templates/feedback.html");
@@ -111,9 +108,8 @@ async function GET() {
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>${legacyCss}</style>
   </head>
-  <body>
-    ${authTemplate}
-    <div id="appShell" class="app-shell hidden">
+  <body class="in-app role-visitor" data-visitor-entry="next">
+    <div id="appShell" class="app-shell">
       <aside id="sidebar" class="sidebar">
         <button id="sidebarToggle" class="sidebar-toggle" type="button" title="收起侧栏" aria-label="收起侧栏">
           <span class="panel-toggle-icon"></span>
@@ -126,7 +122,10 @@ async function GET() {
           </div>
         </div>
         <nav id="roleNav" class="nav"></nav>
-        <button id="logoutBtn" class="ghost wide" type="button">退出当前身份</button>
+        <div class="sidebar-footer-actions">
+          <button id="homeBtn" class="ghost wide" type="button">返回首页</button>
+          <button id="logoutBtn" class="ghost wide" type="button">退出当前身份</button>
+        </div>
       </aside>
       <main class="main-area">
         <div id="deferredViews">
