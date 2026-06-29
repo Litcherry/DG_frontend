@@ -3,15 +3,17 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Bot, Check, Eye, EyeOff, LayoutDashboard, Lock, MapPin, Mountain, Shield, Sparkles, User, X } from "lucide-react"
+import { Bot, Eye, EyeOff, LayoutDashboard, Lock, Shield, Sparkles, User, X } from "lucide-react"
 import { request, setApiBase, setToken } from "@/components/dg/api"
 
 const scenicImages = [
-  "/assets/images/lingshan-hero.png",
   "https://commons.wikimedia.org/wiki/Special:FilePath/Huangshan_pic_4.jpg?width=2400",
   "https://commons.wikimedia.org/wiki/Special:FilePath/Great_Wall_of_China_July_2006.JPG?width=2400",
+  "/assets/images/lingshan-hero.png",
   "https://commons.wikimedia.org/wiki/Special:FilePath/Li_River,_Guilin,_China.jpg?width=2400",
   "https://commons.wikimedia.org/wiki/Special:FilePath/Zhangjiajie_National_Forest_Park.jpg?width=2400",
+  "https://commons.wikimedia.org/wiki/Special:FilePath/Great_Wall_of_China_at_Jinshanling-edit.jpg?width=2400",
+  "/assets/images/snow-mountain-lake-wide.png",
 ]
 
 const labels = {
@@ -19,7 +21,8 @@ const labels = {
   navVisitor: "游客端",
   navAdmin: "管理后台",
   badge: "全景区 AI 导览体验",
-  title: "让每一次旅行都有一位随行的 AI 导览员",
+  titleLineA: "让每一次旅行",
+  titleLineB: "都有一位随行的 AI 导览员。",
   desc: "游客可以直接进入导览问答，管理员可以进入 Tasko 风格的运营后台管理知识库、景区数据和数字人。",
   visitor: "开始对话",
   admin: "管理员登录",
@@ -177,9 +180,53 @@ function LegacyVisitorPane({ activeTab }: { activeTab: Exclude<HomeTab, "home"> 
   )
 }
 
+function TypewriterText({ text, loop = false }: { text: string; loop?: boolean }) {
+  const [displayed, setDisplayed] = useState("")
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDisplayed(text)
+      return
+    }
+
+    let index = 0
+    let timer: number | undefined
+    let restartTimer: number | undefined
+
+    const start = () => {
+      index = 0
+      setDisplayed("")
+      timer = window.setInterval(() => {
+      index += 1
+      setDisplayed(text.slice(0, index))
+        if (index >= text.length) {
+          if (timer) window.clearInterval(timer)
+          if (loop) restartTimer = window.setTimeout(start, 3000)
+        }
+      }, 86)
+    }
+
+    start()
+
+    return () => {
+      if (timer) window.clearInterval(timer)
+      if (restartTimer) window.clearTimeout(restartTimer)
+    }
+  }, [loop, text])
+
+  return (
+    <span className="inline-block min-w-[15.5em] whitespace-nowrap">
+      <span>{displayed}</span>
+      <span className="ml-1 inline-block h-[0.9em] w-[2px] translate-y-[0.08em] animate-pulse bg-white/85 align-baseline" />
+    </span>
+  )
+}
+
 export function HomeEntry() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<HomeTab>("home")
+  const [activeImage, setActiveImage] = useState(0)
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(() => new Set([0]))
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -189,126 +236,143 @@ export function HomeEntry() {
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    scenicImages.forEach((src, index) => {
+      const image = new Image()
+      image.onload = () => {
+        if (cancelled) return
+        setLoadedImages((current) => {
+          if (current.has(index)) return current
+          const next = new Set(current)
+          next.add(index)
+          return next
+        })
+      }
+      image.src = src
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab !== "home") return
+    const availableImages = Array.from(loadedImages).sort((a, b) => a - b)
+    if (availableImages.length < 2) return
+
+    const timer = window.setInterval(() => {
+      setActiveImage((current) => {
+        const currentPosition = availableImages.indexOf(current)
+        return availableImages[(currentPosition + 1) % availableImages.length] ?? availableImages[0]
+      })
+    }, 5000)
+    return () => window.clearInterval(timer)
+  }, [activeTab, loadedImages])
+
   function selectTab(tab: HomeTab) {
     setActiveTab(tab)
   }
 
   return (
-    <main className={`min-h-screen ${activeTab === "home" ? "bg-muted p-3 md:p-5" : "bg-white"}`}>
-      <section className={`relative flex min-h-screen flex-col overflow-hidden ${activeTab === "home" ? "rounded-[28px] bg-emerald-950 md:min-h-[calc(100vh-2.5rem)]" : "bg-white"}`}>
+    <main className={`min-h-screen ${activeTab === "home" ? "bg-emerald-950" : "bg-white"}`}>
+      <section className={`relative flex min-h-screen flex-col overflow-hidden ${activeTab === "home" ? "bg-emerald-950" : "bg-white"}`}>
         {activeTab === "home" && <div className="absolute inset-0">
           {scenicImages.map((image, index) => (
             <div
               key={image}
-              className="scenic-slide absolute inset-0 bg-cover bg-center"
+              className={`absolute inset-0 bg-cover bg-center transition-opacity duration-[1600ms] ease-in-out ${
+                index === activeImage && loadedImages.has(index) ? "opacity-100" : "opacity-0"
+              }`}
               style={{
                 backgroundImage: `url(${image})`,
-                animation: "scenicFade 25s infinite",
-                animationDelay: `${index * 5}s`,
-                opacity: index === 0 ? 1 : 0,
               }}
             />
           ))}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/35 to-black/70" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_30%,rgba(255,190,92,0.22),transparent_32%),linear-gradient(90deg,rgba(3,20,28,0.72)_0%,rgba(8,34,46,0.38)_46%,rgba(8,20,24,0.28)_100%)]" />
         </div>}
 
-        <div className={`relative flex flex-1 flex-col ${activeTab === "home" ? "px-4 pb-6 pt-5 md:px-8 md:pb-10 md:pt-6" : "px-4 pb-5 pt-5 md:px-8"}`}>
-          <nav className="mx-auto flex w-full max-w-7xl animate-slide-in-up items-center justify-between gap-4">
-            <div className={`flex flex-1 items-center justify-between rounded-[22px] border px-5 py-3 md:px-7 md:py-4 ${
-              activeTab === "home"
-                ? "border-white/35 bg-white/80 shadow-[0_18px_48px_rgba(0,0,0,0.14)] backdrop-blur-xl"
-                : "border-emerald-900/10 bg-white/90 shadow-[0_14px_34px_rgba(16,48,40,0.08)] backdrop-blur-xl"
-            }`}>
-              <Link href="/" className="flex items-center gap-2">
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-xs font-black text-primary-foreground">DG</span>
-                <span className="text-lg font-semibold tracking-tight">
-                  <span className="text-primary">{labels.brand}</span>
-                  <span className="text-foreground"> Guide</span>
-                </span>
-              </Link>
-              <div className="hidden items-center gap-1 md:flex">
-                {homeTabs.map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => selectTab(tab.key)}
-                    className={`relative min-h-0 rounded-none border-0 bg-transparent px-4 py-2 text-sm transition duration-200 hover:-translate-y-0.5 hover:bg-transparent ${
-                      activeTab === tab.key
-                        ? "font-semibold text-foreground after:absolute after:bottom-0 after:left-4 after:right-4 after:h-[2px] after:rounded-full after:bg-gradient-to-r after:from-transparent after:via-primary after:to-transparent after:shadow-[0_0_10px_rgba(0,122,47,0.45)]"
+        <div className={`relative flex flex-1 flex-col ${activeTab === "home" ? "px-5 pb-8 pt-2 md:px-12 md:pt-4" : "px-4 pb-5 pt-3 md:px-8 md:pt-4"}`}>
+          <nav className="mx-auto grid w-full max-w-[1800px] animate-slide-in-up grid-cols-[auto_1fr_auto] items-center gap-4 px-0 py-0">
+            <Link href="/" className={`flex items-center gap-2 transition hover:-translate-y-0.5 ${activeTab === "home" ? "text-white" : "text-foreground"}`}>
+              <span className={`grid h-8 w-8 place-items-center rounded-xl text-xs font-black shadow-sm ${
+                activeTab === "home" ? "bg-white/16 text-white ring-1 ring-white/18 backdrop-blur-md" : "bg-primary text-primary-foreground"
+              }`}>DG</span>
+              <span className="text-base font-semibold tracking-tight md:text-lg">
+                <span className={activeTab === "home" ? "text-white" : "text-primary"}>{labels.brand}</span>
+                <span className={activeTab === "home" ? "text-white/92" : "text-foreground"}> Guide</span>
+              </span>
+            </Link>
+            <div className="hidden items-center justify-center gap-9 md:flex">
+              {homeTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => selectTab(tab.key)}
+                  className={`relative min-h-0 rounded-none border-0 bg-transparent px-1 py-2 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 hover:bg-transparent ${
+                    activeTab === tab.key
+                      ? activeTab === "home"
+                        ? "text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-full after:bg-white after:shadow-[0_0_14px_rgba(255,255,255,0.52)]"
+                        : "text-foreground after:absolute after:bottom-1 after:left-0 after:right-0 after:h-[2px] after:rounded-full after:bg-primary after:shadow-[0_0_12px_rgba(0,122,47,0.35)]"
+                      : activeTab === "home"
+                        ? "text-white/72 hover:text-white"
                         : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
             <button
               type="button"
               onClick={() => setLoginOpen(true)}
-              className={`inline-flex items-center justify-center rounded-full border py-3 text-sm font-medium transition hover:-translate-y-0.5 md:py-4 ${
+              className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 md:px-7 ${
                 activeTab === "home"
-                  ? "border-white/30 bg-white/14 px-4 text-white shadow-sm backdrop-blur-xl hover:bg-white/20"
-                  : "border-emerald-900/10 bg-white px-4 text-emerald-950/65 shadow-sm hover:text-emerald-950"
+                  ? "border-white/18 bg-white/10 text-white hover:bg-white/16"
+                  : "border-emerald-900/10 bg-white/70 text-emerald-950/75 hover:bg-white hover:text-emerald-950"
               }`}
               title={labels.admin}
             >
               <LayoutDashboard className="h-4 w-4" />
-              <span className="sr-only">{labels.admin}</span>
+              <span className="hidden sm:inline">{labels.admin}</span>
             </button>
           </nav>
 
           {activeTab === "home" ? (
-          <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center pt-12 md:pt-16">
-            <div className="text-center">
-              <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-white/40 bg-black/25 px-4 py-2 text-sm text-white backdrop-blur-md">
-                <Sparkles className="h-4 w-4 text-emerald-300" />
+          <div className="mx-auto flex w-full max-w-[1800px] flex-1 flex-col justify-center pt-10 md:pt-6">
+            <div className="max-w-5xl text-left">
+              <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/8 px-4 py-2 text-xs font-semibold text-white/90 backdrop-blur-md">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-200" />
                 {labels.badge}
               </div>
-              <h1 className="mx-auto max-w-5xl text-balance text-4xl font-medium leading-[1.05] tracking-tight text-white drop-shadow-lg sm:text-5xl md:text-6xl lg:text-7xl">
-                {labels.title}
+              <h1 className="max-w-5xl text-5xl font-light leading-[1.02] text-white drop-shadow-lg sm:text-6xl md:text-[4.35rem] lg:text-[5.45rem]">
+                <span className="block whitespace-nowrap">{labels.titleLineA}</span>
+                <span className="block whitespace-nowrap">
+                  <TypewriterText text={labels.titleLineB} loop />
+                </span>
               </h1>
-              <p className="mx-auto mt-6 max-w-2xl text-pretty text-base font-medium leading-relaxed text-white/90 drop-shadow md:text-lg">
+              <p className="mt-8 max-w-3xl text-pretty text-base font-medium leading-8 text-white/88 drop-shadow md:text-lg">
                 {labels.desc}
               </p>
 
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => setActiveTab("chat")}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-7 text-base font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-8 text-base font-semibold text-emerald-950 shadow-sm transition hover:-translate-y-0.5 hover:bg-white/92"
                 >
                   <Bot className="h-4 w-4" />
                   {labels.visitor}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLoginOpen(true)}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/50 bg-white/10 px-7 text-base font-medium text-white backdrop-blur-sm transition hover:bg-white/20 hover:text-white"
+                  onClick={() => setActiveTab("map")}
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-white/18 bg-white/8 px-8 text-base font-semibold text-white backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white/14 hover:text-white"
                 >
-                  <LayoutDashboard className="h-4 w-4" />
-                  {labels.admin}
+                  地图导览
                 </button>
-              </div>
-
-              <div className="relative mt-24 flex items-end justify-between gap-4 md:mt-44">
-                <div className="flex items-center gap-3 rounded-2xl bg-black/35 px-4 py-3 pr-5 text-white backdrop-blur-md">
-                  <div className="grid h-11 w-11 place-items-center rounded-full bg-primary">
-                    <Mountain className="h-5 w-5" />
-                  </div>
-                  <p className="max-w-64 text-left text-xs leading-tight md:text-sm">{labels.helped}</p>
-                </div>
-
-                <ul className="hidden flex-wrap items-center justify-end gap-3 md:flex">
-                  {[labels.pointA, labels.pointB, labels.pointC].map((item) => (
-                    <li key={item} className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-black/25 px-4 py-2 text-sm text-white backdrop-blur-md">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-                        <Check className="h-3 w-3 text-white" strokeWidth={3} />
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
               </div>
             </div>
           </div>
@@ -320,26 +384,12 @@ export function HomeEntry() {
             </div>
           )}
 
-          {activeTab === "home" && <div className="pointer-events-none absolute bottom-5 left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full bg-black/25 px-4 py-2 text-xs text-white/85 backdrop-blur-md md:flex">
-            <MapPin className="h-3.5 w-3.5" />
-            Huangshan / Zhangjiajie / Guilin / Great Wall
-          </div>}
-
           {activeTab === "home" && <div className="absolute bottom-8 right-8 hidden lg:block"><FloatingDigitalHuman compact /></div>}
         </div>
       </section>
 
       <FrostedAdminLogin open={loginOpen} onClose={() => setLoginOpen(false)} />
 
-      <style>{`
-        @keyframes scenicFade {
-          0% { opacity: 0; transform: scale(1.02); filter: saturate(0.92) contrast(1.02); }
-          4% { opacity: 1; }
-          20% { opacity: 1; }
-          28% { opacity: 0; transform: scale(1.09); filter: saturate(1.08) contrast(1.06); }
-          100% { opacity: 0; transform: scale(1.09); filter: saturate(1.08) contrast(1.06); }
-        }
-      `}</style>
     </main>
   )
 }
