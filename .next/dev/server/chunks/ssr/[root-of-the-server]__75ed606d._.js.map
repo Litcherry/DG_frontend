@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 14, "column": 0}, "map": {"version":3,"sources":["file:///C:/Project_vscode/DG/DG_frontend/app/admin/scenic/page.tsx"],"sourcesContent":["import { ScenicContent } from \"@/components/dg/scenic-content\"\n\nexport default function ScenicPage() {\n  return <ScenicContent />\n}\n"],"names":[],"mappings":";;;;;;;;;;;;AAEe,SAAS;IACtB,qBAAO,8OAAC;;;;;AACV"}}]
-}
