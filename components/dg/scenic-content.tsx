@@ -63,6 +63,70 @@ const emptyRoute: Route = {
   is_active: true,
 }
 
+const seedSpotImages: Record<string, string> = {
+  灵山大照壁: "/assets/images/lingshan-hero.png",
+  胜境广场: "https://commons.wikimedia.org/wiki/Special:FilePath/Great_Wall_of_China_at_Jinshanling-edit.jpg?width=1200",
+  五明桥: "https://commons.wikimedia.org/wiki/Special:FilePath/Huangshan_pic_4.jpg?width=1200",
+  佛足坛: "https://commons.wikimedia.org/wiki/Special:FilePath/Li_River,_Guilin,_China.jpg?width=1200",
+  百子戏弥勒: "https://commons.wikimedia.org/wiki/Special:FilePath/Zhangjiajie_National_Forest_Park.jpg?width=1200",
+  九龙灌浴: "https://commons.wikimedia.org/wiki/Special:FilePath/Great_Wall_of_China_July_2006.JPG?width=1200",
+  菩提大道: "https://commons.wikimedia.org/wiki/Special:FilePath/Longji_Rice_Terraces,_Guangxi,_China.jpg?width=1200",
+  佛手广场: "https://commons.wikimedia.org/wiki/Special:FilePath/Yungang_Grottoes_2007_1.jpg?width=1200",
+  祥符禅寺: "https://commons.wikimedia.org/wiki/Special:FilePath/Buddhist_temple_in_Wutai_Shan.jpg?width=1200",
+  佛前广场: "/assets/images/lingshan-hero.png",
+  灵山大佛: "/assets/images/lingshan-hero.png",
+  灵山梵宫: "https://commons.wikimedia.org/wiki/Special:FilePath/Forbidden_City_Beijing_Shenwumen_Gate.JPG?width=1200",
+  五印坛城: "https://commons.wikimedia.org/wiki/Special:FilePath/Potala_Palace,_Lhasa,_Tibet.jpg?width=1200",
+  曼飞龙塔: "https://commons.wikimedia.org/wiki/Special:FilePath/Dali_Three_Pagodas_2009_06.jpg?width=1200",
+  灵山精舍: "https://commons.wikimedia.org/wiki/Special:FilePath/Jiuzhaigou_Valley.jpg?width=1200",
+  梵宫广场: "https://commons.wikimedia.org/wiki/Special:FilePath/Temple_of_Heaven_in_Beijing.JPG?width=1200",
+}
+
+const seedSpots: Spot[] = [
+  { ...emptySpot, name: "灵山大照壁", description: "景区入口处的标志性景观，适合作为路线起点。", tags: ["入口景观", "佛教文化", "拍照打卡"], location: { lat: 31.41915, lng: 120.091 }, visit_duration_min: 10, sort_order: 1, image_url: seedSpotImages["灵山大照壁"] },
+  { ...emptySpot, name: "胜境广场", description: "开阔舒适的入园集散空间，适合整理行程。", tags: ["休闲漫步", "游客集散"], location: { lat: 31.41985, lng: 120.09165 }, visit_duration_min: 10, sort_order: 2, image_url: seedSpotImages["胜境广场"] },
+  { ...emptySpot, name: "五明桥", description: "汉白玉石拱桥景观，寓意佛教智慧。", tags: ["佛教文化", "建筑艺术", "拍照打卡"], location: { lat: 31.4202, lng: 120.09235 }, visit_duration_min: 10, sort_order: 3, image_url: seedSpotImages["五明桥"] },
+  { ...emptySpot, name: "佛足坛", description: "以佛足印为核心的人文景观，氛围庄重安宁。", tags: ["佛教文化", "人文景观"], location: { lat: 31.42075, lng: 120.0922 }, visit_duration_min: 15, sort_order: 4, image_url: seedSpotImages["佛足坛"] },
+  { ...emptySpot, name: "百子戏弥勒", description: "生动活泼的弥勒主题群像，适合亲子游览。", tags: ["亲子游", "佛教文化", "雕塑艺术"], location: { lat: 31.4213, lng: 120.09275 }, visit_duration_min: 15, sort_order: 5, image_url: seedSpotImages["百子戏弥勒"] },
+  { ...emptySpot, name: "九龙灌浴", description: "大型动态音乐群雕景观，呈现佛陀诞生故事。", tags: ["核心景点", "演艺景观", "亲子游"], location: { lat: 31.42255, lng: 120.09308 }, visit_duration_min: 25, sort_order: 6, image_url: seedSpotImages["九龙灌浴"] },
+  { ...emptySpot, name: "菩提大道", description: "连接景区重要文化节点的景观步道，适合慢行。", tags: ["自然风光", "休闲漫步", "拍照打卡"], location: { lat: 31.42305, lng: 120.0936 }, visit_duration_min: 20, sort_order: 7, image_url: seedSpotImages["菩提大道"] },
+  { ...emptySpot, name: "佛手广场", description: "以大型佛手造像为核心的互动打卡点。", tags: ["拍照打卡", "佛教文化"], location: { lat: 31.42395, lng: 120.0938 }, visit_duration_min: 15, sort_order: 8, image_url: seedSpotImages["佛手广场"] },
+  { ...emptySpot, name: "祥符禅寺", description: "历史悠久的佛教寺院建筑群，适合静心参访。", tags: ["佛教文化", "历史建筑", "静心参访"], location: { lat: 31.4262, lng: 120.0944 }, visit_duration_min: 30, sort_order: 9, image_url: seedSpotImages["祥符禅寺"] },
+  { ...emptySpot, name: "佛前广场", description: "仰望灵山大佛的主要观景空间，视野开阔。", tags: ["核心景点", "观景", "拍照打卡"], location: { lat: 31.4281, lng: 120.09575 }, visit_duration_min: 15, sort_order: 10, image_url: seedSpotImages["佛前广场"] },
+  { ...emptySpot, name: "灵山大佛", description: "灵山胜境核心景点，适合了解佛教文化与大型露天造像艺术。", tags: ["佛教文化", "核心景点", "拍照打卡"], location: { lat: 31.43194, lng: 120.09139 }, visit_duration_min: 40, sort_order: 11, image_url: seedSpotImages["灵山大佛"] },
+  { ...emptySpot, name: "灵山梵宫", description: "融合建筑、壁画、雕塑与演艺艺术的文化地标。", tags: ["建筑艺术", "佛教文化", "室内参观"], location: { lat: 31.4266, lng: 120.0915 }, visit_duration_min: 45, sort_order: 12, image_url: seedSpotImages["灵山梵宫"] },
+  { ...emptySpot, name: "五印坛城", description: "藏式建筑特色鲜明的文化景观。", tags: ["建筑艺术", "佛教文化", "拍照打卡"], location: { lat: 31.428, lng: 120.0888 }, visit_duration_min: 35, sort_order: 13, image_url: seedSpotImages["五印坛城"] },
+  { ...emptySpot, name: "曼飞龙塔", description: "造型精巧的佛塔景观，适合文化参观与摄影。", tags: ["建筑艺术", "拍照打卡", "人文景观"], location: { lat: 31.4291, lng: 120.0876 }, visit_duration_min: 20, sort_order: 14, image_url: seedSpotImages["曼飞龙塔"] },
+  { ...emptySpot, name: "灵山精舍", description: "环境清幽的禅意空间，适合短暂休息。", tags: ["休闲体验", "禅意空间"], location: { lat: 31.4273, lng: 120.0882 }, visit_duration_min: 20, sort_order: 15, image_url: seedSpotImages["灵山精舍"] },
+  { ...emptySpot, name: "梵宫广场", description: "梵宫前的开阔景观空间，适合欣赏建筑群。", tags: ["建筑艺术", "自然风光", "拍照打卡"], location: { lat: 31.42605, lng: 120.09095 }, visit_duration_min: 15, sort_order: 16, image_url: seedSpotImages["梵宫广场"] },
+]
+
+function normalizeSeedName(name: string) {
+  return name.trim().toLowerCase().replace(/\s+/g, "")
+}
+
+function spotScore(spot: Spot) {
+  let score = 0
+  if (spot.image_url?.startsWith("/files/")) score += 100
+  else if (spot.image_url) score += 20
+  if (spot.description) score += Math.min(spot.description.length, 80)
+  if (spot.location) score += 12
+  if (spot.id) score += 4
+  if (spot.is_active) score += 2
+  return score
+}
+
+function dedupeSpotsByName(items: Spot[]) {
+  const map = new globalThis.Map<string, Spot>()
+  items.forEach((spot) => {
+    const key = normalizeSeedName(spot.name)
+    if (!key) return
+    const existing = map.get(key)
+    if (!existing || spotScore(spot) > spotScore(existing)) map.set(key, spot)
+  })
+  return Array.from(map.values())
+}
+
 function normalizeSpot(value: any): Spot {
   return { ...emptySpot, ...value, tags: Array.isArray(value?.tags) ? value.tags : [], location: value?.location || null }
 }
@@ -290,6 +354,39 @@ export function ScenicContent() {
   const [spotModal, setSpotModal] = useState<Spot | null | "new">(null)
   const [routeModal, setRouteModal] = useState<Route | null | "new">(null)
 
+  async function backfillSeedSpots(existingSpots: Spot[]) {
+    const existingNames = new Set(existingSpots.map((spot) => normalizeSeedName(spot.name)))
+    const missing = seedSpots.filter((spot) => !existingNames.has(normalizeSeedName(spot.name)))
+    if (!missing.length) return existingSpots
+
+    const created: Spot[] = []
+    for (const spot of missing) {
+      try {
+        const saved = await request<Spot>("/api/admin/spots", {
+          method: "POST",
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            name: spot.name,
+            name_en: spot.name_en,
+            description: spot.description,
+            description_en: spot.description_en,
+            tags: spot.tags,
+            location: spot.location,
+            visit_duration_min: spot.visit_duration_min,
+            image_url: spot.image_url,
+            sort_order: spot.sort_order,
+            is_active: spot.is_active,
+          }),
+        })
+        created.push(normalizeSpot(saved))
+      } catch {
+        created.push(spot)
+      }
+    }
+    if (created.some((spot) => spot.id)) toast.success("已补齐景点推荐中的默认景点")
+    return dedupeSpotsByName([...existingSpots, ...created])
+  }
+
   async function loadData() {
     setLoading(true)
     try {
@@ -297,7 +394,8 @@ export function ScenicContent() {
         request<Spot[]>("/api/admin/spots", { headers: authHeaders() }),
         request<Route[]>("/api/admin/routes", { headers: authHeaders() }),
       ])
-      setSpots((Array.isArray(spotData) ? spotData : []).map(normalizeSpot))
+      const normalizedSpots = dedupeSpotsByName((Array.isArray(spotData) ? spotData : []).map(normalizeSpot))
+      setSpots(await backfillSeedSpots(normalizedSpots))
       setRoutes((Array.isArray(routeData) ? routeData : []).map(normalizeRoute))
     } catch (error: any) {
       toast.error(error?.message || "加载失败")
@@ -315,7 +413,7 @@ export function ScenicContent() {
     loadData()
   }
 
-  const sortedSpots = useMemo(() => [...spots].sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0)), [spots])
+  const sortedSpots = useMemo(() => dedupeSpotsByName(spots).sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0)), [spots])
 
   return (
     <AdminFrame
@@ -383,12 +481,12 @@ export function ScenicContent() {
 
       {spotModal !== null && (
         <Modal title={spotModal === "new" ? "新增景点" : "编辑景点"} onClose={() => setSpotModal(null)}>
-          <SpotEditor initial={spotModal === "new" ? null : spotModal} onClose={() => setSpotModal(null)} onSaved={(saved) => { setSpots((current) => [saved, ...current.filter((item) => item.id !== saved.id)]); loadData() }} />
+          <SpotEditor initial={spotModal === "new" ? null : spotModal} onClose={() => setSpotModal(null)} onSaved={(saved) => { setSpots((current) => dedupeSpotsByName([saved, ...current.filter((item) => item.id !== saved.id)])); loadData() }} />
         </Modal>
       )}
       {routeModal !== null && (
         <Modal title={routeModal === "new" ? "新建路线" : "编辑路线"} onClose={() => setRouteModal(null)}>
-          <RouteEditor initial={routeModal === "new" ? null : routeModal} spots={spots} onClose={() => setRouteModal(null)} onSaved={(saved) => { setRoutes((current) => [saved, ...current.filter((item) => item.id !== saved.id)]); loadData() }} />
+          <RouteEditor initial={routeModal === "new" ? null : routeModal} spots={sortedSpots} onClose={() => setRouteModal(null)} onSaved={(saved) => { setRoutes((current) => [saved, ...current.filter((item) => item.id !== saved.id)]); loadData() }} />
         </Modal>
       )}
     </AdminFrame>

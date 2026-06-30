@@ -64,6 +64,11 @@ export function resolveMediaURL(value = "") {
   const source = String(value || "").trim()
   if (!source) return ""
   if (/^(?:https?:|data:|blob:)/i.test(source)) return source
+  if (source.startsWith("/assets/")) return source
+  if (source.startsWith("/files/")) {
+    if (typeof window === "undefined") return source
+    return `${window.location.origin}${source}`
+  }
   const normalized = source.startsWith("/") ? source : `/${source}`
   return `${apiBase()}${normalized}`
 }

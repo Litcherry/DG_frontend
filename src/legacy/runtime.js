@@ -302,6 +302,169 @@ scenicSpots.forEach((spot) => {
     spot.lng += fallbackCoordinateCorrection.lng;
   }
 });
+defaultInterests.splice(0, defaultInterests.length, "历史文化", "自然风光", "休闲娱乐", "亲子游", "摄影打卡");
+scenicSpots.splice(0, scenicSpots.length, ...[
+  {
+    id: "lingshan_screen",
+    name: "灵山大照壁",
+    aliases: ["大照壁", "华夏第一壁", "灵山照壁"],
+    lat: 31.41915,
+    lng: 120.091,
+    intro: "景区入口处的标志性景观，适合作为路线起点，快速了解景区文化序章。",
+    duration: "10分钟",
+    tags: ["入口景观", "佛教文化", "拍照打卡"],
+  },
+  {
+    id: "shengjing_square",
+    name: "胜境广场",
+    aliases: ["灵山胜境广场"],
+    lat: 31.41985,
+    lng: 120.09165,
+    intro: "开阔舒适的入园集散空间，适合整理行程并了解景区整体布局。",
+    duration: "10分钟",
+    tags: ["休闲漫步", "游客集散"],
+  },
+  {
+    id: "wuming_bridge",
+    name: "五明桥",
+    aliases: ["五明桥景点"],
+    lat: 31.4202,
+    lng: 120.09235,
+    intro: "五座汉白玉石拱桥并列横跨香水河，寓意佛教五种核心智慧。",
+    duration: "10分钟",
+    tags: ["佛教文化", "建筑艺术", "拍照打卡"],
+  },
+  {
+    id: "buddha_foot",
+    name: "佛足坛",
+    aliases: ["佛足印", "佛足坛景点"],
+    lat: 31.42075,
+    lng: 120.0922,
+    intro: "以佛足印为核心的人文景观，可在此感受庄重安宁的礼佛氛围。",
+    duration: "15分钟",
+    tags: ["佛教文化", "人文景观"],
+  },
+  {
+    id: "jiulong",
+    name: "九龙灌浴",
+    aliases: ["九龙灌浴广场", "九龙灌浴表演"],
+    lat: 31.42255,
+    lng: 120.09308,
+    intro: "以释迦太子诞生传说为主题的动态景观，结合音乐、喷泉和佛光效果，是亲子与首次到访游客都很适合的开场体验。",
+    duration: "20分钟",
+    tags: ["核心景点", "亲子游", "佛教文化"],
+  },
+  {
+    id: "buddha_hand_square",
+    name: "佛手广场",
+    aliases: ["天下第一掌", "佛手"],
+    lat: 31.424,
+    lng: 120.0938,
+    intro: "“天下第一掌”所在的互动广场，摸佛手寓意祈福、平安和吉祥。",
+    duration: "15分钟",
+    tags: ["佛教文化", "互动体验", "拍照打卡"],
+  },
+  {
+    id: "baizi",
+    name: "百子戏弥勒",
+    aliases: ["百子戏弥勒雕塑群", "弥勒佛"],
+    lat: 31.42465,
+    lng: 120.0941,
+    intro: "孩童与弥勒佛的欢快场景，形象轻松亲切，适合家庭游客拍照和理解佛教生活智慧。",
+    duration: "15分钟",
+    tags: ["亲子游", "休闲娱乐", "拍照打卡"],
+  },
+  {
+    id: "xiangfu_temple",
+    name: "祥符禅寺",
+    aliases: ["祥符寺", "禅寺"],
+    lat: 31.4262,
+    lng: 120.0944,
+    intro: "古朴寺庙，与景区佛教文化脉络相关，适合喜欢历史与宗教故事的游客深度停留。",
+    duration: "25分钟",
+    tags: ["历史文化", "佛教文化", "宗教建筑"],
+  },
+  {
+    id: "xingtan_square",
+    name: "杏坛广场",
+    aliases: ["杏坛"],
+    lat: 31.42695,
+    lng: 120.09505,
+    intro: "连接主要文化节点的广场空间，可作为前往大佛区域的过渡。",
+    duration: "10分钟",
+    tags: ["休闲漫步", "路线过渡"],
+  },
+  {
+    id: "buddha_square",
+    name: "佛前广场",
+    aliases: ["佛前"],
+    lat: 31.4281,
+    lng: 120.09575,
+    intro: "位于大佛前的核心观赏空间，视野开阔，适合拍摄大佛全景。",
+    duration: "15分钟",
+    tags: ["核心景点", "拍照打卡"],
+  },
+  {
+    id: "lingshan_buddha",
+    name: "灵山大佛",
+    aliases: ["大佛", "灵山大佛景区", "青铜大佛"],
+    lat: 31.43194,
+    lng: 120.09139,
+    intro: "大型青铜露天造像，是景区核心景点之一，适合了解佛教文化与大型造像艺术。",
+    duration: "30分钟",
+    tags: ["佛教文化", "核心景点", "拍照打卡"],
+  },
+  {
+    id: "fan_gong",
+    name: "灵山梵宫",
+    aliases: ["梵宫", "灵山梵宫", "梵宫艺术殿堂"],
+    lat: 31.4266,
+    lng: 120.0915,
+    intro: "集木雕、琉璃、穹顶天象和佛教艺术于一体的建筑艺术空间，适合深度讲解。",
+    duration: "40分钟",
+    tags: ["建筑艺术", "历史文化", "佛教文化"],
+  },
+  {
+    id: "wuyin_tancheng",
+    name: "五印坛城",
+    aliases: ["坛城", "五印坛城景点"],
+    lat: 31.428,
+    lng: 120.0888,
+    intro: "体现藏传佛教曼茶罗概念的体验空间，可观看转经筒、唐卡和墙体艺术。",
+    duration: "35分钟",
+    tags: ["佛教文化", "民族艺术", "深度体验"],
+  },
+  {
+    id: "mansara",
+    name: "曼飞龙塔",
+    aliases: ["曼飞龙塔", "龙塔"],
+    lat: 31.4291,
+    lng: 120.0876,
+    intro: "具有异域风情的塔式景观，可放入自然风光与拍照路线中。",
+    duration: "15分钟",
+    tags: ["建筑艺术", "拍照打卡"],
+  },
+  {
+    id: "jingtu",
+    name: "灵山精舍",
+    aliases: ["精舍", "精舍区"],
+    lat: 31.4273,
+    lng: 120.0882,
+    intro: "较为宁静的文化休息区，适合需要缓步慢游的游客。",
+    duration: "20分钟",
+    tags: ["休闲漫步", "自然风光"],
+  },
+  {
+    id: "fan_gong_square",
+    name: "梵宫广场",
+    aliases: ["梵宫外广场"],
+    lat: 31.42605,
+    lng: 120.09095,
+    intro: "梵宫外部广场，适合拍摄建筑外观并过渡到室内参观。",
+    duration: "10分钟",
+    tags: ["拍照打卡", "建筑艺术"],
+  },
+]);
 const live2dModels = LIVE2D_MODELS;
 const live2dRoleDefaults = {
   ...LIVE2D_ROLE_DEFAULTS,
@@ -2761,43 +2924,43 @@ function selectSpot(index, options = {}) {
 
 function getRoutePreferenceProfile(text = "", interests = []) {
   const source = `${text} ${interests.join(" ")}`;
-  if (/(鑰佷汉|闀胯緢|鐖舵瘝|鐖稿|鐖风埛|濂跺ザ|澶栧叕|澶栧﹩|鑵胯剼|浣撳姏鏈夐檺|灏戠埇|涓嶇埇|灏戣蛋)/.test(source)) {
+  if (/(老人|长辈|父母|爸妈|爷爷|奶奶|外公|外婆|腿脚|体力有限|少爬|不爬|少走|轻松|慢游)/.test(source)) {
     return {
-      intent: "闀胯緢鍚岃鑸掔紦璺嚎鎺ㄨ崘",
-      requirement: "鑺傚鑸掔紦锛屼紭鍏堝钩缂撳尯鍩熴€佸彲鍋滅暀瑙傝祻鍜屽鍐呭弬瑙傦紝涓嶅畨鎺掕繛缁櫥楂?,
-      reference: "璧勬枡涓殑浜插瓙瀹跺涵璺嚎锛?灏忔椂杞绘澗娓革級",
-      candidates: ["涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐧惧瓙鎴忓讥鍕?, "鐏靛北姊靛", "浜斿嵃鍧涘煄"],
+      intent: "长辈同行舒缓路线推荐",
+      requirement: "节奏舒缓，优先选择平缓区域、可停留观赏和室内参观，减少连续登高和长距离折返",
+      reference: "亲子家庭路线和文化精华路线",
+      candidates: ["九龙灌浴", "佛手广场", "百子戏弥勒", "灵山梵宫", "五印坛城"],
     };
   }
-  if (/(瀛╁瓙|鍎跨|浜插瓙|瀹濆疂|灏忔湅鍙媩杞绘澗|鏈夎叮|浜掑姩|琛ㄦ紨)/.test(source)) {
+  if (/(孩子|儿童|亲子|宝宝|小朋友|轻松|有趣|互动|表演)/.test(source)) {
     return {
-      intent: "浜插瓙杞绘澗鏈夎叮璺嚎鎺ㄨ崘",
-      requirement: "浣撻獙鐢熷姩鏈夎叮锛屼紭鍏堝姩鎬佽〃婕斻€佷簰鍔ㄦ櫙瑙傚拰瀹ゅ唴鑹烘湳鍙傝",
-      reference: "璧勬枡涓殑浜插瓙瀹跺涵璺嚎锛?灏忔椂杞绘澗娓革級",
-      candidates: ["涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐧惧瓙鎴忓讥鍕?, "鐏靛北姊靛", "浜斿嵃鍧涘煄"],
+      intent: "亲子轻松有趣路线推荐",
+      requirement: "体验生动有趣，优先动态表演、互动景观和室内艺术参观",
+      reference: "亲子家庭路线",
+      candidates: ["九龙灌浴", "百子戏弥勒", "佛手广场", "灵山梵宫", "五印坛城"],
     };
   }
-  if (/(鑷劧|椋庢櫙|椋庡厜|鎷嶇収|鎽勫奖|鎵撳崱)/.test(source)) {
+  if (/(自然|风景|风光|拍照|摄影|打卡)/.test(source)) {
     return {
-      intent: "鑷劧椋庡厜涓庢憚褰辫矾绾挎帹鑽?,
-      requirement: "鍏奸【鑷劧鏅銆佸紑闃旇閲庡拰鎷嶇収浣撻獙",
-      reference: "璧勬枡涓殑鑷劧椋庡厜鐖卞ソ鑰呰矾绾匡紙5灏忔椂鍏ㄦ櫙娓革級",
-      candidates: ["浣涜冻鍧?, "涔濋緳鐏屾荡", "鑿╂彁澶ч亾", "鐏靛北澶т經", "鏇奸榫欏", "鐏靛北绮捐垗", "姊靛骞垮満"],
+      intent: "自然风光与摄影路线推荐",
+      requirement: "兼顾自然景观、开阔视野和拍照体验",
+      reference: "自然风光路线",
+      candidates: ["佛足坛", "九龙灌浴", "五明桥", "灵山大佛", "曼飞龙塔", "灵山精舍", "梵宫广场"],
     };
   }
-  if (/(鍘嗗彶|鏂囧寲|寤虹瓚|浣涙暀|绁堢|绂?/.test(source)) {
+  if (/(历史|文化|建筑|佛教|祈福|禅|艺术)/.test(source)) {
     return {
-      intent: "鍘嗗彶鏂囧寲缁忓吀璺嚎鎺ㄨ崘",
-      requirement: "绐佸嚭浣涙暀鏂囧寲銆佸巻鍙插缓绛戝拰浠ｈ〃鎬ц壓鏈櫙瑙?,
-      reference: "璧勬枡涓殑鍘嗗彶鏂囧寲鐖卞ソ鑰呰矾绾匡紙6灏忔椂娣卞害娓革級",
-      candidates: ["鐏靛北澶х収澹?, "浣涙墜骞垮満", "绁ョ绂呭", "浣涘墠骞垮満", "鐏靛北澶т經", "鐏靛北姊靛", "浜斿嵃鍧涘煄"],
+      intent: "历史文化经典路线推荐",
+      requirement: "突出佛教文化、历史建筑和代表性艺术景观",
+      reference: "历史文化路线",
+      candidates: ["灵山大照壁", "佛手广场", "祥符禅寺", "佛前广场", "灵山大佛", "灵山梵宫", "五印坛城"],
     };
   }
   return {
-    intent: "缁忓吀绮惧崕璺嚎鎺ㄨ崘",
-    requirement: text || "璺嚎绱у噾銆佷綋楠屼赴瀵屻€佹父瑙堥『搴忓悎鐞?,
-    reference: "璧勬枡涓殑鐏靛北鑳滃鍘嗗彶鏂囧寲銆佽嚜鐒堕鍏夊拰浜插瓙瀹跺涵璺嚎",
-    candidates: ["鐏靛北澶х収澹?, "涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐧惧瓙鎴忓讥鍕?, "鐏靛北澶т經", "鐏靛北姊靛", "浜斿嵃鍧涘煄"],
+    intent: "经典精华路线推荐",
+    requirement: text || "路线紧凑、体验丰富、游览顺序合理",
+    reference: "当前知识库中的历史文化、自然风光和亲子家庭路线",
+    candidates: ["灵山大照壁", "九龙灌浴", "佛手广场", "百子戏弥勒", "灵山大佛", "灵山梵宫", "五印坛城"],
   };
 }
 
@@ -2809,25 +2972,31 @@ function buildRoutePlanningPrompt({ preferenceText = "" } = {}) {
   const profile = getRoutePreferenceProfile(guideText, interests);
   const conditions = [];
 
-  if (area) conditions.push(`褰撳墠浣嶇疆${area}`);
-  if (hours > 0) conditions.push(`娓歌鏃堕暱${hours}灏忔椂`);
-  if (interests.length) conditions.push(`娓歌鍋忓ソ${interests.join("銆?)}`);
-  conditions.push(`璺嚎瑕佹眰${profile.requirement}`);
-
-  if (!conditions.length) return "";
+  if (area) conditions.push(`当前位置：${area}`);
+  if (hours > 0) conditions.push(`游览时长：${hours}小时`);
+  if (interests.length) conditions.push(`游客偏好：${interests.join("、")}`);
+  if (guideText) conditions.push(`补充偏好：${guideText}`);
+  conditions.push(`路线要求：${profile.requirement}`);
 
   state.latestRoutePreference = `${guideText} ${interests.join(" ")}`.trim();
-  const candidateNames = profile.candidates.join("銆?);
-  return `鐏靛北鑳滃${profile.intent}銆傛父瀹㈡潯浠讹細${conditions.join("锛?)}銆傝鍙傝€?{profile.reference}锛屽湪鏃堕棿杈冪煭鏃朵粠瀹屾暣璺嚎涓悎鐞嗘埅鍙栫簿鍗庢銆傚彧鑳戒粠浠ヤ笅璧勬枡宸叉湁鏅偣涓€夋嫨锛?{candidateNames}銆傝鐩存帴鍥炵瓟锛屼笉瑕佽姹傜敤鎴峰啀娆¤鏄庢櫙鍖烘垨鍋忓ソ銆傝緭鍑虹涓€琛屽繀椤讳娇鐢ㄢ€滆矾绾块『搴忥細鏅偣A 鈫?鏅偣B 鈫?鏅偣C鈥濈殑鏍煎紡锛屾寜椤哄簭鍒楀嚭3鑷?涓畬鏁存櫙鐐瑰悕绉帮紱闅忓悗閫愮珯绠€瑕佽鏄庢帹鑽愮悊鐢便€備笉瑕佽櫄鏋勭簿纭琛屾椂闂淬€佹帴椹虫柟寮忋€侀€氳涓庢湇鍔℃潯浠躲€佹紨鍑烘椂闂存垨瀹樻柟鏀跨瓥锛涘璧勬枡涓嶆敮鎸佸畬鏁村畼鏂硅矾绾匡紝璇疯鏄庤繖鏄熀浜庣幇鏈夎祫鏂欐暣鐞嗙殑鍙傝€冮『搴忥紝浣嗕粛闇€缁欏嚭鍙敤璺嚎銆俙;
+  const candidateNames = profile.candidates.join("、");
+  return [
+    `请基于当前知识库，为游客生成一条${profile.intent}。`,
+    `游客条件：${conditions.join("；")}。`,
+    `请参考：${profile.reference}。`,
+    `只能从以下资料已有景点中选择：${candidateNames}。`,
+    "请直接回答，不要要求用户再次说明景区或偏好。",
+    "输出第一行必须使用“路线顺序：景点A → 景点B → 景点C”的格式，按游览顺序列出3至5个完整景点名称。",
+    "随后逐站简要说明推荐理由。",
+    "不要虚构精确步行时间、接驳方式、通行与服务条件、演出时间或官方政策；如资料不支持完整官方路线，请说明这是基于现有资料整理的参考顺序，但仍需给出可用路线。",
+  ].join("");
 }
 
 function extractRouteReasonFromAIText(text = "") {
-  const line = String(text)
-    .split("\n")
-    .map((item) => item.trim())
-    .find((item) => item && !/^(?:绗琝s*)?\d+[\.銆乗)锛塢/.test(item) && !/^绗琜涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+绔?.test(item));
-  if (!line) return "宸叉牴鎹綘鐨勬父瑙堟椂闂村拰鍋忓ソ鐢熸垚璺嚎銆?;
-  return line.length > 140 ? `${line.slice(0, 140)}鈥 : line;
+  const lines = String(text).split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+  const line = lines.find((item) => !/^路线顺序\s*[：:]/.test(item) && !/^\d+[\.\、\)]/.test(item));
+  if (!line) return "已根据你的游览时间和偏好生成路线。";
+  return line.length > 140 ? `${line.slice(0, 140)}...` : line;
 }
 
 function buildFallbackRoutePlan() {
@@ -2837,25 +3006,28 @@ function buildFallbackRoutePlan() {
   let spots;
   let routeName;
 
-  if (profile.intent.includes("闀胯緢")) {
-    routeName = "闀胯緢鍚岃鑸掔紦璺嚎";
-    spots = ["涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐏靛北姊靛", "浜斿嵃鍧涘煄"];
-  } else if (profile.intent.includes("浜插瓙")) {
-    routeName = "浜插瓙杞绘澗浣撻獙璺嚎";
-    spots = ["涔濋緳鐏屾荡", "鐧惧瓙鎴忓讥鍕?, "浣涙墜骞垮満", "鐏靛北姊靛"];
-  } else if (profile.intent.includes("鑷劧")) {
-    routeName = "鑷劧椋庡厜鎵撳崱璺嚎";
-    spots = ["浣涜冻鍧?, "涔濋緳鐏屾荡", "鑿╂彁澶ч亾", "鐏靛北澶т經", "姊靛骞垮満"];
+  if (profile.intent.includes("长辈")) {
+    routeName = "长辈同行舒缓路线";
+    spots = ["九龙灌浴", "佛手广场", "百子戏弥勒", "灵山梵宫", "五印坛城"];
+  } else if (profile.intent.includes("亲子")) {
+    routeName = "亲子轻松体验路线";
+    spots = ["九龙灌浴", "百子戏弥勒", "佛手广场", "灵山梵宫"];
+  } else if (profile.intent.includes("自然")) {
+    routeName = "自然风光打卡路线";
+    spots = ["佛足坛", "九龙灌浴", "五明桥", "灵山大佛", "梵宫广场"];
+  } else if (profile.intent.includes("历史")) {
+    routeName = "历史文化经典路线";
+    spots = ["灵山大照壁", "佛手广场", "祥符禅寺", "灵山大佛", "灵山梵宫"];
   } else {
-    routeName = "鐏靛北鏂囧寲绮惧崕璺嚎";
-    spots = ["鐏靛北澶х収澹?, "涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐏靛北澶т經", "鐏靛北姊靛"];
+    routeName = "AI 智能推荐路线";
+    spots = ["灵山大照壁", "九龙灌浴", "佛手广场", "灵山大佛", "灵山梵宫"];
   }
 
-  const count = hours > 0 && hours <= 1.5 ? 3 : hours > 0 && hours <= 3 ? 4 : spots.length;
+  const count = hours > 0 && hours <= 1.5 ? 3 : hours > 0 && hours <= 3 ? 4 : Math.min(5, spots.length);
   return {
     routeName,
-    duration: hours > 0 ? `绾?${hours} 灏忔椂` : "绾?3 灏忔椂",
-    reason: "AI 鏈疆鏈繑鍥炲彲瀹氫綅鐨勬櫙鐐瑰悕绉帮紝鍦板浘宸叉牴鎹綋鍓嶆椂闀垮拰鍏磋叮鐢熸垚淇濆簳璺嚎锛屽彲缁х画璇㈤棶 AI 瀵艰鍛樿皟鏁淬€?,
+    duration: hours > 0 ? `约 ${hours} 小时` : "约 3 小时",
+    reason: "AI 本轮回复未返回可定位的景点名称，地图已根据当前时长和偏好生成一条可调整的参考路线。",
     spots: spots.slice(0, count),
   };
 }
@@ -2867,42 +3039,55 @@ function parseRouteSpotsFromAIText(text = "") {
   const seen = new Set();
 
   const addName = (rawName) => {
-    const cleaned = String(rawName || "")
+    let cleaned = String(rawName || "")
       .trim()
-      .replace(/^[\*\-鈥s]+/, "")
-      .replace(/[锛?].*$/, "")
-      .replace(/[锛?].*?[)锛塢/g, "")
+      .replace(/^[\s\*\-•·]+/, "")
+      .replace(/^第?[一二三四五六七八九十\d]+[站点、\.\)\s：:]+/, "")
+      .replace(/（.*?）|\(.*?\)/g, "")
+      .replace(/[：:，,；;。！!？?].*$/, "")
       .trim();
     if (!cleaned || cleaned.length > 40) return;
     const matched = matchSpotByName(cleaned);
-    const name = matched?.name || cleaned;
+    if (!matched) {
+      const direct = scenicSpots.find((spot) => cleaned.includes(spot.name) || (spot.aliases || []).some((alias) => cleaned.includes(alias)));
+      if (direct) cleaned = direct.name;
+    }
+    const name = matchSpotByName(cleaned)?.name || cleaned;
     const key = normalizeSpotName(name);
-    if (seen.has(key)) return;
+    if (!key || seen.has(key)) return;
     seen.add(key);
     ordered.push(name);
   };
 
-  // The route contract requires the first line to contain the actual ordered
-  // route. Parse it before scanning the explanation, which may mention spots
-  // that were explicitly omitted or rejected.
-  const routeLine = String(text)
-    .split(/\r?\n/)
+  const normalizedText = String(text).replace(/\r/g, "");
+  const routeLine = normalizedText
+    .split("\n")
     .map((line) => line.trim().replace(/^\*+|\*+$/g, ""))
-    .find((line) => /^璺嚎椤哄簭\s*[锛?]/.test(line));
+    .find((line) => /^路线顺序\s*[：:]/.test(line));
+
   if (routeLine) {
-    const sequence = routeLine.replace(/^璺嚎椤哄簭\s*[锛?]\s*/, "");
-    sequence
-      .split(/\s*(?:鈫抾->|鈥?|鈬抾鉃?\s*/)
+    routeLine
+      .replace(/^路线顺序\s*[：:]\s*/, "")
+      .split(/\s*(?:→|->|—|--|>|、)\s*/)
       .forEach(addName);
     if (ordered.length >= 2) return ordered;
     ordered.length = 0;
     seen.clear();
   }
 
-  const positiveText = String(text).split(
-    /(?:鑸嶅純|鎺掗櫎|涓嶆帹鑽恷鏈€夋嫨|涓嶇撼鍏鏃犻渶鍓嶅線|涓嶅缓璁墠寰€)/,
-    1,
-  )[0];
+  const positiveText = normalizedText.split(/(?:舍弃|排除|不推荐|未选择|不纳入|无需前往|不建议前往)/, 1)[0];
+  const numberedRe = /(?:^|\n)\s*(?:第\s*)?([一二三四五六七八九十\d]+)[\.、\)\s：:]+([^\n]+)/g;
+  let match;
+  const numbered = [];
+  while ((match = numberedRe.exec(positiveText)) !== null) {
+    numbered.push({ line: match[2] });
+  }
+  if (numbered.length >= 2) {
+    numbered.forEach(({ line }) => addName(line));
+    if (ordered.length >= 2) return ordered;
+    ordered.length = 0;
+    seen.clear();
+  }
 
   scenicSpots
     .map((spot) => {
@@ -2916,47 +3101,18 @@ function parseRouteSpotsFromAIText(text = "") {
     .sort((a, b) => a.position - b.position)
     .forEach((item) => addName(item.name));
 
-  if (ordered.length >= 2) return ordered;
-
-  ordered.length = 0;
-  seen.clear();
-  const numbered = [];
-  const numberedRe = /(?:^|\n)\s*(?:绗琝s*)?(\d+)[\.銆乗)锛塢\s*([^\n]+)/g;
-  let match;
-  while ((match = numberedRe.exec(positiveText)) !== null) {
-    numbered.push({ order: Number(match[1]), line: match[2] });
-  }
-  if (numbered.length >= 2) {
-    numbered.sort((a, b) => a.order - b.order);
-    numbered.forEach(({ line }) => addName(line.split(/[锛?銆侊紱;]/)[0]));
-    if (ordered.length >= 2) return ordered;
-    ordered.length = 0;
-    seen.clear();
-  }
-
-  const stationRe = /绗琝s*[涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+\s*绔橻锛?\s]+([^\n锛?锛?]+)/g;
-  while ((match = stationRe.exec(positiveText)) !== null) addName(match[1]);
-  if (ordered.length >= 2) return ordered;
-
-  positiveText.split("\n").forEach((line) => {
-    if (/[鈫抃->鈥擼+/.test(line)) {
-      line.split(/[鈫抃->鈥擼+/).forEach((part) => addName(part));
-    }
-  });
-  if (ordered.length >= 2) return ordered;
-
   return ordered;
 }
 
 function renderRouteNoMatchState(message, aiText = "") {
   const excerpt = aiText
-    ? `<p class="route-ai-excerpt">${escapeHTML(aiText.slice(0, 180))}${aiText.length > 180 ? "鈥? : ""}</p>`
+    ? `<p class="route-ai-excerpt">${escapeHTML(aiText.slice(0, 180))}${aiText.length > 180 ? "..." : ""}</p>`
     : "";
   clearRouteLayer();
   $("routeResult").innerHTML = `
     <div class="route-empty-state">
-      <span class="route-empty-icon" aria-hidden="true">鈱?/span>
-      <strong>鏆傛湭璇嗗埆鍒板彲鍖归厤鏅偣</strong>
+      <span class="route-empty-icon" aria-hidden="true">⌁</span>
+      <strong>暂未识别到可匹配景点</strong>
       <p>${escapeHTML(message)}</p>
       ${excerpt}
     </div>`;
@@ -2973,7 +3129,8 @@ function extractAndRenderRouteFromAIText(text = "", meta = {}) {
   if (!namesForPlan.length || !matchedNames.length) {
     if (meta.showNoMatch) {
       renderRouteNoMatchState(
-        "AI 鍥炲宸插悓姝ュ埌娓稿瀵硅瘽锛屼絾鏆傛湭浠庝腑璇嗗埆鍒板彲瀹氫綅鐨勬櫙鍖烘櫙鐐广€傝琛ュ厖鍏蜂綋鏅偣鍚嶇О鎴栬皟鏁磋矾绾挎潯浠躲€?,
+        "AI 回复已同步到游客对话，但暂未从中识别到可定位景点。请补充具体景点名称或调整路线条件。",
+        text,
       );
     }
     return null;
@@ -2981,15 +3138,15 @@ function extractAndRenderRouteFromAIText(text = "", meta = {}) {
 
   const hours = Number($("availableHours")?.value || 0);
   const plan = {
-    routeName: meta.routeName || "AI 鏅鸿兘鎺ㄨ崘璺嚎",
-    duration: meta.duration || (hours > 0 ? `绾?${hours} 灏忔椂` : undefined),
+    routeName: meta.routeName || "AI 智能推荐路线",
+    duration: meta.duration || (hours > 0 ? `约 ${hours} 小时` : undefined),
     reason: meta.reason || extractRouteReasonFromAIText(text),
     spots: namesForPlan,
   };
 
   state.latestRoutePlan = {
     routeName: plan.routeName,
-    duration: plan.duration || formatRouteDuration(plan, namesForPlan.map((name) => ({ duration: "" }))),
+    duration: plan.duration || formatRouteDuration(plan, namesForPlan.map(() => ({ duration: "" }))),
     reason: plan.reason,
     spots: namesForPlan,
   };
@@ -3013,7 +3170,7 @@ async function requestAIRoutePlan(prompt, options = {}) {
   const trimmedPrompt = String(prompt || "").trim();
   const visibleUserMessage = String(userMessage || trimmedPrompt).trim();
   if (!trimmedPrompt) {
-    toast("璇峰厛濉啓娓歌鏃堕暱銆佸綋鍓嶄綅缃垨璺嚎鍋忓ソ");
+    toast("请先填写游览时长、当前位置或路线偏好");
     return null;
   }
 
@@ -3023,7 +3180,7 @@ async function requestAIRoutePlan(prompt, options = {}) {
   const previousLabel = button?.textContent;
   if (button) {
     button.disabled = true;
-    button.textContent = "姝ｅ湪瑙勫垝鈥?;
+    button.textContent = "正在规划...";
   }
 
   setHumanState({ thinking: true, emotion: "thinking" });
@@ -3053,7 +3210,7 @@ async function requestAIRoutePlan(prompt, options = {}) {
         ? (delta, fullText) => {
           if (responseRunId !== state.speechRunId) return;
           setMessageText(assistantEl, fullText);
-          $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
+          if ($("chatMessages")) $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
           if (speakResponse && delta) {
             receivedSpeechDelta = true;
             routeSpeechBuffer += delta;
@@ -3065,7 +3222,7 @@ async function requestAIRoutePlan(prompt, options = {}) {
         : undefined,
     });
 
-    const replyText = content.trim() || "AI 瀵艰鍛樻殏鏃舵病鏈夎繑鍥炴湁鏁堝唴瀹癸紝璇风◢鍚庡啀璇曘€?;
+    const replyText = content.trim() || "AI 导览员暂时没有返回有效内容，请稍后再试。";
     if (speakResponse && responseRunId === state.speechRunId) {
       if (!receivedSpeechDelta) routeSpeechBuffer = replyText;
       splitCompletedSentences(routeSpeechBuffer, true).sentences
@@ -3122,17 +3279,22 @@ function syncRouteFromAIText(text = "") {
 async function recommendRoute() {
   const prompt = buildRoutePlanningPrompt({});
   if (!prompt) {
-    toast("璇峰厛濉啓娓歌鏃堕暱銆佸綋鍓嶄綅缃紝鎴栧湪鍔╂墜绐楀彛璇存槑鍚岃浜哄憳涓庡亸濂?);
+    toast("请先填写游览时长、当前位置，或在助手窗口说明同行人员与偏好");
     return;
   }
+  const hours = Number($("availableHours")?.value || 0);
+  const area = ($("currentArea")?.value || "").trim();
+  const visibleMessage = `请根据${hours > 0 ? `${hours}小时` : "当前"}游览时长${area ? `、当前位置${area}` : ""}生成推荐路线`;
   const result = await requestAIRoutePlan(prompt, {
-    userMessage: prompt,
+    userMessage: visibleMessage,
     button: $("recommendBtn"),
     forceRender: true,
     showNoMatch: true,
   });
   if (result?.usedFallback) {
-    toast("AI 鍥炲宸插悓姝ワ紱鍦板浘宸茬敓鎴愪竴鏉″彲璋冩暣鐨勪繚搴曡矾绾?);
+    toast("AI 回复已同步；地图已生成一条可调整的参考路线");
+  } else if (result?.plan) {
+    toast("推荐路线已更新到地图和景点列表");
   }
 }
 
@@ -3165,7 +3327,7 @@ async function submitFeedback() {
 async function askRouteGuide() {
   const input = $("routeGuideInput");
   const text = input.value.trim();
-  if (!text) return toast("鍏堣緭鍏ユ兂闂?AI 瀵艰鍛樼殑璺嚎闂");
+  if (!text) return toast("先输入想问 AI 导览员的路线问题");
   input.value = "";
   const prompt = buildRoutePlanningPrompt({ preferenceText: text });
   try {
@@ -3176,9 +3338,9 @@ async function askRouteGuide() {
       showNoMatch: true,
     });
     if (result?.usedFallback) {
-      toast("AI 鍥炲宸插悓姝ワ紱鍦板浘宸茬敓鎴愪竴鏉″彲璋冩暣鐨勪繚搴曡矾绾?);
+      toast("AI 回复已同步；地图已生成一条可调整的参考路线");
     } else if (result?.plan) {
-      toast("瀵硅瘽宸插悓姝ワ紝鎺ㄨ崘璺嚎宸叉洿鏂板埌鍦板浘");
+      toast("对话已同步，推荐路线已更新到地图");
     }
   } catch (error) {
     toast(error.message);

@@ -3,25 +3,90 @@
 import { useEffect, useRef, useState } from "react"
 
 type AvatarMode = "idle" | "talk" | "think" | "happy"
+export type VrmGuideId = "xiaohao" | "karmesi" | "guideA" | "guideB"
+type VrmVoiceGender = "male" | "female"
+export type VrmMotionKey = "fullBody" | "greeting" | "vSign" | "spin" | "modelPose" | "stretch"
 
 type VrmAvatarStageProps = {
   mode?: AvatarMode
   model?: string
   className?: string
+  onGuideChange?: (guide: VrmGuideOption) => void
+  motionPlaylist?: VrmMotionKey[]
+  showControls?: boolean
+  showStatus?: boolean
+  surface?: "panel" | "transparent"
+  framing?: "full" | "upper"
 }
 
-const MODEL_OPTIONS = [
-  { label: "小号", value: "/assets/vrm/7533417284697534698.vrm" },
-  { label: "Karmesi", value: "/assets/vrm/karmesi.vrm" },
-  { label: "导览员 A", value: "/assets/vrm/default_2963.vrm" },
-  { label: "导览员 B", value: "/assets/vrm/default_2704.vrm" },
+const EMPTY_PLAYLIST: VrmMotionKey[] = []
+
+const MOTION_OPTIONS: Record<VrmMotionKey, { label: string; path: string }> = {
+  fullBody: { label: "展示全身", path: "/assets/vrm/animations/VRMA_01.vrma" },
+  greeting: { label: "打招呼", path: "/assets/vrm/animations/VRMA_02.vrma" },
+  vSign: { label: "比 V 手势", path: "/assets/vrm/animations/VRMA_03.vrma" },
+  spin: { label: "原地转圈", path: "/assets/vrm/animations/VRMA_05.vrma" },
+  modelPose: { label: "模特摆拍", path: "/assets/vrm/animations/VRMA_06.vrma" },
+  stretch: { label: "屈伸运动", path: "/assets/vrm/animations/VRMA_07.vrma" },
+}
+
+export type VrmGuideOption = {
+  id: VrmGuideId
+  label: string
+  value: string
+  voiceGender: VrmVoiceGender
+  defaultMotion: VrmMotionKey
+  motions: VrmMotionKey[]
+  modeMotions: Partial<Record<AvatarMode, VrmMotionKey>>
+}
+
+export const MODEL_OPTIONS: VrmGuideOption[] = [
+  {
+    id: "xiaohao",
+    label: "小号",
+    value: "/assets/vrm/7533417284697534698.vrm",
+    voiceGender: "male",
+    defaultMotion: "modelPose",
+    motions: ["modelPose"],
+    modeMotions: { idle: "modelPose", talk: "modelPose", think: "modelPose", happy: "modelPose" },
+  },
+  {
+    id: "karmesi",
+    label: "Karmesi",
+    value: "/assets/vrm/karmesi.vrm",
+    voiceGender: "female",
+    defaultMotion: "modelPose",
+    motions: ["greeting", "modelPose"],
+    modeMotions: { idle: "modelPose", talk: "greeting", think: "modelPose", happy: "greeting" },
+  },
+  {
+    id: "guideA",
+    label: "导览员 A",
+    value: "/assets/vrm/default_2963.vrm",
+    voiceGender: "female",
+    defaultMotion: "fullBody",
+    motions: ["fullBody", "greeting", "vSign", "modelPose"],
+    modeMotions: { idle: "fullBody", talk: "greeting", think: "modelPose", happy: "vSign" },
+  },
+  {
+    id: "guideB",
+    label: "导览员 B",
+    value: "/assets/vrm/default_2704.vrm",
+    voiceGender: "female",
+    defaultMotion: "modelPose",
+    motions: ["greeting", "modelPose", "spin", "vSign"],
+    modeMotions: { idle: "modelPose", talk: "greeting", think: "spin", happy: "vSign" },
+  },
 ]
 
-const MOTIONS = {
-  idle: "/assets/vrm/animations/VRMA_01.vrma",
-  talk: "/assets/vrm/animations/VRMA_02.vrma",
-  think: "/assets/vrm/animations/VRMA_07.vrma",
-  happy: "/assets/vrm/animations/VRMA_03.vrma",
+export function guideForModel(modelValue: string) {
+  return MODEL_OPTIONS.find((item) => item.value === modelValue) || MODEL_OPTIONS[0]
+}
+
+function resolveMotion(guide: VrmGuideOption, mode: AvatarMode, selectedMotion: VrmMotionKey) {
+  if (mode === "idle" && guide.motions.includes(selectedMotion)) return selectedMotion
+  const motion = guide.modeMotions[mode] || guide.defaultMotion
+  return guide.motions.includes(motion) ? motion : guide.defaultMotion
 }
 
 function browserImport<T = any>(url: string): Promise<T> {
@@ -30,15 +95,47 @@ function browserImport<T = any>(url: string): Promise<T> {
   ) as Promise<T>
 }
 
-export function VrmAvatarStage({ mode = "idle", model = MODEL_OPTIONS[0].value, className = "" }: VrmAvatarStageProps) {
+export function VrmAvatarStage({
+  mode = "idle",
+  model = MODEL_OPTIONS[0].value,
+  className = "",
+  onGuideChange,
+  motionPlaylist = EMPTY_PLAYLIST,
+  showControls = true,
+  showStatus = true,
+  surface = "panel",
+  framing = "full",
+}: VrmAvatarStageProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const runtimeRef = useRef<any>(null)
   const [selectedModel, setSelectedModel] = useState(model)
+  const [selectedMotion, setSelectedMotion] = useState<VrmMotionKey>(() => guideForModel(model).defaultMotion)
   const [status, setStatus] = useState("正在加载数字人")
+  const selectedGuide = guideForModel(selectedModel)
 
   useEffect(() => {
     setSelectedModel(model)
   }, [model])
+
+  useEffect(() => {
+    const guide = guideForModel(selectedModel)
+    setSelectedMotion(guide.defaultMotion)
+    onGuideChange?.(guide)
+  }, [selectedModel, onGuideChange])
+
+  useEffect(() => {
+    if (mode !== "idle" || !motionPlaylist.length) return
+    const guide = guideForModel(selectedModel)
+    const allowed = motionPlaylist.filter((motion) => guide.motions.includes(motion))
+    if (!allowed.length) return
+    let index = 0
+    setSelectedMotion(allowed[index])
+    const timer = window.setInterval(() => {
+      index = (index + 1) % allowed.length
+      setSelectedMotion(allowed[index])
+    }, 5200)
+    return () => window.clearInterval(timer)
+  }, [mode, motionPlaylist, selectedModel])
 
   useEffect(() => {
     let disposed = false
@@ -99,29 +196,30 @@ export function VrmAvatarStage({ mode = "idle", model = MODEL_OPTIONS[0].value, 
           activeAction: null as any,
           currentMode: "idle" as AvatarMode,
           disposed: false,
-          async loadMotion(name: keyof typeof MOTIONS, vrm: any) {
+          async loadMotion(name: VrmMotionKey, vrm: any) {
             if (mixerHolder.actions[name]) return mixerHolder.actions[name]
             try {
-              const gltf = await loader.loadAsync(MOTIONS[name])
+              const gltf = await loader.loadAsync(MOTION_OPTIONS[name].path)
               const animation = gltf.userData?.vrmAnimations?.[0]
               if (!animation) return null
               const clip = createVRMAnimationClip(animation, vrm)
               const action = mixerHolder.mixer.clipAction(clip)
-              action.clampWhenFinished = false
-              action.loop = name === "idle" ? THREE.LoopRepeat : THREE.LoopOnce
               mixerHolder.actions[name] = action
               return action
             } catch {
               return null
             }
           },
-          async play(nextMode: AvatarMode) {
+          async play(nextMode: AvatarMode, requestedMotion: VrmMotionKey) {
             const vrm = runtime.currentVrm
             if (!vrm || !mixerHolder.mixer) return
             runtime.currentMode = nextMode
-            const motionName = nextMode === "talk" ? "talk" : nextMode === "think" ? "think" : nextMode === "happy" ? "happy" : "idle"
+            const guide = guideForModel(selectedModel)
+            const motionName = resolveMotion(guide, nextMode, requestedMotion)
             const action = await runtime.loadMotion(motionName, vrm)
             if (!action) return
+            action.loop = nextMode === "idle" ? THREE.LoopRepeat : THREE.LoopOnce
+            action.clampWhenFinished = nextMode !== "idle"
             action.reset().fadeIn(0.22).play()
             if (runtime.activeAction && runtime.activeAction !== action) runtime.activeAction.fadeOut(0.22)
             runtime.activeAction = action
@@ -165,9 +263,14 @@ export function VrmAvatarStage({ mode = "idle", model = MODEL_OPTIONS[0].value, 
             scene.add(vrm.scene)
             runtime.currentVrm = vrm
             mixerHolder.mixer = new THREE.AnimationMixer(vrm.scene)
-            controls.target.set(0, 1.15, 0)
-            camera.position.set(0, 1.3, 4.1)
-            await runtime.play(mode)
+            if (framing === "upper") {
+              controls.target.set(0, 1.45, 0)
+              camera.position.set(0, 1.55, 2.55)
+            } else {
+              controls.target.set(0, 1.15, 0)
+              camera.position.set(0, 1.3, 4.1)
+            }
+            await runtime.play(mode, selectedMotion)
             setStatus("数字人已就绪")
           },
         }
@@ -220,39 +323,58 @@ export function VrmAvatarStage({ mode = "idle", model = MODEL_OPTIONS[0].value, 
       runtimeRef.current?.cleanup?.()
       runtimeRef.current = null
     }
-  }, [selectedModel])
+  }, [selectedModel, framing])
 
   useEffect(() => {
-    runtimeRef.current?.play?.(mode)
-  }, [mode])
+    runtimeRef.current?.play?.(mode, selectedMotion)
+  }, [mode, selectedMotion])
 
   return (
-    <div className={`relative isolate overflow-hidden rounded-[26px] border border-emerald-900/10 bg-[#f3f6f3] shadow-[0_18px_60px_rgba(15,38,25,0.10)] ${className}`}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,148,0.20),transparent_30%),linear-gradient(180deg,#f8faf7_0%,#eef3ee_100%)]" />
-      <div className="pointer-events-none absolute inset-0 overflow-hidden text-[6.5rem] font-black uppercase leading-none tracking-[-0.08em] text-emerald-950/[0.10]">
-        <span className="absolute left-6 top-14 whitespace-nowrap">SCENIC GUIDE</span>
-        <span className="absolute bottom-8 left-20 whitespace-nowrap">DISCOVER</span>
-      </div>
+    <div className={`relative isolate overflow-hidden ${surface === "transparent" ? "bg-transparent shadow-none" : "rounded-[26px] border border-emerald-900/10 bg-[#f3f6f3] shadow-[0_18px_60px_rgba(15,38,25,0.10)]"} ${className}`}>
+      {surface === "panel" ? (
+        <>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,148,0.20),transparent_30%),linear-gradient(180deg,#f8faf7_0%,#eef3ee_100%)]" />
+          <div className="pointer-events-none absolute inset-0 overflow-hidden text-[6.5rem] font-black uppercase leading-none tracking-[-0.08em] text-emerald-950/[0.10]">
+            <span className="absolute left-6 top-14 whitespace-nowrap">SCENIC GUIDE</span>
+            <span className="absolute bottom-8 left-20 whitespace-nowrap">DISCOVER</span>
+          </div>
+        </>
+      ) : null}
       <canvas ref={canvasRef} className="relative z-10 h-full w-full" />
-      <div className="absolute left-5 top-5 z-20 flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-950 shadow-sm backdrop-blur">
-        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-        {status}
-      </div>
+      {showStatus ? (
+        <div className="absolute left-5 top-5 z-20 flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-950 shadow-sm backdrop-blur">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          {status}
+        </div>
+      ) : null}
+      {showControls ? (
       <div className="absolute bottom-5 left-5 right-5 z-20 flex items-center justify-between rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-sm shadow-lg backdrop-blur-xl">
         <div>
           <strong className="block text-emerald-950">AI 导览员</strong>
           <span className="text-xs text-muted-foreground">数字人实时陪伴讲解</span>
         </div>
-        <select
-          value={selectedModel}
-          onChange={(event) => setSelectedModel(event.target.value)}
-          className="h-9 rounded-full border border-emerald-900/10 bg-white/80 px-3 text-xs font-semibold outline-none"
-        >
-          {MODEL_OPTIONS.map((item) => (
-            <option key={item.value} value={item.value}>{item.label}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedModel}
+            onChange={(event) => setSelectedModel(event.target.value)}
+            className="h-9 rounded-full border border-emerald-900/10 bg-white/80 px-3 text-xs font-semibold outline-none"
+          >
+            {MODEL_OPTIONS.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+          <select
+            value={selectedMotion}
+            onChange={(event) => setSelectedMotion(event.target.value as VrmMotionKey)}
+            className="h-9 rounded-full border border-emerald-900/10 bg-white/80 px-3 text-xs font-semibold outline-none"
+          >
+            {selectedGuide.motions.map((motion) => (
+              <option key={motion} value={motion}>{MOTION_OPTIONS[motion].label}</option>
+            ))}
+          </select>
+        </div>
       </div>
+      ) : null}
     </div>
   )
 }

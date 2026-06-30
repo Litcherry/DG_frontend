@@ -1,18 +1,20 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Bot, Edit3, MapPin, Mic, MoreHorizontal, Navigation, Plus, Route, Send, Sparkles, Star, Trash2, Volume2, X } from "lucide-react"
 import { apiBase, request, resolveMediaURL } from "@/components/dg/api"
-import { VrmAvatarStage } from "@/components/dg/vrm-avatar-stage"
+import { guideForModel, VrmAvatarStage, type VrmGuideOption } from "@/components/dg/vrm-avatar-stage"
 
 type TouristView = "chat" | "map" | "route" | "feedback"
 type AvatarMode = "idle" | "talk" | "think" | "happy"
 type Message = { role: "assistant" | "user"; content: string }
 type HistoryItem = { id: string; title: string; messages: Message[]; updatedAt: string; interests?: string[] }
+type ScenicBackdrop = { name: string; url: string }
 type Spot = {
   id?: number | string
   name: string
   description?: string
+  sort_order?: number
   location?: { lat?: number; lng?: number; latitude?: number; longitude?: number; lon?: number }
   latitude?: number
   longitude?: number
@@ -42,23 +44,49 @@ const HISTORY_KEY = "dg_conversation_history"
 const defaultInterests = ["历史文化", "自然风光", "休闲娱乐", "亲子游", "摄影打卡"]
 const quickQuestions = ["有什么景点推荐？", "我对历史文化感兴趣，帮我规划一条路线", "适合亲子游的路线怎么走？", "附近有哪些服务设施？"]
 const initialMessage = "您好，我是 AI 导览员。创建导览会话后，可以询问景点讲解、路线规划和服务信息。"
+const attractionFallbackImages = [
+  "/assets/images/lingshan-hero.png",
+  "/assets/images/snow-mountain-lake-wide.png",
+  "https://commons.wikimedia.org/wiki/Special:FilePath/Huangshan_pic_4.jpg?width=1200",
+  "https://commons.wikimedia.org/wiki/Special:FilePath/Zhangjiajie_National_Forest_Park.jpg?width=1200",
+  "https://commons.wikimedia.org/wiki/Special:FilePath/Li_River,_Guilin,_China.jpg?width=1200",
+]
+const spotGalleryImages: Record<string, string> = {
+  灵山大照壁: "/assets/images/lingshan-hero.png",
+  胜境广场: "https://commons.wikimedia.org/wiki/Special:FilePath/Great_Wall_of_China_at_Jinshanling-edit.jpg?width=1200",
+  五明桥: "https://commons.wikimedia.org/wiki/Special:FilePath/Huangshan_pic_4.jpg?width=1200",
+  佛足坛: "https://commons.wikimedia.org/wiki/Special:FilePath/Li_River,_Guilin,_China.jpg?width=1200",
+  百子戏弥勒: "https://commons.wikimedia.org/wiki/Special:FilePath/Zhangjiajie_National_Forest_Park.jpg?width=1200",
+  九龙灌浴: "https://commons.wikimedia.org/wiki/Special:FilePath/Great_Wall_of_China_July_2006.JPG?width=1200",
+  菩提大道: "https://commons.wikimedia.org/wiki/Special:FilePath/Longji_Rice_Terraces,_Guangxi,_China.jpg?width=1200",
+  佛手广场: "https://commons.wikimedia.org/wiki/Special:FilePath/Yungang_Grottoes_2007_1.jpg?width=1200",
+  祥符禅寺: "https://commons.wikimedia.org/wiki/Special:FilePath/Buddhist_temple_in_Wutai_Shan.jpg?width=1200",
+  佛前广场: "/assets/images/lingshan-hero.png",
+  灵山大佛: "/assets/images/lingshan-hero.png",
+  灵山梵宫: "https://commons.wikimedia.org/wiki/Special:FilePath/Forbidden_City_Beijing_Shenwumen_Gate.JPG?width=1200",
+  五印坛城: "https://commons.wikimedia.org/wiki/Special:FilePath/Potala_Palace,_Lhasa,_Tibet.jpg?width=1200",
+  曼飞龙塔: "https://commons.wikimedia.org/wiki/Special:FilePath/Dali_Three_Pagodas_2009_06.jpg?width=1200",
+  灵山精舍: "https://commons.wikimedia.org/wiki/Special:FilePath/Jiuzhaigou_Valley.jpg?width=1200",
+  梵宫广场: "https://commons.wikimedia.org/wiki/Special:FilePath/Temple_of_Heaven_in_Beijing.JPG?width=1200",
+}
+const masonryRowSpans = [18, 24, 15, 21, 28, 17, 23, 19, 26, 16]
 const localScenicSpots: Spot[] = [
   { id: "lingshan_screen", name: "灵山大照壁", lat: 31.41915, lng: 120.091, description: "景区入口处的标志性景观，适合作为路线起点。", tags: ["入口景观", "佛教文化", "拍照打卡"], visit_duration_min: 10 },
   { id: "shengjing_square", name: "胜境广场", lat: 31.41985, lng: 120.09165, description: "开阔舒适的入园集散空间，适合整理行程。", tags: ["休闲漫步", "游客集散"], visit_duration_min: 10 },
   { id: "wuming_bridge", name: "五明桥", lat: 31.4202, lng: 120.09235, description: "汉白玉石拱桥景观，寓意佛教智慧。", tags: ["佛教文化", "建筑艺术", "拍照打卡"], visit_duration_min: 10 },
   { id: "buddha_foot", name: "佛足坛", lat: 31.42075, lng: 120.0922, description: "以佛足印为核心的人文景观，氛围庄重安宁。", tags: ["佛教文化", "人文景观"], visit_duration_min: 15 },
   { id: "hundred_children_maitreya", name: "百子戏弥勒", lat: 31.4213, lng: 120.09275, description: "生动活泼的弥勒主题群像，适合亲子游览。", tags: ["亲子游", "佛教文化", "雕塑艺术"], visit_duration_min: 15 },
-  { id: "nine_dragons", name: "九龙灌浴", lat: 31.42205, lng: 120.0932, description: "大型动态音乐群雕景观，呈现佛陀诞生故事。", tags: ["核心景点", "演艺景观", "亲子游"], visit_duration_min: 25 },
+  { id: "nine_dragons", name: "九龙灌浴", lat: 31.42255, lng: 120.09308, description: "大型动态音乐群雕景观，呈现佛陀诞生故事。", tags: ["核心景点", "演艺景观", "亲子游"], visit_duration_min: 25 },
   { id: "bodhi_avenue", name: "菩提大道", lat: 31.42305, lng: 120.0936, description: "连接景区重要文化节点的景观步道，适合慢行。", tags: ["自然风光", "休闲漫步", "拍照打卡"], visit_duration_min: 20 },
   { id: "buddha_hand_square", name: "佛手广场", lat: 31.42395, lng: 120.0938, description: "以大型佛手造像为核心的互动打卡点。", tags: ["拍照打卡", "佛教文化"], visit_duration_min: 15 },
-  { id: "xiangfu_temple", name: "祥符禅寺", lat: 31.425, lng: 120.0942, description: "历史悠久的佛教寺院建筑群，适合静心参访。", tags: ["佛教文化", "历史建筑", "静心参访"], visit_duration_min: 30 },
-  { id: "buddha_square", name: "佛前广场", lat: 31.42655, lng: 120.0949, description: "仰望灵山大佛的主要观景空间，视野开阔。", tags: ["核心景点", "观景", "拍照打卡"], visit_duration_min: 15 },
-  { id: "lingshan_buddha", name: "灵山大佛", lat: 31.42755, lng: 120.0953, description: "灵山胜境核心景点，适合了解佛教文化与大型露天造像艺术。", tags: ["佛教文化", "核心景点", "拍照打卡"], visit_duration_min: 40 },
-  { id: "lingshan_palace", name: "灵山梵宫", lat: 31.4217, lng: 120.09745, description: "融合建筑、壁画、雕塑与演艺艺术的文化地标。", tags: ["建筑艺术", "佛教文化", "室内参观"], visit_duration_min: 45 },
-  { id: "five_mudra_mandala", name: "五印坛城", lat: 31.4208, lng: 120.0987, description: "藏式建筑特色鲜明的文化景观。", tags: ["建筑艺术", "佛教文化", "拍照打卡"], visit_duration_min: 35 },
-  { id: "manfeilong_pagoda", name: "曼飞龙塔", lat: 31.4229, lng: 120.09905, description: "造型精巧的佛塔景观，适合文化参观与摄影。", tags: ["建筑艺术", "拍照打卡", "人文景观"], visit_duration_min: 20 },
-  { id: "lingshan_lodge", name: "灵山精舍", lat: 31.42025, lng: 120.10005, description: "环境清幽的禅意空间，适合短暂休息。", tags: ["休闲体验", "禅意空间"], visit_duration_min: 20 },
-  { id: "palace_square", name: "梵宫广场", lat: 31.42125, lng: 120.09685, description: "梵宫前的开阔景观空间，适合欣赏建筑群。", tags: ["建筑艺术", "自然风光", "拍照打卡"], visit_duration_min: 15 },
+  { id: "xiangfu_temple", name: "祥符禅寺", lat: 31.4262, lng: 120.0944, description: "历史悠久的佛教寺院建筑群，适合静心参访。", tags: ["佛教文化", "历史建筑", "静心参访"], visit_duration_min: 30 },
+  { id: "buddha_square", name: "佛前广场", lat: 31.4281, lng: 120.09575, description: "仰望灵山大佛的主要观景空间，视野开阔。", tags: ["核心景点", "观景", "拍照打卡"], visit_duration_min: 15 },
+  { id: "lingshan_buddha", name: "灵山大佛", lat: 31.43194, lng: 120.09139, description: "灵山胜境核心景点，适合了解佛教文化与大型露天造像艺术。", tags: ["佛教文化", "核心景点", "拍照打卡"], visit_duration_min: 40 },
+  { id: "lingshan_palace", name: "灵山梵宫", lat: 31.4266, lng: 120.0915, description: "融合建筑、壁画、雕塑与演艺艺术的文化地标。", tags: ["建筑艺术", "佛教文化", "室内参观"], visit_duration_min: 45 },
+  { id: "five_mudra_mandala", name: "五印坛城", lat: 31.428, lng: 120.0888, description: "藏式建筑特色鲜明的文化景观。", tags: ["建筑艺术", "佛教文化", "拍照打卡"], visit_duration_min: 35 },
+  { id: "manfeilong_pagoda", name: "曼飞龙塔", lat: 31.4291, lng: 120.0876, description: "造型精巧的佛塔景观，适合文化参观与摄影。", tags: ["建筑艺术", "拍照打卡", "人文景观"], visit_duration_min: 20 },
+  { id: "lingshan_lodge", name: "灵山精舍", lat: 31.4273, lng: 120.0882, description: "环境清幽的禅意空间，适合短暂休息。", tags: ["休闲体验", "禅意空间"], visit_duration_min: 20 },
+  { id: "palace_square", name: "梵宫广场", lat: 31.42605, lng: 120.09095, description: "梵宫前的开阔景观空间，适合欣赏建筑群。", tags: ["建筑艺术", "自然风光", "拍照打卡"], visit_duration_min: 15 },
 ]
 
 function safeHistory(): HistoryItem[] {
@@ -90,12 +118,21 @@ function normalizeTags(value: unknown): string[] {
   return []
 }
 
+function normalizeSpotName(value = "") {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[()（）【】「」《》]/g, "")
+    .replace(/景区|景点|文化园/g, "")
+}
+
 function spotLat(spot: Spot) {
-  return Number(spot.latitude ?? spot.lat ?? spot.location?.lat ?? spot.location?.latitude ?? 31.4275)
+  return Number(spot.latitude ?? spot.lat ?? spot.location?.lat ?? spot.location?.latitude)
 }
 
 function spotLng(spot: Spot) {
-  return Number(spot.longitude ?? spot.lng ?? spot.location?.lng ?? spot.location?.lon ?? spot.location?.longitude ?? 120.0915)
+  return Number(spot.longitude ?? spot.lng ?? spot.location?.lng ?? spot.location?.lon ?? spot.location?.longitude)
 }
 
 function hasCoordinate(spot: Spot) {
@@ -254,6 +291,9 @@ export function TouristExperience({ view }: { view: TouristView }) {
   const [error, setError] = useState("")
   const [recording, setRecording] = useState(false)
   const [avatarMode, setAvatarMode] = useState<AvatarMode>("idle")
+  const [avatarBackdrop, setAvatarBackdrop] = useState<ScenicBackdrop | null>(null)
+  const [previousAvatarBackdrop, setPreviousAvatarBackdrop] = useState<ScenicBackdrop | null>(null)
+  const [currentGuide, setCurrentGuide] = useState<VrmGuideOption>(() => guideForModel("/assets/vrm/7533417284697534698.vrm"))
   const [interests, setInterests] = useState<string[]>([])
   const [interestOptions, setInterestOptions] = useState(defaultInterests)
   const [history, setHistory] = useState<HistoryItem[]>([])
@@ -261,6 +301,7 @@ export function TouristExperience({ view }: { view: TouristView }) {
   const [spots, setSpots] = useState<Spot[]>([])
   const [routes, setRoutes] = useState<RoutePlan[]>([])
   const [selectedSpot, setSelectedSpot] = useState<Spot | null>(null)
+  const [spotDetailOpen, setSpotDetailOpen] = useState(false)
   const [selectedRoute, setSelectedRoute] = useState<RoutePlan | null>(null)
   const [routeHours, setRouteHours] = useState("2")
   const [routeArea, setRouteArea] = useState("")
@@ -275,7 +316,13 @@ export function TouristExperience({ view }: { view: TouristView }) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const ttsControllersRef = useRef<Set<AbortController>>(new Set())
   const speechRunRef = useRef(0)
+  const backdropSequenceTimerRef = useRef<number | null>(null)
+  const backdropSessionRef = useRef(0)
+  const failedBackdropUrlsRef = useRef<Set<string>>(new Set())
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const handleGuideChange = useCallback((guide: VrmGuideOption) => {
+    setCurrentGuide(guide)
+  }, [])
 
   useEffect(() => {
     setVisitorName(localStorage.getItem("dg_visitor_name") || "临时游客")
@@ -286,6 +333,12 @@ export function TouristExperience({ view }: { view: TouristView }) {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages])
+
+  useEffect(() => {
+    if (!previousAvatarBackdrop) return
+    const timer = window.setTimeout(() => setPreviousAvatarBackdrop(null), 1200)
+    return () => window.clearTimeout(timer)
+  }, [previousAvatarBackdrop])
 
   function updateHistory(mutator: (items: HistoryItem[]) => HistoryItem[]) {
     setHistory((current) => {
@@ -335,7 +388,15 @@ export function TouristExperience({ view }: { view: TouristView }) {
       localScenicSpots.forEach((spot) => byName.set(spot.name, { ...spot, tags: normalizeTags(spot.tags) }))
       backendSpots.forEach((spot) => {
         const existing = byName.get(spot.name)
-        byName.set(spot.name, { ...(existing || {}), ...spot, tags: normalizeTags(spot.tags).length ? normalizeTags(spot.tags) : normalizeTags(existing?.tags) })
+        const merged = { ...(existing || {}), ...spot, tags: normalizeTags(spot.tags).length ? normalizeTags(spot.tags) : normalizeTags(existing?.tags) }
+        if (existing && hasCoordinate(existing)) {
+          merged.lat = existing.lat
+          merged.lng = existing.lng
+          merged.latitude = existing.latitude
+          merged.longitude = existing.longitude
+          merged.location = existing.location
+        }
+        byName.set(spot.name, merged)
       })
       const normalizedSpots = Array.from(byName.values())
       const normalizedRoutes = (Array.isArray(routeData) ? routeData : []).map((route) => ({
@@ -346,7 +407,7 @@ export function TouristExperience({ view }: { view: TouristView }) {
       setSpots(normalizedSpots)
       setRoutes(normalizedRoutes)
       setSelectedSpot((current) => current || normalizedSpots[0] || null)
-      setSelectedRoute((current) => current || normalizedRoutes[0] || null)
+      setSelectedRoute((current) => current)
     } catch {
       setError("景区数据暂时无法连接，请确认后端服务已启动。")
     }
@@ -370,6 +431,17 @@ export function TouristExperience({ view }: { view: TouristView }) {
     setMessages([{ role: "assistant", content: greeting }])
     upsertHistory(id, { title: "新的导览会话", messages: [{ role: "assistant", content: greeting }], interests: [] })
     return id
+  }
+
+  async function createIsolatedRouteConversation() {
+    const visitorId = localStorage.getItem("dg_visitor_id") || crypto.randomUUID()
+    localStorage.setItem("dg_visitor_id", visitorId)
+    const data = await request<any>("/api/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visitor_id: `route-${visitorName || "visitor"}-${visitorId}-${Date.now()}`, language: "zh" }),
+    })
+    return String(data.conversation_id || "")
   }
 
   async function loadConversation(id: string) {
@@ -415,45 +487,47 @@ export function TouristExperience({ view }: { view: TouristView }) {
   }
 
   async function speakText(text: string, runId: number) {
-    const sentences = splitSpeechText(text.slice(0, 1800))
-    if (!sentences.length) return
+    const speechText = text.slice(0, 2200).replace(/\s+/g, " ").trim()
+    if (!speechText) return
     setSpeaking(true)
     setAvatarMode("talk")
-    for (const sentence of sentences) {
-      if (runId !== speechRunRef.current) break
-      const controller = new AbortController()
-      ttsControllersRef.current.add(controller)
-      try {
-        const res = await fetch(`${apiBase()}/api/voice/tts`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: sentence, conversation_id: conversationId || null, language: "zh", voice_gender: "male" }),
-          signal: controller.signal,
-        })
-        if (!res.ok) continue
-        const url = URL.createObjectURL(await res.blob())
-        const audio = new Audio(url)
-        audioRef.current = audio
-        await new Promise<void>((resolve) => {
-          audio.onended = () => {
-            URL.revokeObjectURL(url)
-            resolve()
-          }
-          audio.onerror = () => {
-            URL.revokeObjectURL(url)
-            resolve()
-          }
-          audio.play().catch(() => resolve())
-        })
-      } catch {
-      } finally {
-        ttsControllersRef.current.delete(controller)
-      }
+    const controller = new AbortController()
+    ttsControllersRef.current.add(controller)
+    try {
+      const res = await fetch(`${apiBase()}/api/voice/tts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: speechText, conversation_id: conversationId || null, language: "zh", voice_gender: currentGuide.voiceGender }),
+        signal: controller.signal,
+      })
+      if (!res.ok || runId !== speechRunRef.current) return
+      const url = URL.createObjectURL(await res.blob())
+      const audio = new Audio(url)
+      audioRef.current = audio
+      await new Promise<void>((resolve) => {
+        audio.onended = () => {
+          URL.revokeObjectURL(url)
+          resolve()
+        }
+        audio.onerror = () => {
+          URL.revokeObjectURL(url)
+          resolve()
+        }
+        audio.play()
+          .then(() => {
+            if (runId === speechRunRef.current) startAvatarBackdropSequence()
+          })
+          .catch(() => resolve())
+      })
+    } catch {
+    } finally {
+      ttsControllersRef.current.delete(controller)
     }
     if (runId === speechRunRef.current) {
       setSpeaking(false)
       setAvatarMode("idle")
       audioRef.current = null
+      clearAvatarBackdrop()
     }
   }
 
@@ -524,6 +598,7 @@ export function TouristExperience({ view }: { view: TouristView }) {
     speechRunRef.current += 1
     if (abortGeneration) abortRef.current?.abort()
     abortRef.current = null
+    clearAvatarBackdrop()
     ttsControllersRef.current.forEach((controller) => controller.abort())
     ttsControllersRef.current.clear()
     if (audioRef.current) {
@@ -534,6 +609,179 @@ export function TouristExperience({ view }: { view: TouristView }) {
     setLoading(false)
     setSpeaking(false)
     setAvatarMode("idle")
+  }
+
+  function openSpotDetail(spot: Spot) {
+    setSelectedSpot(spot)
+    setSpotDetailOpen(true)
+  }
+
+  function spotImage(spot: Spot, index = 0) {
+    const matched = spots.find((item) => normalizeSpotName(item.name) === normalizeSpotName(spot.name))
+    const uploaded = matched?.image_url || matched?.cover_image || spot.image_url || spot.cover_image
+    if (uploaded) return resolveMediaURL(uploaded)
+    return spotGalleryImages[spot.name] || attractionFallbackImages[0]
+  }
+
+  function gallerySpotImage(spot: Spot, index = 0) {
+    const matched = spots.find((item) => normalizeSpotName(item.name) === normalizeSpotName(spot.name))
+    const uploaded = matched?.image_url || matched?.cover_image || spot.image_url || spot.cover_image
+    return uploaded ? resolveMediaURL(uploaded) : spotGalleryImages[spot.name] || attractionFallbackImages[index % attractionFallbackImages.length]
+  }
+
+  function localSpotMeta(spot: Spot) {
+    return localScenicSpots.find((item) => item.name === spot.name)
+  }
+
+  function gallerySpotDescription(spot: Spot) {
+    return localSpotMeta(spot)?.description || spot.description || "点击查看景点详情。"
+  }
+
+  function gallerySpotTags(spot: Spot) {
+    return normalizeTags(localSpotMeta(spot)?.tags || spot.tags)
+  }
+
+  function uploadedBackdropImage(spot: Spot) {
+    const uploaded = spot.image_url || spot.cover_image
+    return uploaded ? resolveMediaURL(uploaded) : ""
+  }
+
+  function uploadedBackdropSequence(): ScenicBackdrop[] {
+    const byName = new Map<string, { item: ScenicBackdrop; score: number; order: number }>()
+    spots.forEach((spot, index) => {
+      const key = normalizeSpotName(spot.name)
+      const source = spot.image_url || spot.cover_image || ""
+      const url = uploadedBackdropImage(spot)
+      if (!key || !url) return
+      const score = String(source).startsWith("/files/") ? 100 : 10
+      const order = typeof spot.sort_order === "number" ? spot.sort_order : index + 1000
+      const existing = byName.get(key)
+      if (!existing || score > existing.score || (score === existing.score && order < existing.order)) {
+        byName.set(key, { item: { name: spot.name, url }, score, order })
+      }
+    })
+    return Array.from(byName.values())
+      .sort((a, b) => a.order - b.order)
+      .map((entry) => entry.item)
+  }
+
+  function clearAvatarBackdrop() {
+    backdropSessionRef.current += 1
+    if (backdropSequenceTimerRef.current) {
+      window.clearTimeout(backdropSequenceTimerRef.current)
+      backdropSequenceTimerRef.current = null
+    }
+    setPreviousAvatarBackdrop((current) => current || avatarBackdrop)
+    setAvatarBackdrop(null)
+  }
+
+  function showAvatarBackdrop(next: ScenicBackdrop) {
+    setAvatarBackdrop((current) => {
+      if (current?.url === next.url && current?.name === next.name) return current
+      setPreviousAvatarBackdrop(current)
+      return next
+    })
+  }
+
+  function preloadBackdrop(url: string) {
+    return new Promise<boolean>((resolve) => {
+      const img = new Image()
+      img.onload = () => resolve(true)
+      img.onerror = () => resolve(false)
+      img.src = url
+    })
+  }
+
+  function startAvatarBackdropSequence() {
+    const session = backdropSessionRef.current + 1
+    backdropSessionRef.current = session
+    if (backdropSequenceTimerRef.current) window.clearTimeout(backdropSequenceTimerRef.current)
+    backdropSequenceTimerRef.current = null
+    const sequence = uploadedBackdropSequence().filter((item) => !failedBackdropUrlsRef.current.has(item.url))
+    if (!sequence.length) {
+      clearAvatarBackdrop()
+      return
+    }
+    let index = 0
+    const scheduleNext = (delay: number) => {
+      backdropSequenceTimerRef.current = window.setTimeout(async () => {
+        let attempts = 0
+        let shown = false
+        while (attempts < sequence.length && session === backdropSessionRef.current) {
+          const next = sequence[index]
+          index = (index + 1) % sequence.length
+          attempts += 1
+          if (failedBackdropUrlsRef.current.has(next.url)) continue
+          const loaded = await preloadBackdrop(next.url)
+          if (session !== backdropSessionRef.current) return
+          if (loaded) {
+            showAvatarBackdrop(next)
+            shown = true
+            break
+          }
+          failedBackdropUrlsRef.current.add(next.url)
+        }
+        if (session !== backdropSessionRef.current) return
+        if (!shown && sequence.every((item) => failedBackdropUrlsRef.current.has(item.url))) {
+          clearAvatarBackdrop()
+          return
+        }
+        scheduleNext(5000)
+      }, delay)
+    }
+    scheduleNext(3000)
+  }
+
+  function handleAvatarBackdropError(url: string) {
+    failedBackdropUrlsRef.current.add(url)
+    if (backdropSequenceTimerRef.current) return
+    const sequence = uploadedBackdropSequence().filter((item) => !failedBackdropUrlsRef.current.has(item.url))
+    if (!sequence.length) {
+      clearAvatarBackdrop()
+      return
+    }
+    void preloadBackdrop(sequence[0].url).then((loaded) => {
+      if (!loaded) {
+        failedBackdropUrlsRef.current.add(sequence[0].url)
+        return
+      }
+      showAvatarBackdrop(sequence[0])
+    })
+  }
+
+  function renderSpotDetailModal() {
+    if (!spotDetailOpen || !selectedSpot) return null
+    return (
+      <div className="fixed inset-0 z-[900] grid place-items-center bg-slate-950/45 p-5 backdrop-blur-sm">
+        <div className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/60 bg-white shadow-2xl">
+          <img
+            src={gallerySpotImage(selectedSpot)}
+            alt={selectedSpot.name}
+            className="h-64 w-full object-cover"
+            onError={(event) => {
+              event.currentTarget.src = attractionFallbackImages[0]
+            }}
+          />
+          <div className="p-6">
+            <div className="mb-3 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Scenic Spot</p>
+                <h3 className="mt-1 text-2xl font-bold">{selectedSpot.name}</h3>
+              </div>
+              <button type="button" onClick={() => setSpotDetailOpen(false)} className="grid h-10 w-10 place-items-center rounded-full border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground" aria-label="关闭景点介绍">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-sm leading-7 text-muted-foreground">{gallerySpotDescription(selectedSpot)}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {gallerySpotTags(selectedSpot).map((tag) => (
+                <span key={tag} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-primary">{tag}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   async function toggleInterest(tag: string) {
@@ -550,29 +798,32 @@ export function TouristExperience({ view }: { view: TouristView }) {
   }
 
   async function recommendRoute() {
-    setError("")
-    try {
-      const data = await request<RoutePlan>("/api/routes/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interest_tags: interests, max_duration_hours: 4 }),
-      })
-      setSelectedRoute(data)
-      const first = routeSpots(data)[0]
-      if (first) setSelectedSpot(first)
-      setAvatarMode("happy")
-      window.setTimeout(() => setAvatarMode("idle"), 1600)
-    } catch (err: any) {
-      setError(err?.message || "路线推荐暂时不可用")
-    }
+    await requestAIRoutePlan(interests.length ? `请根据我的兴趣偏好推荐路线：${interests.join("、")}` : "请推荐一条经典游览路线")
   }
 
   function matchSpotName(name: string) {
-    const target = name.trim().toLowerCase().replace(/\s+/g, "")
+    const target = normalizeSpotName(name)
     if (!target) return null
+    const aliases: Record<string, string[]> = {
+      灵山大照壁: ["大照壁", "华夏第一壁", "照壁"],
+      胜境广场: ["灵山胜境广场"],
+      五明桥: ["五明桥景点"],
+      佛足坛: ["佛足印", "佛足坛景点"],
+      百子戏弥勒: ["弥勒佛", "百子戏弥勒雕塑群"],
+      九龙灌浴: ["九龙灌浴广场", "九龙灌浴表演"],
+      佛手广场: ["佛手", "天下第一掌"],
+      祥符禅寺: ["祥符寺", "禅寺"],
+      佛前广场: ["佛前"],
+      灵山大佛: ["大佛", "青铜大佛"],
+      灵山梵宫: ["梵宫", "梵宫艺术殿堂"],
+      五印坛城: ["坛城"],
+      曼飞龙塔: ["龙塔"],
+      灵山精舍: ["精舍"],
+      梵宫广场: ["梵宫外广场"],
+    }
     return spots.find((spot) => {
-      const spotName = String(spot.name || "").trim().toLowerCase().replace(/\s+/g, "")
-      return spotName === target || target.includes(spotName) || spotName.includes(target)
+      const names = [spot.name, ...(aliases[spot.name] || [])].map(normalizeSpotName).filter(Boolean)
+      return names.some((spotName) => spotName === target || target.includes(spotName) || spotName.includes(target))
     }) || null
   }
 
@@ -591,12 +842,23 @@ export function TouristExperience({ view }: { view: TouristView }) {
     if (routeLine) {
       routeLine
         .replace(/^路线顺序\s*[:：]\s*/, "")
-        .split(/\s*(?:→|->|—|-|、|,|，)\s*/)
+        .split(/\s*(?:→|->|—|--|>|、|,|，)\s*/)
+        .map((name) => name.replace(/（.*?）|\(.*?\)/g, "").replace(/[：:；;。！？].*$/, "").trim())
         .forEach((name) => addSpot(matchSpotName(name)))
+      if (ordered.length >= 2) return ordered
+    }
+    const positiveText = text.split(/(?:舍弃|排除|不推荐|未选择|不纳入|无需前往|不建议前往)/, 1)[0]
+    const numbered = Array.from(positiveText.matchAll(/(?:^|\n)\s*(?:第\s*)?[一二三四五六七八九十\d]+[\.、\)\s：:]+([^\n]+)/g))
+    if (numbered.length >= 2) {
+      numbered.forEach((match) => {
+        const rawName = String(match[1] || "").replace(/（.*?）|\(.*?\)/g, "").replace(/[：:，,；;。！？].*$/, "").trim()
+        addSpot(matchSpotName(rawName))
+      })
+      if (ordered.length >= 2) return ordered
     }
     if (ordered.length < 2) {
       spots
-        .map((spot) => ({ spot, index: text.indexOf(spot.name) }))
+        .map((spot) => ({ spot, index: positiveText.indexOf(spot.name) }))
         .filter((item) => item.index >= 0)
         .sort((a, b) => a.index - b.index)
         .forEach((item) => addSpot(item.spot))
@@ -604,11 +866,40 @@ export function TouristExperience({ view }: { view: TouristView }) {
     return ordered
   }
 
-  function applyAIRoute(text: string) {
+  function buildFallbackRoutePlan(reasonText = "", preferenceText = ""): RoutePlan {
+    const profileText = `${preferenceText} ${routeChatInput} ${interests.join(" ")}`
+    const isEasy = /老人|长辈|父母|爸妈|轻松|少走|少爬/.test(profileText)
+    const isFamily = /孩子|亲子|儿童|有趣|互动|表演/.test(profileText)
+    const isNature = /自然|风景|风光|拍照|摄影|打卡/.test(profileText)
+    const isCulture = /历史|文化|佛教|建筑|祈福|禅|艺术/.test(profileText)
+    const names = isEasy
+      ? ["九龙灌浴", "佛手广场", "百子戏弥勒", "灵山梵宫"]
+      : isFamily
+        ? ["九龙灌浴", "百子戏弥勒", "佛手广场", "灵山梵宫"]
+        : isNature
+          ? ["五明桥", "九龙灌浴", "灵山大佛", "梵宫广场"]
+          : isCulture
+            ? ["灵山大照壁", "佛手广场", "祥符禅寺", "灵山大佛", "灵山梵宫"]
+            : ["灵山大照壁", "九龙灌浴", "佛手广场", "灵山大佛", "灵山梵宫"]
+    const routeSpotList = names.map(matchSpotName).filter(Boolean) as Spot[]
+    return {
+      id: `fallback-${Date.now()}`,
+      name: isEasy ? "轻松舒缓参考路线" : isFamily ? "亲子轻松参考路线" : isNature ? "自然风光参考路线" : isCulture ? "历史文化参考路线" : "经典精华参考路线",
+      description: reasonText || "AI 本轮回复未返回可定位景点，已根据当前游览时长、位置和偏好生成可在地图上展示的参考路线。",
+      duration: routeHours ? `约 ${routeHours} 小时` : undefined,
+      spots: routeSpotList,
+    }
+  }
+
+  function applyAIRoute(text: string, preferenceText = "") {
     const routeSpotList = parseRouteFromAIText(text)
     if (!routeSpotList.length) {
-      setError("AI 已回复，但暂时没有识别到可定位景点。请在问题里补充更具体的景点或路线偏好。")
-      return
+      const fallback = buildFallbackRoutePlan("已根据当前游览时长、当前位置和偏好生成一条可在地图上展示的参考路线。", preferenceText)
+      setSelectedRoute(fallback)
+      const first = routeSpots(fallback)[0]
+      if (first) setSelectedSpot(first)
+      setError("")
+      return fallback
     }
     const plan: RoutePlan = {
       id: `ai-${Date.now()}`,
@@ -619,9 +910,31 @@ export function TouristExperience({ view }: { view: TouristView }) {
     }
     setSelectedRoute(plan)
     setSelectedSpot(routeSpotList[0])
+    setError("")
+    return plan
+  }
+
+  function routePlanToAssistantText(plan?: RoutePlan | null) {
+    const planSpots = routeSpots(plan)
+    if (!plan || !planSpots.length) return "已根据当前条件生成一条参考路线，请在地图上查看景点顺序。"
+    const routeLine = `路线顺序：${planSpots.map((spot) => spot.name).join(" → ")}`
+    const details = planSpots
+      .map((spot, index) => `${index + 1}. ${spot.name}：${spot.description || "适合纳入本次游览路线，可结合现场体力和时间灵活停留。"}`)
+      .join("\n")
+    return `${routeLine}\n\n${plan.duration ? `${plan.duration}。` : ""}${plan.description ? `${plan.description}\n\n` : ""}${details}`
   }
 
   function buildRoutePrompt(userQuestion = "") {
+    const profileText = `${userQuestion} ${interests.join(" ")}`
+    const preferenceHint = /老人|长辈|父母|爸妈|轻松|少走|少爬/.test(profileText)
+      ? "路线节奏要轻松，减少连续登高和长距离折返，优先选择平缓、可停留、室内或互动景点。"
+      : /孩子|亲子|儿童|有趣|互动|表演/.test(profileText)
+        ? "路线要轻松有趣，优先选择动态表演、互动景观和适合亲子理解的景点。"
+        : /自然|风景|风光|拍照|摄影|打卡/.test(profileText)
+          ? "路线要兼顾自然景观、开阔视野和拍照打卡体验。"
+          : /历史|文化|佛教|建筑|祈福|禅|艺术/.test(profileText)
+            ? "路线要突出历史文化、佛教文化、建筑艺术和代表性景观。"
+            : "路线紧凑、体验丰富、游览顺序合理。"
     const availableSpots = spots
       .map((spot) => {
         const tags = normalizeTags(spot.tags).join("、")
@@ -633,33 +946,56 @@ export function TouristExperience({ view }: { view: TouristView }) {
       routeHours ? `游览时长：${routeHours} 小时` : "",
       interests.length ? `游客兴趣：${interests.join("、")}` : "",
       userQuestion.trim() ? `游客补充问题：${userQuestion.trim()}` : "",
+      `路线要求：${preferenceHint}`,
     ].filter(Boolean).join("；")
 
-    return `你是景区 AI 导览员，请根据游客约束和景区资料生成一条可在地图上定位的游览路线。
+    return `route plan / 路线推荐 / 游览顺序规划
+【路线规划任务】
+本次只做游览路线规划。请只根据本条消息里的游览时长、当前位置、游客兴趣和可用景点资料生成路线。
+请忽略本会话中与路线规划无关的旧上下文。
+本次请求不是身体不适、疼痛处理或安全求助，不要回答休息、就医或联系工作人员等非路线内容。
+如果游客没有填写当前位置，请默认从景区入口或主游线起点开始规划，不要询问补充位置。
+
+你是景区 AI 导览员，请根据游客约束和景区资料生成一条可在地图上定位的游览路线。
 游客约束：${conditions || "暂无额外约束"}。
 可用景点资料如下，只能从这些景点中选择，不要虚构景点：
 ${availableSpots || "暂无景点资料"}。
-请直接输出路线。第一行必须使用格式：“路线顺序：景点A → 景点B → 景点C”，列出 2 到 6 个完整景点名称。
-随后逐站说明推荐理由、停留建议和游览提醒。不要要求用户再次说明景区或偏好。`
+请直接输出路线。第一行必须使用格式：“路线顺序：景点A → 景点B → 景点C”，列出 3 到 5 个完整景点名称。
+随后逐站说明推荐理由、停留建议和游览提醒。不要要求用户再次说明景区或偏好。
+如果资料不足，也要从可用景点资料中给出一条“参考路线”，第一行仍必须是“路线顺序：...”。`
   }
 
   async function requestAIRoutePlan(userQuestion = "") {
     const prompt = buildRoutePrompt(userQuestion)
+    const visibleQuestion = userQuestion.trim() || `请根据${routeHours || "当前"}小时游览时长${routeArea.trim() ? `、当前位置${routeArea.trim()}` : ""}生成推荐路线`
     setError("")
     setRoutePlanning(true)
     setRouteAnswer("")
     setAvatarMode("think")
+    setRouteChatInput("")
     stopReply(false)
     const runId = ++speechRunRef.current
     let activeId = conversationId
     try {
       if (!activeId) activeId = await createConversation(false)
+      const routeConversationId = await createIsolatedRouteConversation()
+      const routeUserMessage: Message = { role: "user", content: visibleQuestion }
+      setMessages((current) => [...current, routeUserMessage, { role: "assistant", content: "" }])
+      appendHistoryMessage(activeId, routeUserMessage, visibleQuestion.slice(0, 28))
       const controller = new AbortController()
       abortRef.current = controller
       const res = await fetch(`${apiBase()}/api/voice/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversation_id: activeId, message: prompt, language: "zh", explain_mode: "normal" }),
+        body: JSON.stringify({
+          conversation_id: routeConversationId || activeId,
+          message: prompt,
+          history: [],
+          interest_tags: interests,
+          use_rag: true,
+          language: "zh",
+          explain_mode: "normal",
+        }),
         signal: controller.signal,
       })
       if (!res.ok || !res.body) throw new Error("路线规划服务暂时不可用")
@@ -681,19 +1017,28 @@ ${availableSpots || "暂无景点资料"}。
           if (payload.type === "done") finalText = payload.content || finalText
           if (payload.type === "error") throw new Error(payload.message || payload.content || "路线规划服务暂时不可用")
           setRouteAnswer(finalText)
+          setMessages((current) => current.map((item, index) => (index === current.length - 1 ? { ...item, content: finalText } : item)))
         }
       }
-      setRouteAnswer(finalText)
-      applyAIRoute(finalText)
-      appendHistoryMessage(activeId, { role: "user", content: userQuestion || "请根据当前位置和游览时长推荐路线" }, "路线规划")
-      appendHistoryMessage(activeId, { role: "assistant", content: finalText })
-      if (finalText) await speakText(finalText, runId)
+      const appliedPlan = applyAIRoute(finalText, userQuestion)
+      const usedFallback = Boolean(appliedPlan?.id?.toString().startsWith("fallback-"))
+      const routeReplyText = usedFallback ? routePlanToAssistantText(appliedPlan) : (finalText || routePlanToAssistantText(appliedPlan))
+      setRouteAnswer(routeReplyText)
+      const routeAssistantMessage: Message = { role: "assistant", content: routeReplyText }
+      setMessages((current) => current.map((item, index) => (index === current.length - 1 ? routeAssistantMessage : item)))
+      appendHistoryMessage(activeId, routeAssistantMessage)
+      setRoutePlanning(false)
+      if (routeReplyText) void speakText(routeReplyText, runId)
     } catch (err: any) {
-      if (err?.name !== "AbortError") setError(err?.message || "路线规划服务暂时不可用")
+      if (err?.name !== "AbortError") {
+        const message = err?.message || "路线规划服务暂时不可用"
+        setError(message)
+        setMessages((current) => current.map((item, index) => (index === current.length - 1 && item.role === "assistant" ? { ...item, content: message } : item)))
+      }
     } finally {
       setRoutePlanning(false)
       abortRef.current = null
-      if (!speaking) setAvatarMode("idle")
+      if (!speaking && !audioRef.current) setAvatarMode("idle")
     }
   }
 
@@ -745,9 +1090,13 @@ ${availableSpots || "暂无景点资料"}。
 
   const activeRouteSpots = useMemo(() => {
     const fromRoute = routeSpots(selectedRoute)
-    return fromRoute.length ? fromRoute : spots
+    if (!fromRoute.length) return spots
+    return fromRoute.map((spot) => {
+      const matched = matchSpotName(spot.name)
+      return matched ? { ...matched, ...spot, tags: normalizeTags(spot.tags).length ? spot.tags : matched.tags } : spot
+    })
   }, [selectedRoute, spots])
-  const mapSpots = view === "route" ? activeRouteSpots : spots
+  const mapSpots = selectedRoute ? activeRouteSpots : []
 
   if (view === "feedback") {
     return (
@@ -782,9 +1131,70 @@ ${availableSpots || "暂无景点资料"}。
     )
   }
 
-  if (view === "map" || view === "route") {
+  if (view === "route") {
+    const gallerySpots = [
+      ...localScenicSpots.map((localSpot) => {
+        const backendSpot = spots.find((spot) => normalizeSpotName(spot.name) === normalizeSpotName(localSpot.name))
+        return backendSpot
+          ? {
+              ...localSpot,
+              ...backendSpot,
+              description: backendSpot.description || localSpot.description,
+              tags: normalizeTags(backendSpot.tags).length ? backendSpot.tags : localSpot.tags,
+              location: localSpot.location || backendSpot.location,
+              lat: localSpot.lat ?? backendSpot.lat,
+              lng: localSpot.lng ?? backendSpot.lng,
+              latitude: localSpot.latitude ?? backendSpot.latitude,
+              longitude: localSpot.longitude ?? backendSpot.longitude,
+            }
+          : localSpot
+      }),
+      ...spots.filter((spot) => !localScenicSpots.some((localSpot) => normalizeSpotName(localSpot.name) === normalizeSpotName(spot.name))),
+    ]
     return (
-      <div className="grid h-full min-h-0 grid-cols-[minmax(350px,410px)_1fr_minmax(300px,360px)] gap-5 overflow-hidden bg-white">
+      <div className="relative h-full overflow-auto bg-[#050505] px-6 py-8 text-white lg:px-10">
+        <div className="mx-auto mb-8 max-w-7xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.26em] text-emerald-300">Scenic Gallery</p>
+          <h2 className="mt-3 text-4xl font-bold tracking-tight">景点推荐</h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">精选景区景点图片，点击卡片查看景点介绍、标签与游览信息。</p>
+        </div>
+
+        <div className="mx-auto grid max-w-7xl auto-rows-[20px] grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {gallerySpots.map((spot, index) => (
+            <button
+              key={`${spot.id || spot.name}`}
+              type="button"
+              onClick={() => openSpotDetail(spot)}
+              className="group relative overflow-hidden rounded-lg border border-white/10 bg-neutral-950 text-left transition-all duration-200 hover:-translate-y-1 hover:border-white/30"
+              style={{ gridRowEnd: `span ${masonryRowSpans[index % masonryRowSpans.length]}` }}
+            >
+              <img
+                src={gallerySpotImage(spot, index)}
+                alt={spot.name}
+                className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                onError={(event) => {
+                  event.currentTarget.src = attractionFallbackImages[index % attractionFallbackImages.length]
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/12 to-black/72" />
+              <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/24 px-2.5 py-1 text-xs font-mono font-semibold text-white/80 backdrop-blur">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div className="absolute inset-x-0 bottom-0 p-4">
+                <strong className="block truncate text-base font-bold text-white">{spot.name}</strong>
+                <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/70">{gallerySpotDescription(spot)}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+        {renderSpotDetailModal()}
+      </div>
+    )
+  }
+
+  if (view === "map") {
+    return (
+      <div className="relative grid h-full min-h-0 grid-cols-[minmax(350px,410px)_1fr_minmax(320px,380px)] gap-5 overflow-hidden bg-white">
         <aside className="min-h-0 overflow-auto rounded-[26px] border border-border bg-white p-5 shadow-sm">
           <div className="mb-5 flex items-center justify-between">
             <div>
@@ -813,17 +1223,24 @@ ${availableSpots || "暂无景点资料"}。
             <div className="mb-4 rounded-2xl border border-border bg-white p-4 shadow-sm">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-xs font-semibold text-primary">当前路线</span>
-                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-primary">{routeSpots(selectedRoute).length} 个景点</span>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-primary">{activeRouteSpots.length} 个景点</span>
               </div>
               <strong className="block text-lg leading-tight">{routeTitle(selectedRoute)}</strong>
               <p className="mt-2 line-clamp-3 text-xs leading-5 text-muted-foreground">{selectedRoute.description || selectedRoute.reason || "已根据你的游览约束生成路线。"}</p>
             </div>
           ) : null}
           <div className="space-y-3">
-            {(routeSpots(selectedRoute).length ? routeSpots(selectedRoute) : spots).map((spot, index) => (
-              <button key={`${spot.id || spot.name}`} type="button" onClick={() => setSelectedSpot(spot)} className={`w-full rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${selectedSpot?.name === spot.name ? "border-primary bg-primary/5" : "border-border bg-white"}`}>
+            {(activeRouteSpots.length ? activeRouteSpots : spots).map((spot, index) => (
+              <button key={`${spot.id || spot.name}`} type="button" onClick={() => openSpotDetail(spot)} className={`w-full rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${selectedSpot?.name === spot.name ? "border-primary bg-primary/5" : "border-border bg-white"}`}>
                 <div className="flex gap-3">
-                  {spot.image_url || spot.cover_image ? <img src={resolveMediaURL(spot.image_url || spot.cover_image || "")} alt={spot.name} className="h-16 w-20 rounded-xl object-cover" /> : <div className="grid h-16 w-20 place-items-center rounded-xl bg-emerald-50 text-primary"><MapPin className="h-5 w-5" /></div>}
+                  <img
+                    src={spotImage(spot, index)}
+                    alt={spot.name}
+                    className="h-16 w-20 rounded-xl object-cover"
+                    onError={(event) => {
+                      event.currentTarget.src = spotGalleryImages[spot.name] || attractionFallbackImages[0]
+                    }}
+                  />
                   <div className="min-w-0">
                     <span className="text-[11px] font-semibold text-primary">路线第 {index + 1} 站</span>
                     <strong className="block truncate text-sm">{spot.name}</strong>
@@ -837,34 +1254,28 @@ ${availableSpots || "暂无景点资料"}。
 
         <section className="relative min-h-0">
           <LeafletMap spots={mapSpots} activeSpot={selectedSpot} onSelect={setSelectedSpot} />
-          <div className="absolute bottom-5 right-5 z-[500] w-[380px] max-w-[calc(100%-2rem)]">
-            <div className="mb-3 ml-auto flex w-fit items-center gap-3 rounded-2xl bg-white/90 px-4 py-3 shadow-xl backdrop-blur-md">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-xs font-bold text-white">DG</span>
-              <div>
-                <h3 className="font-bold">小号路线助手</h3>
-                <p className="text-xs text-muted-foreground">告诉我同行人员和游览偏好</p>
-              </div>
-            </div>
-            <div className="flex items-end gap-2">
-              <textarea value={routeChatInput} onChange={(event) => setRouteChatInput(event.target.value)} rows={2} placeholder="例如：带老人游玩，路线轻松一点" className="min-h-12 flex-1 resize-none rounded-2xl border border-border bg-white/95 px-3 py-2 text-sm shadow-xl outline-none backdrop-blur focus:border-primary" />
-              {(routePlanning || speaking) ? (
-                <button type="button" onClick={() => stopReply(true)} className="h-12 rounded-2xl border border-border bg-white/95 px-4 text-sm font-semibold shadow-xl backdrop-blur transition hover:bg-muted">停止</button>
-              ) : null}
-              <button type="button" onClick={() => requestAIRoutePlan(routeChatInput)} disabled={routePlanning || !routeChatInput.trim()} className="h-12 rounded-2xl bg-primary px-5 text-sm font-semibold text-white shadow-xl transition hover:bg-primary/90 disabled:opacity-50">询问</button>
-            </div>
+          <div className="pointer-events-none absolute bottom-0 right-0 z-[500] h-[460px] w-[330px]">
+            <VrmAvatarStage
+              mode={avatarMode}
+              model="/assets/vrm/7533417284697534698.vrm"
+              motionPlaylist={["modelPose"]}
+              showControls={false}
+              showStatus={false}
+              surface="transparent"
+              framing="upper"
+              className="h-full w-full"
+            />
           </div>
         </section>
 
-        <aside className="min-h-0 overflow-auto rounded-[26px] border border-border bg-white p-5 shadow-sm">
-          <div className="mb-5 rounded-2xl bg-emerald-950 p-4 text-white">
-            <p className="text-xs text-white/70">当前景点</p>
-            <h3 className="mt-1 text-xl font-bold">{selectedSpot?.name || "请选择景点"}</h3>
-            {selectedSpot?.image_url || selectedSpot?.cover_image ? (
-              <img src={resolveMediaURL(selectedSpot.image_url || selectedSpot.cover_image || "")} alt={selectedSpot.name} className="mt-3 h-40 w-full rounded-2xl object-cover" />
-            ) : null}            <p className="mt-3 text-sm leading-7 text-white/78">{selectedSpot?.description || "点击左侧景点或地图标记，查看景点介绍与路线位置。"}</p>
-          </div>
-          <div className="mb-5">
-            <h3 className="mb-3 flex items-center gap-2 text-lg font-bold"><Sparkles className="h-5 w-5 text-primary" />兴趣偏好</h3>
+        <aside className="flex min-h-0 flex-col overflow-hidden rounded-[26px] border border-border bg-white shadow-sm">
+          <header className="border-b border-border p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Guide Chat</p>
+            <h3 className="mt-1 text-xl font-bold">和导游对话</h3>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">可以直接问路线、景点顺序和游览偏好，回复会同步到地图路线。</p>
+          </header>
+          <div className="border-b border-border p-4">
+            <h4 className="mb-3 flex items-center gap-2 text-sm font-bold"><Sparkles className="h-4 w-4 text-primary" />兴趣偏好</h4>
             <div className="flex flex-wrap gap-2">
               {interestOptions.map((tag) => (
                 <button key={tag} type="button" onClick={() => toggleInterest(tag)} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${interests.includes(tag) ? "border-primary bg-primary text-white" : "border-border hover:bg-muted"}`}>{tag}</button>
@@ -875,27 +1286,85 @@ ${availableSpots || "暂无景点资料"}。
               根据偏好推荐路线
             </button>
           </div>
-          <div>
-            <h3 className="mb-3 flex items-center gap-2 text-lg font-bold"><Navigation className="h-5 w-5 text-primary" />路线列表</h3>
-            <div className="space-y-3">
-              {(selectedRoute ? [selectedRoute, ...routes.filter((item) => item.id !== selectedRoute.id)] : routes).map((route, index) => (
-                <button key={`${route.id || routeTitle(route, index)}`} type="button" onClick={() => { setSelectedRoute(route); const first = routeSpots(route)[0]; if (first) setSelectedSpot(first) }} className="w-full rounded-2xl border border-border p-3 text-left transition hover:-translate-y-0.5 hover:bg-muted/50">
-                  <strong className="block text-sm">{routeTitle(route, index)}</strong>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{routeSpots(route).map((spot) => spot.name).join(" → ") || route.description || "暂无景点序列"}</p>
-                </button>
+          <div className="min-h-0 flex-1 space-y-3 overflow-auto bg-gradient-to-b from-white to-slate-50/70 p-4">
+            {messages.slice(-8).map((message, index) => (
+              <div key={`${message.role}-${index}-${message.content.slice(0, 10)}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[88%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-xs leading-6 shadow-sm ${message.role === "user" ? "bg-primary text-white" : "border border-border bg-white text-foreground"}`}>
+                  {message.content || <span className="text-muted-foreground">正在规划路线...</span>}
+                </div>
+              </div>
+            ))}
+            {routeAnswer ? (
+              <div className="rounded-2xl border border-emerald-900/10 bg-emerald-50/70 p-3 text-xs leading-6 text-emerald-950">
+                <strong className="mb-1 block text-primary">路线已同步到地图</strong>
+                <p className="line-clamp-5 whitespace-pre-line">{routeAnswer}</p>
+              </div>
+            ) : null}
+          </div>
+          <div className="border-t border-border bg-white p-4">
+            {error ? <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p> : null}
+            <div className="mb-3 flex flex-wrap gap-2">
+              {quickQuestions.slice(0, 3).map((item) => (
+                <button key={item} type="button" onClick={() => requestAIRoutePlan(item)} className="rounded-full border border-border px-3 py-1.5 text-[11px] font-semibold transition hover:bg-muted">{item}</button>
               ))}
             </div>
+            <div className="flex items-end gap-2 rounded-2xl border border-border bg-white p-2 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
+              <textarea value={routeChatInput} onChange={(event) => setRouteChatInput(event.target.value)} rows={2} placeholder="问导游路线、景点或游览偏好" className="min-h-11 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none placeholder:text-muted-foreground" />
+              {(routePlanning || speaking) ? (
+                <button type="button" onClick={() => stopReply(true)} className="grid h-10 w-10 place-items-center rounded-full bg-red-50 text-red-600 transition hover:bg-red-100" title="停止回复"><X className="h-4 w-4" /></button>
+              ) : null}
+              <button type="button" onClick={() => requestAIRoutePlan(routeChatInput)} disabled={routePlanning || !routeChatInput.trim()} className="grid h-10 w-10 place-items-center rounded-full bg-primary text-white transition hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground" title="询问导游"><Send className="h-4 w-4" /></button>
+            </div>
           </div>
-          {error ? <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p> : null}
         </aside>
+        {renderSpotDetailModal()}
       </div>
     )
   }
 
   return (
     <div className="grid h-full min-h-0 grid-cols-[minmax(520px,700px)_minmax(420px,1fr)_minmax(280px,340px)] gap-5 overflow-hidden bg-white">
-      <aside className="min-h-0 overflow-hidden">
-        <VrmAvatarStage mode={avatarMode} className="h-full min-h-[620px]" />
+      <aside className="relative min-h-0 overflow-hidden rounded-[26px] border border-emerald-900/10 bg-[#f3f6f3] shadow-[0_18px_60px_rgba(15,38,25,0.10)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,148,0.20),transparent_30%),linear-gradient(180deg,#f8faf7_0%,#eef3ee_100%)]" />
+        {previousAvatarBackdrop ? (
+          <img
+            key={`previous-${previousAvatarBackdrop.url}`}
+            src={previousAvatarBackdrop.url}
+            alt={previousAvatarBackdrop.name}
+            className="absolute inset-0 h-full w-full animate-[dgBackdropOut_900ms_ease-out_forwards] object-cover"
+            onError={() => handleAvatarBackdropError(previousAvatarBackdrop.url)}
+          />
+        ) : null}
+        {avatarBackdrop ? (
+          <img
+            key={avatarBackdrop.url}
+            src={avatarBackdrop.url}
+            alt={avatarBackdrop.name}
+            className="absolute inset-0 h-full w-full animate-[dgBackdropFade_900ms_ease-out] object-cover opacity-100"
+            onError={() => handleAvatarBackdropError(avatarBackdrop.url)}
+          />
+        ) : null}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/18 to-white/70" />
+        <div className="pointer-events-none absolute inset-0 overflow-hidden text-[6.5rem] font-black uppercase leading-none tracking-[-0.08em] text-emerald-950/[0.10]">
+          <span className="absolute left-6 top-14 whitespace-nowrap">SCENIC GUIDE</span>
+          <span className="absolute bottom-8 left-20 whitespace-nowrap">DISCOVER</span>
+        </div>
+        {avatarBackdrop ? (
+          <div className="absolute left-5 top-5 z-20 rounded-full border border-white/70 bg-white/72 px-3 py-1 text-xs font-semibold text-emerald-950 shadow-sm backdrop-blur">
+            正在讲解：{avatarBackdrop.name}
+          </div>
+        ) : null}
+        <VrmAvatarStage mode={avatarMode} onGuideChange={handleGuideChange} surface="transparent" className="relative z-10 h-full min-h-[620px]" />
+        <style jsx global>{`
+          @keyframes dgBackdropFade {
+            from { opacity: 0; transform: scale(1.025); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          @keyframes dgBackdropOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(1.012); }
+          }
+        `}</style>
       </aside>
 
       <section className="flex min-h-0 flex-col overflow-hidden rounded-[26px] border border-border bg-white shadow-sm">

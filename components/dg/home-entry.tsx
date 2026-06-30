@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Bot, Eye, EyeOff, LayoutDashboard, Lock, Shield, Sparkles, User, X } from "lucide-react"
 import { request, setApiBase, setToken } from "@/components/dg/api"
 import { TouristExperience } from "@/components/dg/tourist-experience"
+import { VrmAvatarStage, type VrmMotionKey } from "@/components/dg/vrm-avatar-stage"
 
 const scenicImages = [
   "https://commons.wikimedia.org/wiki/Special:FilePath/Huangshan_pic_4.jpg?width=2400",
@@ -39,9 +40,12 @@ const homeTabs: Array<{ key: HomeTab; label: string }> = [
   { key: "home", label: "首页" },
   { key: "chat", label: "AI 对话" },
   { key: "map", label: "地图导览" },
-  { key: "route", label: "路线推荐" },
+  { key: "route", label: "景点推荐" },
   { key: "feedback", label: "服务反馈" },
 ]
+
+const homeGuideModel = "/assets/vrm/default_2963.vrm"
+const homeGuideMotions: VrmMotionKey[] = ["greeting", "vSign", "fullBody", "modelPose"]
 function FrostedAdminLogin({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter()
   const [username, setUsername] = useState("admin")
@@ -152,17 +156,19 @@ function FrostedAdminLogin({ open, onClose }: { open: boolean; onClose: () => vo
   )
 }
 
-function FloatingDigitalHuman({ compact = false }: { compact?: boolean }) {
+function FloatingDigitalHuman() {
   return (
-    <div className={`pointer-events-none ${compact ? "w-40" : "w-56"} rounded-[24px] border border-white/35 bg-white/18 p-4 text-white shadow-2xl backdrop-blur-xl`}>
-      <div className={`relative mx-auto mb-3 grid ${compact ? "h-24 w-24" : "h-32 w-32"} place-items-center rounded-full bg-white/20`}>
-        <span className="absolute inset-2 rounded-full bg-primary/30 blur-md" />
-        <span className={`relative grid ${compact ? "h-16 w-16" : "h-24 w-24"} place-items-center rounded-full bg-primary shadow-xl`}>
-          <Bot className={compact ? "h-8 w-8" : "h-14 w-14"} />
-        </span>
-      </div>
-      <strong className="block text-center text-sm">AI 数字人在线</strong>
-      <span className="mt-1 block text-center text-xs text-white/75">随时陪你问景点、查路线</span>
+    <div className="pointer-events-none relative h-[680px] w-[460px]">
+      <div className="absolute inset-x-16 bottom-8 h-16 rounded-full bg-black/35 blur-2xl" />
+      <VrmAvatarStage
+        mode="idle"
+        model={homeGuideModel}
+        motionPlaylist={homeGuideMotions}
+        showControls={false}
+        showStatus={false}
+        surface="transparent"
+        className="h-full w-full"
+      />
     </div>
   )
 }
@@ -214,6 +220,8 @@ export function HomeEntry() {
   const [activeTab, setActiveTab] = useState<HomeTab>("home")
   const [activeImage, setActiveImage] = useState(0)
   const [loadedImages, setLoadedImages] = useState<Set<number>>(() => new Set([0]))
+  const darkNav = activeTab === "home" || activeTab === "route"
+  const shellBg = activeTab === "route" ? "bg-[#050505]" : activeTab === "home" ? "bg-emerald-950" : "bg-white"
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -264,8 +272,8 @@ export function HomeEntry() {
   }
 
   return (
-    <main className={`min-h-screen ${activeTab === "home" ? "bg-emerald-950" : "bg-white"}`}>
-      <section className={`relative flex min-h-screen flex-col overflow-hidden ${activeTab === "home" ? "bg-emerald-950" : "bg-white"}`}>
+    <main className={`min-h-screen ${shellBg}`}>
+      <section className={`relative flex min-h-screen flex-col overflow-hidden ${shellBg}`}>
         {activeTab === "home" && <div className="absolute inset-0">
           {scenicImages.map((image, index) => (
             <div
@@ -281,15 +289,15 @@ export function HomeEntry() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_30%,rgba(255,190,92,0.22),transparent_32%),linear-gradient(90deg,rgba(3,20,28,0.72)_0%,rgba(8,34,46,0.38)_46%,rgba(8,20,24,0.28)_100%)]" />
         </div>}
 
-        <div className={`relative flex flex-1 flex-col ${activeTab === "home" ? "px-5 pb-8 pt-2 md:px-12 md:pt-4" : "px-4 pb-5 pt-3 md:px-8 md:pt-4"}`}>
+        <div className={`relative flex flex-1 flex-col ${activeTab === "home" ? "px-5 pb-8 pt-2 md:px-12 md:pt-4" : activeTab === "route" ? "px-0 pb-0 pt-3 md:pt-4" : "px-4 pb-5 pt-3 md:px-8 md:pt-4"}`}>
           <nav className="mx-auto grid w-full max-w-[1800px] animate-slide-in-up grid-cols-[auto_1fr_auto] items-center gap-4 px-0 py-0">
-            <Link href="/" className={`flex items-center gap-2 transition hover:-translate-y-0.5 ${activeTab === "home" ? "text-white" : "text-foreground"}`}>
+            <Link href="/" className={`flex items-center gap-2 transition hover:-translate-y-0.5 ${darkNav ? "text-white" : "text-foreground"}`}>
               <span className={`grid h-8 w-8 place-items-center rounded-xl text-xs font-black shadow-sm ${
-                activeTab === "home" ? "bg-white/16 text-white ring-1 ring-white/18 backdrop-blur-md" : "bg-primary text-primary-foreground"
+                darkNav ? "bg-white/16 text-white ring-1 ring-white/18 backdrop-blur-md" : "bg-primary text-primary-foreground"
               }`}>DG</span>
               <span className="text-base font-semibold tracking-tight md:text-lg">
-                <span className={activeTab === "home" ? "text-white" : "text-primary"}>{labels.brand}</span>
-                <span className={activeTab === "home" ? "text-white/92" : "text-foreground"}> Guide</span>
+                <span className={darkNav ? "text-white" : "text-primary"}>{labels.brand}</span>
+                <span className={darkNav ? "text-white/92" : "text-foreground"}> Guide</span>
               </span>
             </Link>
             <div className="hidden items-center justify-center gap-9 md:flex">
@@ -300,10 +308,10 @@ export function HomeEntry() {
                   onClick={() => selectTab(tab.key)}
                   className={`relative min-h-0 rounded-none border-0 bg-transparent px-1 py-2 text-sm font-semibold transition duration-200 hover:-translate-y-0.5 hover:bg-transparent ${
                     activeTab === tab.key
-                      ? activeTab === "home"
+                      ? darkNav
                         ? "text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:rounded-full after:bg-white after:shadow-[0_0_14px_rgba(255,255,255,0.52)]"
                         : "text-foreground after:absolute after:bottom-1 after:left-0 after:right-0 after:h-[2px] after:rounded-full after:bg-primary after:shadow-[0_0_12px_rgba(0,122,47,0.35)]"
-                      : activeTab === "home"
+                      : darkNav
                         ? "text-white/72 hover:text-white"
                         : "text-muted-foreground hover:text-foreground"
                   }`}
@@ -316,7 +324,7 @@ export function HomeEntry() {
               type="button"
               onClick={() => setLoginOpen(true)}
               className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold shadow-sm backdrop-blur-xl transition hover:-translate-y-0.5 md:px-7 ${
-                activeTab === "home"
+                darkNav
                   ? "border-white/18 bg-white/10 text-white hover:bg-white/16"
                   : "border-emerald-900/10 bg-white/70 text-emerald-950/75 hover:bg-white hover:text-emerald-950"
               }`}
@@ -364,14 +372,14 @@ export function HomeEntry() {
             </div>
           </div>
           ) : (
-            <div className="mx-auto flex h-[calc(100vh-90px)] w-full max-w-[1800px] flex-col pt-3 animate-slide-in-up">
-              <div className="min-h-0 flex-1 overflow-hidden bg-white">
+            <div className={`${activeTab === "route" ? "flex h-[calc(100vh-58px)] w-full flex-col pt-3" : "mx-auto flex h-[calc(100vh-90px)] w-full max-w-[1800px] flex-col pt-3"} animate-slide-in-up`}>
+              <div className={`min-h-0 flex-1 overflow-hidden ${activeTab === "route" ? "bg-[#050505]" : "bg-white"}`}>
                 <TouristExperience view={activeTab} />
               </div>
             </div>
           )}
 
-          {activeTab === "home" && <div className="absolute bottom-8 right-8 hidden lg:block"><FloatingDigitalHuman compact /></div>}
+          {activeTab === "home" && <div className="absolute bottom-0 right-4 hidden lg:block xl:right-14"><FloatingDigitalHuman /></div>}
         </div>
       </section>
 
