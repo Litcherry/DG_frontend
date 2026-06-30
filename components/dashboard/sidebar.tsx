@@ -4,36 +4,22 @@ import { useState } from "react"
 import { useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Bot, Database, LayoutDashboard, LogOut, Map, Route } from "lucide-react"
+import { Bot, Database, LayoutDashboard, LogOut, Map, Route, Settings } from "lucide-react"
 import { authHeaders, requestWithTimeout, token } from "@/components/dg/api"
 import { cn } from "@/lib/utils"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "\u4EEA\u8868\u76D8", href: "/admin" },
-  { icon: Database, label: "\u77E5\u8BC6\u5E93", href: "/admin/knowledge" },
-  { icon: Map, label: "\u666F\u533A\u7BA1\u7406", href: "/admin/scenic" },
-  { icon: Bot, label: "\u6570\u5B57\u4EBA", href: "/admin/human" },
+  { icon: Database, label: "\u77E5\u8BC6\u5E93", href: "/knowledge" },
+  { icon: Map, label: "\u666F\u533A\u7BA1\u7406", href: "/scenic" },
+  { icon: Bot, label: "\u6570\u5B57\u4EBA", href: "/human" },
 ]
 
 const generalItems = [
-  { icon: Route, label: "\u8DEF\u7EBF\u6570\u636E", href: "/admin/scenic?tab=routes" },
-  { icon: LogOut, label: "\u9000\u51FA\u767B\u5F55", href: "/admin/logout" },
+  { icon: Route, label: "\u8DEF\u7EBF\u6570\u636E", href: "/scenic?tab=routes" },
+  { icon: Settings, label: "\u63A5\u53E3\u8BBE\u7F6E", href: "/settings" },
+  { icon: LogOut, label: "\u9000\u51FA\u767B\u5F55", href: "/logout" },
 ]
-
-const resolvedBlindStorageKey = "dg_resolved_blind_spots"
-
-function blindQuestion(item: any) {
-  return String(item.question_pattern || item.question || item.query || item.pattern || "-").trim().toLowerCase()
-}
-
-function readResolvedBlindKeys() {
-  try {
-    const value = JSON.parse(localStorage.getItem(resolvedBlindStorageKey) || "[]")
-    return Array.isArray(value) ? value.map(String) : []
-  } catch {
-    return []
-  }
-}
 
 export function Sidebar() {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
@@ -43,18 +29,14 @@ export function Sidebar() {
   useEffect(() => {
     if (!token()) return
     let mounted = true
-    const loadBlindCount = () => requestWithTimeout<any>("/api/admin/knowledge/blind-spots?range=week", { headers: authHeaders() }, 7000)
+    requestWithTimeout<any>("/api/admin/knowledge/blind-spots?range=week", { headers: authHeaders() }, 7000)
       .then((data) => {
         const items = Array.isArray(data) ? data : data?.items || []
-        const resolved = readResolvedBlindKeys()
-        if (mounted) setBlindCount(items.filter((item: any) => !resolved.includes(blindQuestion(item))).length)
+        if (mounted) setBlindCount(items.length)
       })
       .catch(() => mounted && setBlindCount(0))
-    loadBlindCount()
-    window.addEventListener("dg-blind-spots-updated", loadBlindCount)
     return () => {
       mounted = false
-      window.removeEventListener("dg-blind-spots-updated", loadBlindCount)
     }
   }, [pathname])
 
@@ -93,7 +75,7 @@ export function Sidebar() {
                 >
                   <item.icon className="w-4 h-4" />
                   <span className="text-sm">{item.label}</span>
-                  {item.href === "/admin/knowledge" && blindCount > 0 && (
+                  {item.href === "/knowledge" && blindCount > 0 && (
                     <span className="ml-auto rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
                       {blindCount}
                     </span>

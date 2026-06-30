@@ -7618,14 +7618,108 @@ body.role-visitor #visitorView .human-panel {
 }
 
 body.role-visitor #visitorView .vrm-avatar-frame {
+  display: none !important;
+}
+
+body.role-visitor #visitorView .vrm-avatar-stage {
   position: absolute;
   inset: 0;
   z-index: 4;
   width: 100%;
   height: 100%;
-  border: 0;
   border-radius: 24px;
-  background: transparent;
+  overflow: hidden;
+  background: #e8ebe8;
+  isolation: isolate;
+}
+
+body.role-visitor #visitorView .vrm-background-layer,
+body.role-visitor #visitorView .vrm-avatar-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body.role-visitor #visitorView .vrm-background-layer {
+  z-index: 0;
+  background: linear-gradient(#f0f0f0, #e0e0e0);
+  pointer-events: none;
+}
+
+body.role-visitor #visitorView .vrm-bg-title,
+body.role-visitor #visitorView .vrm-bg-bottom {
+  position: absolute;
+  left: 50%;
+  z-index: 1;
+  color: transparent;
+  -webkit-text-stroke: 2px #aaa;
+  text-stroke: 2px #aaa;
+  font-weight: 900;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  text-transform: uppercase;
+}
+
+body.role-visitor #visitorView .vrm-bg-title {
+  top: 25px;
+  transform: translateX(-50%);
+  font-size: 105px;
+  letter-spacing: -4px;
+}
+
+body.role-visitor #visitorView .vrm-bg-bottom {
+  bottom: 12px;
+  transform: translateX(-50%);
+  font-size: 86px;
+  letter-spacing: -8px;
+}
+
+body.role-visitor #visitorView .vrm-bg-mark {
+  position: absolute;
+  right: 32px;
+  bottom: 24px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  border: 3px solid #333;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #333;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+body.role-visitor #visitorView .vrm-avatar-canvas {
+  z-index: 2;
+  display: block;
+}
+
+body.role-visitor #visitorView .vrm-avatar-status {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 14px;
+  z-index: 3;
+  border: 1px solid rgba(20, 30, 28, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  color: rgba(31, 41, 35, 0.68);
+  padding: 8px 12px;
+  font-size: 12px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(8px);
+  backdrop-filter: blur(14px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+body.role-visitor #visitorView .vrm-avatar-stage.is-debug .vrm-avatar-status {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 body.role-visitor #visitorView .human-panel .stage-glow,

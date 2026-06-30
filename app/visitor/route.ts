@@ -61,6 +61,16 @@ export async function GET(request: Request) {
     <meta name="theme-color" content="#168f91" />
     <title>DG 游客导览端</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.177.0/examples/jsm/",
+          "@pixiv/three-vrm": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm@3/lib/three-vrm.module.min.js",
+          "@pixiv/three-vrm-animation": "https://cdn.jsdelivr.net/npm/@pixiv/three-vrm-animation@3/lib/three-vrm-animation.module.min.js"
+        }
+      }
+    </script>
     <style>${legacyCss}${embedded ? `
       body.embedded-visitor {
         min-height: 100vh;
@@ -88,6 +98,7 @@ export async function GET(request: Request) {
       body.embedded-visitor .visitor-layout {
         min-height: 100vh;
         height: 100vh;
+        gap: 14px;
       }
       body.embedded-visitor.history-open .visitor-layout,
       body.embedded-visitor:not(.history-open) .visitor-layout {
@@ -99,6 +110,22 @@ export async function GET(request: Request) {
       body.embedded-visitor .history-panel {
         height: 100vh;
         max-height: 100vh;
+      }
+      body.embedded-visitor #visitorView .guide-column {
+        flex: 0 0 min(700px, 44vw);
+        width: min(700px, 44vw);
+        max-width: min(700px, 44vw);
+      }
+      body.embedded-visitor #visitorView .chat-shell {
+        min-width: 0;
+      }
+      body.embedded-visitor #visitorView .history-panel {
+        flex: 0 0 282px;
+        width: 282px;
+      }
+      body.embedded-visitor:not(.history-open) #visitorView .history-panel {
+        flex-basis: 46px;
+        width: 46px;
       }
       body.embedded-visitor .chat-messages,
       body.embedded-visitor .history-list {

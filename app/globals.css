@@ -1,6 +1,25 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+.dg-route-marker {
+  background: transparent;
+  border: 0;
+}
+
+.dg-route-marker span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+  background: #007a3d;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 12px 26px rgba(0, 80, 40, 0.28);
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

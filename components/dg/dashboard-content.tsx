@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Area,
@@ -13,7 +14,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
-import { ArrowUpRight, BarChart3, FileText, MessageSquare, RefreshCw, Star, Timer } from "lucide-react"
+import { AlertCircle, ArrowUpRight, BarChart3, Bot, Database, FileText, Map, MessageSquare, RefreshCw, Star, Timer } from "lucide-react"
 import { AdminFrame } from "@/components/dg/admin-frame"
 import { authHeaders, requestWithTimeout, token } from "@/components/dg/api"
 import { Button } from "@/components/ui/button"
@@ -40,36 +41,42 @@ const emptyState: DashboardState = {
 }
 
 const label = {
-  title: "仪表盘",
-  desc: "查看导览服务运行情况、游客偏好与知识命中表现。",
-  refresh: "刷新数据",
-  loading: "正在读取后端实时数据",
-  empty: "暂无数据",
-  authWait: "等待登录凭证就绪",
-  conversations: "总会话",
-  messages: "总消息",
-  response: "平均响应",
-  satisfaction: "满意度",
-  rag: "RAG 命中",
-  today: "今日",
-  rangeToday: "今日",
-  rangeWeek: "近 7 天",
-  rangeMonth: "近 30 天",
-  satTrend: "满意度趋势",
-  satNote: "每日平均分与评分构成",
-  avgScore: "平均分",
-  emotion: "情感分布",
-  emotionNote: "AI 回复情感标签分布",
-  hotQuestions: "热门问题",
-  hotQuestionsNote: "高频游客问题，单行显示，点击查看全文",
-  interests: "兴趣分布",
-  interestsNote: "会话中的游客兴趣分布",
-  spots: "热门景点",
-  spotsNote: "游客咨询中被提及的景点",
-  fullQuestion: "问题全文",
-  count: "次",
-  noToken: "尚未获取登录凭证，已暂停请求。",
-  partial: "部分接口暂时未返回，已先显示可用的真实数据。",
+  title: "\u4EEA\u8868\u76D8",
+  desc: "\u67E5\u770B\u5BFC\u89C8\u670D\u52A1\u8FD0\u884C\u60C5\u51B5\u3001\u6E38\u5BA2\u504F\u597D\u4E0E\u77E5\u8BC6\u547D\u4E2D\u8868\u73B0\u3002",
+  backend: "\u540E\u7AEF\u5B9E\u65F6\u6570\u636E",
+  refresh: "\u5237\u65B0\u6570\u636E",
+  loading: "\u6B63\u5728\u8BFB\u53D6\u540E\u7AEF\u5B9E\u65F6\u6570\u636E",
+  empty: "\u6682\u65E0\u6570\u636E",
+  authWait: "\u7B49\u5F85\u767B\u5F55\u51ED\u8BC1\u5C31\u7EEA",
+  conversations: "\u603B\u4F1A\u8BDD",
+  messages: "\u603B\u6D88\u606F",
+  response: "\u5E73\u5747\u54CD\u5E94\u65F6\u95F4",
+  satisfaction: "\u6EE1\u610F\u5EA6",
+  rag: "RAG \u547D\u4E2D\u7387",
+  today: "\u4ECA\u65E5",
+  rangeToday: "\u4ECA\u65E5",
+  rangeWeek: "\u6700\u8FD1 7 \u5929",
+  rangeMonth: "\u6700\u8FD1 30 \u5929",
+  satTrend: "\u6EE1\u610F\u5EA6\u8D8B\u52BF",
+  satNote: "\u6BCF\u65E5\u5747\u5206\u4E0E\u8BC4\u5206\u6784\u6210",
+  avgScore: "\u5E73\u5747\u8BC4\u5206",
+  emotion: "\u60C5\u7EEA\u8D8B\u52BF",
+  emotionNote: "AI \u56DE\u590D\u60C5\u7EEA\u6807\u7B7E\u5206\u5E03",
+  hotQuestions: "\u70ED\u95E8\u95EE\u9898",
+  hotQuestionsNote: "\u9AD8\u9891\u6E38\u5BA2\u95EE\u9898\uFF0C\u5355\u884C\u663E\u793A\uFF0C\u70B9\u51FB\u67E5\u770B\u5168\u6587",
+  interests: "\u5174\u8DA3\u5206\u5E03",
+  interestsNote: "\u4F1A\u8BDD\u4E2D\u7684\u6E38\u5BA2\u5174\u8DA3\u5206\u5E03",
+  spots: "\u70ED\u95E8\u666F\u70B9",
+  spotsNote: "\u6E38\u5BA2\u54A8\u8BE2\u4E2D\u88AB\u63D0\u53CA\u7684\u666F\u70B9",
+  fullQuestion: "\u95EE\u9898\u5168\u6587",
+  count: "\u6B21",
+  noToken: "\u5C1A\u672A\u83B7\u53D6\u767B\u5F55\u51ED\u8BC1\uFF0C\u5DF2\u6682\u505C\u8BF7\u6C42\u3002",
+  partial: "\u90E8\u5206\u63A5\u53E3\u6682\u65F6\u672A\u8FD4\u56DE\uFF0C\u5DF2\u5148\u663E\u793A\u53EF\u7528\u7684\u771F\u5B9E\u6570\u636E\u3002",
+  quickActions: "\u5FEB\u6377\u64CD\u4F5C",
+  uploadKnowledge: "\u4E0A\u4F20\u77E5\u8BC6\u6587\u6863",
+  viewBlind: "\u67E5\u770B\u77E5\u8BC6\u76F2\u70B9",
+  manageScenic: "\u7BA1\u7406\u666F\u533A\u6570\u636E",
+  configHuman: "\u914D\u7F6E\u6570\u5B57\u4EBA",
 }
 
 const colors = ["#007A2F", "#12B981", "#E0B43F", "#6F8D99", "#D66A6A", "#0F6F55", "#A0C878"]
@@ -115,7 +122,7 @@ function StatCard({ title, value, note, icon: Icon, active }: any) {
           <ArrowUpRight className="h-4 w-4 text-primary-foreground" />
         </div>
       </div>
-      <p className="mb-4 text-3xl font-bold">{value}</p>
+      <p className="mb-4 text-4xl font-bold">{value}</p>
       <div className="flex items-center gap-1.5 text-xs opacity-80">
         <Icon className="h-3.5 w-3.5" />
         {note}
@@ -169,8 +176,8 @@ function ProgressList({ entries }: { entries: { name: string; value: number }[] 
 
 function SatisfactionPanel({ data, range }: { data: DashboardState["satisfaction"]; range: RangeValue }) {
   const trend = (data?.trend || []).map((item: any) => ({ date: shortDate(item.date), rating: Number(item.avg_rating || 0) }))
-  const distribution = Object.entries(data?.distribution || {}).map(([name, value]) => ({ name: `${name} 星`, value: Number(value) }))
-  const average = trend.length ? (trend.reduce((sum, item) => sum + item.rating, 0) / trend.length).toFixed(1) : "-"
+  const distribution = Object.entries(data?.distribution || {}).map(([name, value]) => ({ name: `${name} star`, value: Number(value) }))
+  const average = trend.length ? trend.reduce((sum, item) => sum + item.rating, 0) / trend.length : 0
 
   return (
     <Card className="p-6 shadow-lg">
@@ -195,7 +202,7 @@ function SatisfactionPanel({ data, range }: { data: DashboardState["satisfaction
                   </Pie>
                   <Tooltip />
                   <text x="50%" y="48%" textAnchor="middle" dominantBaseline="middle" className="fill-foreground text-3xl font-bold">
-                    {average}
+                    {average.toFixed(1)}
                   </text>
                   <text x="50%" y="61%" textAnchor="middle" dominantBaseline="middle" className="fill-muted-foreground text-xs">
                     {label.avgScore}
@@ -232,7 +239,7 @@ function HotQuestionsPanel({ questions, range }: { questions: any[]; range: Rang
                   key={`${question}-${index}`}
                   type="button"
                   onClick={() => setSelected(item)}
-                  className={`grid h-11 w-full grid-cols-[1fr_52px] items-center gap-3 rounded-lg border px-3 text-left text-sm transition-colors ${active ? "border-primary bg-primary/5 shadow-md" : "border-border hover:border-primary/30 hover:bg-muted/30"}`}
+                  className={`${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"} grid h-11 w-full grid-cols-[1fr_52px] items-center gap-3 rounded-lg border px-3 text-left text-sm transition-colors`}
                   title={question}
                 >
                   <span className="truncate font-medium">{question}</span>
@@ -329,10 +336,13 @@ export function DashboardContent() {
   )
 
   const actions = (
-    <Button onClick={load} disabled={loading || !authReady}>
-      <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-      {label.refresh}
-    </Button>
+    <>
+      <Button variant="outline" asChild><Link href="/settings">{label.backend}</Link></Button>
+      <Button onClick={load} disabled={loading || !authReady}>
+        <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        {label.refresh}
+      </Button>
+    </>
   )
 
   return (
@@ -347,6 +357,19 @@ export function DashboardContent() {
           </Button>
         ))}
       </div>
+
+      <Card className="mb-5 p-4 shadow-lg">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold">{label.quickActions}</h2>
+          <AlertCircle className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <Button asChild variant="outline"><Link href="/knowledge"><Database className="h-4 w-4" />{label.uploadKnowledge}</Link></Button>
+          <Button asChild variant="outline"><Link href="/knowledge?tab=blind"><AlertCircle className="h-4 w-4" />{label.viewBlind}</Link></Button>
+          <Button asChild variant="outline"><Link href="/scenic"><Map className="h-4 w-4" />{label.manageScenic}</Link></Button>
+          <Button asChild variant="outline"><Link href="/human"><Bot className="h-4 w-4" />{label.configHuman}</Link></Button>
+        </div>
+      </Card>
 
       {loading ? (
         <Card className="mb-5 p-6 text-sm text-muted-foreground shadow-lg">{label.loading}</Card>

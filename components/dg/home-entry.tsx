@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Bot, Eye, EyeOff, LayoutDashboard, Lock, Shield, Sparkles, User, X } from "lucide-react"
 import { request, setApiBase, setToken } from "@/components/dg/api"
+import { TouristExperience } from "@/components/dg/tourist-experience"
 
 const scenicImages = [
   "https://commons.wikimedia.org/wiki/Special:FilePath/Huangshan_pic_4.jpg?width=2400",
@@ -32,13 +33,14 @@ const labels = {
   pointC: "知识入库",
 }
 
-type HomeTab = "home" | "chat" | "map" | "route"
+type HomeTab = "home" | "chat" | "map" | "route" | "feedback"
 
 const homeTabs: Array<{ key: HomeTab; label: string }> = [
   { key: "home", label: "首页" },
   { key: "chat", label: "AI 对话" },
   { key: "map", label: "地图导览" },
   { key: "route", label: "路线推荐" },
+  { key: "feedback", label: "服务反馈" },
 ]
 function FrostedAdminLogin({ open, onClose }: { open: boolean; onClose: () => void }) {
   const router = useRouter()
@@ -162,21 +164,6 @@ function FloatingDigitalHuman({ compact = false }: { compact?: boolean }) {
       <strong className="block text-center text-sm">AI 数字人在线</strong>
       <span className="mt-1 block text-center text-xs text-white/75">随时陪你问景点、查路线</span>
     </div>
-  )
-}
-
-function LegacyVisitorPane({ activeTab }: { activeTab: Exclude<HomeTab, "home"> }) {
-  const view = activeTab === "chat" ? "visitor" : "routeMap"
-  const title = activeTab === "chat" ? "AI 对话" : activeTab === "map" ? "地图导览" : "路线推荐"
-
-  return (
-    <iframe
-      key={view}
-      title={title}
-      src={`/visitor?embed=1&view=${view}`}
-      className="h-full min-h-0 w-full border-0 bg-white"
-      allow="microphone; autoplay"
-    />
   )
 }
 
@@ -377,9 +364,9 @@ export function HomeEntry() {
             </div>
           </div>
           ) : (
-            <div className="mx-auto flex h-[calc(100vh-112px)] w-full max-w-7xl flex-col pt-5 animate-slide-in-up">
+            <div className="mx-auto flex h-[calc(100vh-90px)] w-full max-w-[1800px] flex-col pt-3 animate-slide-in-up">
               <div className="min-h-0 flex-1 overflow-hidden bg-white">
-                <LegacyVisitorPane activeTab={activeTab} />
+                <TouristExperience view={activeTab} />
               </div>
             </div>
           )}

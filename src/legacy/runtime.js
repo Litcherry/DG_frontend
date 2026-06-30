@@ -1,4 +1,4 @@
-import {
+﻿import {
   LIVE2D_MODELS,
   LIVE2D_RENDER_SIZE,
   LIVE2D_ROLE_DEFAULTS,
@@ -41,6 +41,8 @@ const state = {
   live2dMouthUpdateHandler: null,
   live2dLifecycleId: 0,
   live2dModelLoadId: 0,
+  vrmAvatar: null,
+  vrmAvatarInitPromise: null,
   browserMouthTimer: null,
   liveTalkingPc: null,
   liveTalkingSessionId: "",
@@ -85,7 +87,7 @@ function normalizeHistoryItem(item = {}) {
   return {
     ...item,
     id: item.id || item.conversation_id || crypto.randomUUID(),
-    title: item.title || item.name || "新的导览会话",
+    title: item.title || item.name || "鏂扮殑瀵艰浼氳瘽",
     messages,
     updatedAt: item.updatedAt || item.updated_at || new Date().toISOString(),
   };
@@ -94,197 +96,197 @@ function normalizeHistoryItem(item = {}) {
 function normalizeHistory(value) {
   return Array.isArray(value) ? value.map(normalizeHistoryItem).filter((item) => item.id) : [];
 }
-const defaultInterests = ["历史文化", "自然风光", "休闲娱乐", "亲子游", "摄影打卡"];
+const defaultInterests = ["鍘嗗彶鏂囧寲", "鑷劧椋庡厜", "浼戦棽濞变箰", "浜插瓙娓?, "鎽勫奖鎵撳崱"];
 const scenicSpots = [
   {
     id: "lingshan_screen",
-    name: "灵山大照壁",
-    aliases: ["大照壁", "灵山照壁"],
+    name: "鐏靛北澶х収澹?,
+    aliases: ["澶х収澹?, "鐏靛北鐓у"],
     lat: 31.41915,
     lng: 120.091,
-    intro: "灵山胜境入口处的标志性景观，也是进入景区后的第一处文化序章。",
-    duration: "10分钟",
-    tags: ["入口景观", "佛教文化", "拍照打卡"],
+    intro: "鐏靛北鑳滃鍏ュ彛澶勭殑鏍囧織鎬ф櫙瑙傦紝涔熸槸杩涘叆鏅尯鍚庣殑绗竴澶勬枃鍖栧簭绔犮€?,
+    duration: "10鍒嗛挓",
+    tags: ["鍏ュ彛鏅", "浣涙暀鏂囧寲", "鎷嶇収鎵撳崱"],
   },
   {
     id: "shengjing_square",
-    name: "胜境广场",
-    aliases: ["灵山胜境广场"],
+    name: "鑳滃骞垮満",
+    aliases: ["鐏靛北鑳滃骞垮満"],
     lat: 31.41985,
     lng: 120.09165,
-    intro: "开阔舒适的入园集散空间，适合整理行程并了解景区整体布局。",
-    duration: "10分钟",
-    tags: ["休闲漫步", "游客集散"],
+    intro: "寮€闃旇垝閫傜殑鍏ュ洯闆嗘暎绌洪棿锛岄€傚悎鏁寸悊琛岀▼骞朵簡瑙ｆ櫙鍖烘暣浣撳竷灞€銆?,
+    duration: "10鍒嗛挓",
+    tags: ["浼戦棽婕", "娓稿闆嗘暎"],
   },
   {
     id: "wuming_bridge",
-    name: "五明桥",
-    aliases: ["五明桥景点"],
+    name: "浜旀槑妗?,
+    aliases: ["浜旀槑妗ユ櫙鐐?],
     lat: 31.4202,
     lng: 120.09235,
-    intro: "五座汉白玉石拱桥并列横跨香水海，寓意佛教五种核心智慧。",
-    duration: "10分钟",
-    tags: ["佛教文化", "建筑艺术", "拍照打卡"],
+    intro: "浜斿骇姹夌櫧鐜夌煶鎷辨ˉ骞跺垪妯法棣欐按娴凤紝瀵撴剰浣涙暀浜旂鏍稿績鏅烘収銆?,
+    duration: "10鍒嗛挓",
+    tags: ["浣涙暀鏂囧寲", "寤虹瓚鑹烘湳", "鎷嶇収鎵撳崱"],
   },
   {
     id: "buddha_foot",
-    name: "佛足坛",
-    aliases: ["佛足印", "佛足坛景点"],
+    name: "浣涜冻鍧?,
+    aliases: ["浣涜冻鍗?, "浣涜冻鍧涙櫙鐐?],
     lat: 31.42075,
     lng: 120.0922,
-    intro: "以佛足印为核心的文化景观，可在此感受庄重安宁的礼佛氛围。",
-    duration: "15分钟",
-    tags: ["佛教文化", "人文景观"],
+    intro: "浠ヤ經瓒冲嵃涓烘牳蹇冪殑鏂囧寲鏅锛屽彲鍦ㄦ鎰熷彈搴勯噸瀹夊畞鐨勭ぜ浣涙皼鍥淬€?,
+    duration: "15鍒嗛挓",
+    tags: ["浣涙暀鏂囧寲", "浜烘枃鏅"],
   },
   {
     id: "hundred_children_maitreya",
-    name: "百子戏弥勒",
-    aliases: ["百子弥勒", "弥勒佛"],
+    name: "鐧惧瓙鎴忓讥鍕?,
+    aliases: ["鐧惧瓙寮ュ嫆", "寮ュ嫆浣?],
     lat: 31.4213,
     lng: 120.09275,
-    intro: "生动活泼的弥勒主题群像，寓意欢喜、包容与吉祥。",
-    duration: "15分钟",
-    tags: ["亲子游", "佛教文化", "雕塑艺术"],
+    intro: "鐢熷姩娲绘臣鐨勫讥鍕掍富棰樼兢鍍忥紝瀵撴剰娆㈠枩銆佸寘瀹逛笌鍚夌ゥ銆?,
+    duration: "15鍒嗛挓",
+    tags: ["浜插瓙娓?, "浣涙暀鏂囧寲", "闆曞鑹烘湳"],
   },
   {
     id: "nine_dragons",
-    name: "九龙灌浴",
-    aliases: ["九龙灌浴广场", "九龙灌浴表演"],
+    name: "涔濋緳鐏屾荡",
+    aliases: ["涔濋緳鐏屾荡骞垮満", "涔濋緳鐏屾荡琛ㄦ紨"],
     lat: 31.42205,
     lng: 120.0932,
-    intro: "大型动态音乐群雕景观，通过声光水景呈现佛陀诞生故事。",
-    duration: "25分钟",
-    tags: ["核心景点", "演艺景观", "亲子游"],
+    intro: "澶у瀷鍔ㄦ€侀煶涔愮兢闆曟櫙瑙傦紝閫氳繃澹板厜姘存櫙鍛堢幇浣涢檧璇炵敓鏁呬簨銆?,
+    duration: "25鍒嗛挓",
+    tags: ["鏍稿績鏅偣", "婕旇壓鏅", "浜插瓙娓?],
   },
   {
     id: "bodhi_avenue",
-    name: "菩提大道",
-    aliases: ["菩提路"],
+    name: "鑿╂彁澶ч亾",
+    aliases: ["鑿╂彁璺?],
     lat: 31.42305,
     lng: 120.0936,
-    intro: "连接景区重要文化节点的景观步道，绿意舒展，适合慢行游览。",
-    duration: "20分钟",
-    tags: ["自然风光", "休闲漫步", "拍照打卡"],
+    intro: "杩炴帴鏅尯閲嶈鏂囧寲鑺傜偣鐨勬櫙瑙傛閬擄紝缁挎剰鑸掑睍锛岄€傚悎鎱㈣娓歌銆?,
+    duration: "20鍒嗛挓",
+    tags: ["鑷劧椋庡厜", "浼戦棽婕", "鎷嶇収鎵撳崱"],
   },
   {
     id: "buddha_hand_square",
-    name: "佛手广场",
-    aliases: ["天下第一掌", "佛手"],
+    name: "浣涙墜骞垮満",
+    aliases: ["澶╀笅绗竴鎺?, "浣涙墜"],
     lat: 31.42395,
     lng: 120.0938,
-    intro: "以大型佛手造像为核心的特色广场，是游客喜爱的互动打卡点。",
-    duration: "15分钟",
-    tags: ["拍照打卡", "佛教文化"],
+    intro: "浠ュぇ鍨嬩經鎵嬮€犲儚涓烘牳蹇冪殑鐗硅壊骞垮満锛屾槸娓稿鍠滅埍鐨勪簰鍔ㄦ墦鍗＄偣銆?,
+    duration: "15鍒嗛挓",
+    tags: ["鎷嶇収鎵撳崱", "浣涙暀鏂囧寲"],
   },
   {
     id: "xiangfu_temple",
-    name: "祥符禅寺",
-    aliases: ["祥符寺", "禅寺"],
+    name: "绁ョ绂呭",
+    aliases: ["绁ョ瀵?, "绂呭"],
     lat: 31.425,
     lng: 120.0942,
-    intro: "历史悠久的佛教寺院建筑群，适合静心参访并了解寺院文化。",
-    duration: "30分钟",
-    tags: ["佛教文化", "历史建筑", "静心参访"],
+    intro: "鍘嗗彶鎮犱箙鐨勪經鏁欏闄㈠缓绛戠兢锛岄€傚悎闈欏績鍙傝骞朵簡瑙ｅ闄㈡枃鍖栥€?,
+    duration: "30鍒嗛挓",
+    tags: ["浣涙暀鏂囧寲", "鍘嗗彶寤虹瓚", "闈欏績鍙傝"],
   },
   {
     id: "buddha_square",
-    name: "佛前广场",
-    aliases: ["大佛广场"],
+    name: "浣涘墠骞垮満",
+    aliases: ["澶т經骞垮満"],
     lat: 31.42655,
     lng: 120.0949,
-    intro: "仰望灵山大佛的主要观景空间，视野开阔，仪式感鲜明。",
-    duration: "15分钟",
-    tags: ["核心景点", "观景", "拍照打卡"],
+    intro: "浠版湜鐏靛北澶т經鐨勪富瑕佽鏅┖闂达紝瑙嗛噹寮€闃旓紝浠紡鎰熼矞鏄庛€?,
+    duration: "15鍒嗛挓",
+    tags: ["鏍稿績鏅偣", "瑙傛櫙", "鎷嶇収鎵撳崱"],
   },
   {
     id: "lingshan_buddha",
-    name: "灵山大佛",
-    aliases: ["大佛", "灵山大佛景区"],
+    name: "鐏靛北澶т經",
+    aliases: ["澶т經", "鐏靛北澶т經鏅尯"],
     lat: 31.42755,
     lng: 120.0953,
-    intro: "灵山胜境核心景点之一，适合了解佛教文化与大型露天造像艺术。",
-    duration: "40分钟",
-    tags: ["佛教文化", "核心景点", "拍照打卡"],
+    intro: "鐏靛北鑳滃鏍稿績鏅偣涔嬩竴锛岄€傚悎浜嗚В浣涙暀鏂囧寲涓庡ぇ鍨嬮湶澶╅€犲儚鑹烘湳銆?,
+    duration: "40鍒嗛挓",
+    tags: ["浣涙暀鏂囧寲", "鏍稿績鏅偣", "鎷嶇収鎵撳崱"],
   },
   {
     id: "lingshan_palace",
-    name: "灵山梵宫",
-    aliases: ["梵宫", "灵山宫"],
+    name: "鐏靛北姊靛",
+    aliases: ["姊靛", "鐏靛北瀹?],
     lat: 31.4217,
     lng: 120.09745,
-    intro: "融合建筑、壁画、雕塑与演艺艺术的文化地标，内部装饰华美。",
-    duration: "45分钟",
-    tags: ["建筑艺术", "佛教文化", "室内参观"],
+    intro: "铻嶅悎寤虹瓚銆佸鐢汇€侀洉濉戜笌婕旇壓鑹烘湳鐨勬枃鍖栧湴鏍囷紝鍐呴儴瑁呴グ鍗庣編銆?,
+    duration: "45鍒嗛挓",
+    tags: ["寤虹瓚鑹烘湳", "浣涙暀鏂囧寲", "瀹ゅ唴鍙傝"],
   },
   {
     id: "five_mudra_mandala",
-    name: "五印坛城",
-    aliases: ["坛城", "五印坛城文化园"],
+    name: "浜斿嵃鍧涘煄",
+    aliases: ["鍧涘煄", "浜斿嵃鍧涘煄鏂囧寲鍥?],
     lat: 31.4208,
     lng: 120.0987,
-    intro: "具有鲜明藏式建筑特色的文化景观，可感受丰富的坛城艺术。",
-    duration: "35分钟",
-    tags: ["建筑艺术", "佛教文化", "拍照打卡"],
+    intro: "鍏锋湁椴滄槑钘忓紡寤虹瓚鐗硅壊鐨勬枃鍖栨櫙瑙傦紝鍙劅鍙椾赴瀵岀殑鍧涘煄鑹烘湳銆?,
+    duration: "35鍒嗛挓",
+    tags: ["寤虹瓚鑹烘湳", "浣涙暀鏂囧寲", "鎷嶇収鎵撳崱"],
   },
   {
     id: "manfeilong_pagoda",
-    name: "曼飞龙塔",
-    aliases: ["飞龙塔", "曼飞龙佛塔"],
+    name: "鏇奸榫欏",
+    aliases: ["椋為緳濉?, "鏇奸榫欎經濉?],
     lat: 31.4229,
     lng: 120.09905,
-    intro: "造型精巧的佛塔景观，周边视野舒展，适合文化参观与摄影。",
-    duration: "20分钟",
-    tags: ["建筑艺术", "拍照打卡", "人文景观"],
+    intro: "閫犲瀷绮惧阀鐨勪經濉旀櫙瑙傦紝鍛ㄨ竟瑙嗛噹鑸掑睍锛岄€傚悎鏂囧寲鍙傝涓庢憚褰便€?,
+    duration: "20鍒嗛挓",
+    tags: ["寤虹瓚鑹烘湳", "鎷嶇収鎵撳崱", "浜烘枃鏅"],
   },
   {
     id: "lingshan_lodge",
-    name: "灵山精舍",
-    aliases: ["精舍"],
+    name: "鐏靛北绮捐垗",
+    aliases: ["绮捐垗"],
     lat: 31.42025,
     lng: 120.10005,
-    intro: "环境清幽的禅意空间，适合短暂休息并体验东方生活美学。",
-    duration: "20分钟",
-    tags: ["休闲体验", "禅意空间"],
+    intro: "鐜娓呭菇鐨勭鎰忕┖闂达紝閫傚悎鐭殏浼戞伅骞朵綋楠屼笢鏂圭敓娲荤編瀛︺€?,
+    duration: "20鍒嗛挓",
+    tags: ["浼戦棽浣撻獙", "绂呮剰绌洪棿"],
   },
   {
     id: "xingtan_square",
-    name: "杏坛广场",
-    aliases: ["杏坛"],
+    name: "鏉忓潧骞垮満",
+    aliases: ["鏉忓潧"],
     lat: 31.42565,
     lng: 120.09455,
-    intro: "位于礼佛主轴线上的开阔广场，是前往佛前广场与灵山大佛的重要节点。",
-    duration: "10分钟",
-    tags: ["佛教文化", "休闲漫步"],
+    intro: "浣嶄簬绀间經涓昏酱绾夸笂鐨勫紑闃斿箍鍦猴紝鏄墠寰€浣涘墠骞垮満涓庣伒灞卞ぇ浣涚殑閲嶈鑺傜偣銆?,
+    duration: "10鍒嗛挓",
+    tags: ["浣涙暀鏂囧寲", "浼戦棽婕"],
   },
   {
     id: "sansheng_hall",
-    name: "三圣殿",
-    aliases: ["三圣堂"],
+    name: "涓夊湥娈?,
+    aliases: ["涓夊湥鍫?],
     lat: 31.42295,
     lng: 120.09765,
-    intro: "以佛教造像与文化展示为主的殿堂，适合进一步了解佛教艺术与礼仪。",
-    duration: "20分钟",
-    tags: ["佛教文化", "人文景观"],
+    intro: "浠ヤ經鏁欓€犲儚涓庢枃鍖栧睍绀轰负涓荤殑娈垮爞锛岄€傚悎杩涗竴姝ヤ簡瑙ｄ經鏁欒壓鏈笌绀间华銆?,
+    duration: "20鍒嗛挓",
+    tags: ["浣涙暀鏂囧寲", "浜烘枃鏅"],
   },
   {
     id: "palace_square",
-    name: "梵宫广场",
-    aliases: ["灵山梵宫广场"],
+    name: "姊靛骞垮満",
+    aliases: ["鐏靛北姊靛骞垮満"],
     lat: 31.42125,
     lng: 120.09685,
-    intro: "灵山梵宫前的开阔景观空间，可完整欣赏梵宫建筑群与周边环境。",
-    duration: "15分钟",
-    tags: ["建筑艺术", "自然风光", "拍照打卡"],
+    intro: "鐏靛北姊靛鍓嶇殑寮€闃旀櫙瑙傜┖闂达紝鍙畬鏁存璧忔⒌瀹缓绛戠兢涓庡懆杈圭幆澧冦€?,
+    duration: "15鍒嗛挓",
+    tags: ["寤虹瓚鑹烘湳", "鑷劧椋庡厜", "鎷嶇収鎵撳崱"],
   },
   {
     id: "demon_relief",
-    name: "降魔浮雕",
-    aliases: ["降魔成道浮雕"],
+    name: "闄嶉瓟娴洉",
+    aliases: ["闄嶉瓟鎴愰亾娴洉"],
     lat: 31.42045,
     lng: 120.0919,
-    intro: "以佛教故事为主题的大型浮雕景观，通过细腻造型呈现降魔成道场景。",
-    duration: "10分钟",
-    tags: ["佛教文化", "雕塑艺术"],
+    intro: "浠ヤ經鏁欐晠浜嬩负涓婚鐨勫ぇ鍨嬫诞闆曟櫙瑙傦紝閫氳繃缁嗚吇閫犲瀷鍛堢幇闄嶉瓟鎴愰亾鍦烘櫙銆?,
+    duration: "10鍒嗛挓",
+    tags: ["浣涙暀鏂囧寲", "闆曞鑹烘湳"],
   },
 ];
 // The original fallback catalog was drawn around an approximate anchor.
@@ -303,9 +305,9 @@ scenicSpots.forEach((spot) => {
 const live2dModels = LIVE2D_MODELS;
 const live2dRoleDefaults = {
   ...LIVE2D_ROLE_DEFAULTS,
-  modern: { ...LIVE2D_ROLE_DEFAULTS.modern, name: "AI 导览员" },
-  hanfu: { ...LIVE2D_ROLE_DEFAULTS.hanfu, role: "景区文化讲解员" },
-  nature: { name: "AI 导览员", role: "自然探索向导" },
+  modern: { ...LIVE2D_ROLE_DEFAULTS.modern, name: "AI 瀵艰鍛? },
+  hanfu: { ...LIVE2D_ROLE_DEFAULTS.hanfu, role: "鏅尯鏂囧寲璁茶В鍛? },
+  nature: { name: "AI 瀵艰鍛?, role: "鑷劧鎺㈢储鍚戝" },
 };
 const LIVE2D_RENDER_WIDTH = LIVE2D_RENDER_SIZE.width;
 const LIVE2D_RENDER_HEIGHT = LIVE2D_RENDER_SIZE.height;
@@ -333,7 +335,7 @@ function readErrorMessage(text, fallback) {
   if (!text) return fallback;
   try {
     const data = JSON.parse(text);
-    if (Array.isArray(data.detail)) return data.detail.map((item) => item.msg).join("；");
+    if (Array.isArray(data.detail)) return data.detail.map((item) => item.msg).join("锛?);
     return data.detail || data.message || fallback;
   } catch {
     return text;
@@ -344,10 +346,10 @@ async function request(path, options = {}) {
   const res = await fetch(`${apiBase()}${path}`, options);
   if (!res.ok) {
     const text = await res.text();
-    const message = readErrorMessage(text, `请求失败：${res.status}`);
+    const message = readErrorMessage(text, `璇锋眰澶辫触锛?{res.status}`);
     if (res.status === 401 && state.token) {
       clearExpiredLogin();
-      throw new Error("登录已过期，请重新登录管理后台。");
+      throw new Error("鐧诲綍宸茶繃鏈燂紝璇烽噸鏂扮櫥褰曠鐞嗗悗鍙般€?);
     }
     throw new Error(message);
   }
@@ -417,7 +419,7 @@ function enterApp(role) {
   document.body.classList.add("in-app");
   document.body.classList.toggle("role-visitor", role === "visitor");
   document.body.classList.toggle("role-admin", role === "admin");
-  $("sessionLabel").textContent = role === "admin" ? "管理员工作台" : `游客：${state.visitorName || "临时游客"}`;
+  $("sessionLabel").textContent = role === "admin" ? "绠＄悊鍛樺伐浣滃彴" : `娓稿锛?{state.visitorName || "涓存椂娓稿"}`;
   renderRoleNavigation(role);
 
   if (role === "admin") {
@@ -434,15 +436,15 @@ function renderRoleNavigation(role) {
   const nav = $("roleNav");
   if (!nav) return;
   const visitorItems = [
-    ["visitor", "游", "游客交互端"],
-    ["routeMap", "线", "游览路径规划"],
-    ["feedbackPage", "评", "体验反馈打分"],
+    ["visitor", "娓?, "娓稿浜や簰绔?],
+    ["routeMap", "绾?, "娓歌璺緞瑙勫垝"],
+    ["feedbackPage", "璇?, "浣撻獙鍙嶉鎵撳垎"],
   ];
   const adminItems = [
-    ["dashboard", "表", "仪表盘"],
-    ["knowledge", "知", "知识库管理"],
-    ["scenic", "景", "景区管理"],
-    ["human", "人", "数字人配置"],
+    ["dashboard", "琛?, "浠〃鐩?],
+    ["knowledge", "鐭?, "鐭ヨ瘑搴撶鐞?],
+    ["scenic", "鏅?, "鏅尯绠＄悊"],
+    ["human", "浜?, "鏁板瓧浜洪厤缃?],
   ];
   nav.innerHTML = role === "admin"
     ? adminItems.map(([tab, icon, label], index) => `
@@ -487,11 +489,11 @@ function logout() {
 
 function switchView(view) {
   if (view === "admin" && state.role !== "admin") {
-    toast("请先登录管理后台");
+    toast("璇峰厛鐧诲綍绠＄悊鍚庡彴");
     return;
   }
   if (["routeMap", "feedbackPage"].includes(view) && state.role !== "visitor") {
-    toast("请先进入游客交互端");
+    toast("璇峰厛杩涘叆娓稿浜や簰绔?);
     return;
   }
   document.querySelectorAll(".nav-item").forEach((btn) => btn.classList.toggle("active", btn.dataset.view === view));
@@ -584,9 +586,9 @@ function toggleSidebar() {
 function setHistoryOpen(open) {
   document.body.classList.toggle("history-open", open);
   const toggle = $("historyToggleBtn");
-  if (toggle) toggle.textContent = open ? "收起历史" : "历史对话";
-  $("historyCloseBtn").title = open ? "收起会话栏" : "展开会话栏";
-  $("historyCloseBtn").setAttribute("aria-label", open ? "收起会话栏" : "展开会话栏");
+  if (toggle) toggle.textContent = open ? "鏀惰捣鍘嗗彶" : "鍘嗗彶瀵硅瘽";
+  $("historyCloseBtn").title = open ? "鏀惰捣浼氳瘽鏍? : "灞曞紑浼氳瘽鏍?;
+  $("historyCloseBtn").setAttribute("aria-label", open ? "鏀惰捣浼氳瘽鏍? : "灞曞紑浼氳瘽鏍?);
 }
 
 function closeHistoryMenus() {
@@ -625,7 +627,7 @@ function setAvatarEngineStatus(text) {
 }
 
 function digitalHumanName(cfg = state.humanConfig || {}) {
-  return String(cfg.name_zh || cfg.name || "AI 导览员").trim() || "AI 导览员";
+  return String(cfg.name_zh || cfg.name || "AI 瀵艰鍛?).trim() || "AI 瀵艰鍛?;
 }
 
 function showDigitalHumanName() {
@@ -663,16 +665,16 @@ function setAvatarEngine(engine, persist = true) {
         window.requestAnimationFrame(resizeLive2DStage);
       });
     }
-    else setAvatarEngineStatus("Live2D 等待页面显示");
+    else setAvatarEngineStatus("Live2D 绛夊緟椤甸潰鏄剧ず");
   }
   if (state.avatarEngine === "css") {
-    setAvatarEngineStatus("虚拟主播数字人");
+    setAvatarEngineStatus("铏氭嫙涓绘挱鏁板瓧浜?);
   }
 }
 
 async function connectLiveTalking() {
   setAvatarEngine("livetalking");
-  setAvatarEngineStatus("正在连接 LiveTalking");
+  setAvatarEngineStatus("姝ｅ湪杩炴帴 LiveTalking");
   const panel = document.querySelector(".human-panel");
   panel?.classList.remove("livetalking-connected");
   if (state.liveTalkingPc) {
@@ -691,7 +693,7 @@ async function connectLiveTalking() {
       video.muted = true;
       video.play?.().catch(() => {});
       panel?.classList.add("livetalking-connected");
-      setAvatarEngineStatus(`LiveTalking 视频已接入 ${state.liveTalkingSessionId || ""}`.trim());
+      setAvatarEngineStatus(`LiveTalking 瑙嗛宸叉帴鍏?${state.liveTalkingSessionId || ""}`.trim());
     }
     if (event.track.kind === "audio") {
       const audio = $("liveTalkingAudio");
@@ -703,12 +705,12 @@ async function connectLiveTalking() {
     if (pc.connectionState === "connected") {
       state.liveTalkingConnected = true;
       panel?.classList.add("livetalking-connected");
-      setAvatarEngineStatus(`LiveTalking 已连接 ${state.liveTalkingSessionId || ""}`.trim());
+      setAvatarEngineStatus(`LiveTalking 宸茶繛鎺?${state.liveTalkingSessionId || ""}`.trim());
     }
     if (["failed", "closed", "disconnected"].includes(pc.connectionState)) {
       state.liveTalkingConnected = false;
       panel?.classList.remove("livetalking-connected");
-      setAvatarEngineStatus("LiveTalking 连接已断开");
+      setAvatarEngineStatus("LiveTalking 杩炴帴宸叉柇寮€");
     }
   });
 
@@ -735,13 +737,13 @@ async function connectLiveTalking() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error("LiveTalking /offer 连接失败");
+  if (!res.ok) throw new Error("LiveTalking /offer 杩炴帴澶辫触");
   const answer = await res.json();
   state.liveTalkingSessionId = String(answer.sessionid || "");
   await pc.setRemoteDescription(answer);
   state.liveTalkingConnected = true;
-  setAvatarEngineStatus(`LiveTalking 已连接 ${state.liveTalkingSessionId}`);
-  toast("LiveTalking 已连接");
+  setAvatarEngineStatus(`LiveTalking 宸茶繛鎺?${state.liveTalkingSessionId}`);
+  toast("LiveTalking 宸茶繛鎺?);
 }
 
 async function speakWithLiveTalking(text, emotion = "neutral", interrupt = true) {
@@ -795,11 +797,11 @@ async function initLive2D() {
   const canvas = $("live2dCanvas");
   if (!panel || !canvas) return;
   if (!isLive2DStageVisible()) {
-    setAvatarEngineStatus("Live2D 等待页面显示");
+    setAvatarEngineStatus("Live2D 绛夊緟椤甸潰鏄剧ず");
     return;
   }
   panel.classList.add("engine-loading");
-  setAvatarEngineStatus("Live2D 模型加载中");
+  setAvatarEngineStatus("Live2D 妯″瀷鍔犺浇涓?);
 
   if (!window.PIXI?.live2d?.Live2DModel) throw new Error("Live2D runtime unavailable");
   if (!state.live2dApp) {
@@ -845,7 +847,7 @@ function ensureLive2DVisible() {
   state.live2dInitPromise = initLive2D()
     .catch((error) => {
       console.warn("[Live2D] Mark model failed to load; AI chat remains available.", error);
-      setAvatarEngineStatus("Mark 加载失败，已使用简化形象");
+      setAvatarEngineStatus("Mark 鍔犺浇澶辫触锛屽凡浣跨敤绠€鍖栧舰璞?);
       setAvatarEngine("css", false);
     })
     .finally(() => {
@@ -952,9 +954,300 @@ function styleLive2DModel() {
   model.tint = 0xffffff;
 }
 
+async function initVRMAvatar() {
+  if (state.vrmAvatar) return state.vrmAvatar;
+  if (state.vrmAvatarInitPromise) return state.vrmAvatarInitPromise;
+  const stage = $("vrmAvatarStage");
+  const canvas = $("vrmAvatarCanvas");
+  const status = $("vrmAvatarStatus");
+  if (!stage || !canvas) return null;
+
+  const setStatus = (text, debug = false) => {
+    if (status) status.textContent = text;
+    stage.classList.toggle("is-debug", debug);
+  };
+
+  state.vrmAvatarInitPromise = (async () => {
+    const models = {
+      model7533: { label: "7533417284697534698", url: "/assets/vrm/7533417284697534698.vrm", fallbackSize: 15282092 },
+      default: { label: "default_2963", url: "/assets/vrm/default_2963.vrm", fallbackSize: 5350040 },
+      default2704: { label: "default_2704", url: "/assets/vrm/default_2704.vrm", fallbackSize: 5548212 },
+      karmesi: { label: "Karmesi", url: "/assets/vrm/karmesi.vrm", fallbackSize: 18748576 },
+    };
+    const motions = {
+      fullBody: { label: "灞曠ず鍏ㄨ韩", url: "/assets/vrm/animations/VRMA_01.vrma" },
+      greeting: { label: "鎵撴嫑鍛?, url: "/assets/vrm/animations/VRMA_02.vrma" },
+      vSign: { label: "姣?V 鎵嬪娍", url: "/assets/vrm/animations/VRMA_03.vrma" },
+      pose: { label: "妯＄壒鎽嗘媿", url: "/assets/vrm/animations/VRMA_06.vrma" },
+    };
+
+    setStatus("VRM 鏁板瓧浜哄姞杞戒腑", true);
+    const THREE = await import("three");
+    const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
+    const { OrbitControls } = await import("three/addons/controls/OrbitControls.js");
+    const { VRMLoaderPlugin, VRMUtils } = await import("@pixiv/three-vrm");
+    let VRMAnimationLoaderPlugin = null;
+    let createVRMAnimationClip = null;
+    try {
+      const vrmaModule = await import("@pixiv/three-vrm-animation");
+      VRMAnimationLoaderPlugin = vrmaModule.VRMAnimationLoaderPlugin;
+      createVRMAnimationClip = vrmaModule.createVRMAnimationClip;
+    } catch (error) {
+      console.warn("[VRM] VRMA runtime unavailable, manual motion fallback is active.", error);
+    }
+
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
+    renderer.setClearColor(0xffffff, 0);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 100);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+    controls.enableZoom = false;
+    controls.enableRotate = false;
+
+    scene.add(new THREE.AmbientLight(0xdfeee8, 0.58));
+    scene.add(new THREE.HemisphereLight(0xf4fff9, 0x17352f, 0.92));
+    const key = new THREE.DirectionalLight(0xffead2, 0.92);
+    key.position.set(1.8, 2.8, 2.6);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0x8ee7ff, 0.55);
+    rim.position.set(-2.5, 2, -1.4);
+    scene.add(rim);
+    const faceFill = new THREE.DirectionalLight(0xffffff, 0.36);
+    faceFill.position.set(0, 1.6, 3.4);
+    scene.add(faceFill);
+
+    const clock = new THREE.Clock();
+    const motionClipCache = new Map();
+    let activeModelKey = "model7533";
+    let activeModel = models[activeModelKey];
+    let currentVrm = null;
+    let mixer = null;
+    let activeAction = null;
+    let mode = "idle";
+    let blinkAt = 0;
+
+    const resize = () => {
+      const rect = stage.getBoundingClientRect();
+      const width = Math.max(Math.round(rect.width), 1);
+      const height = Math.max(Math.round(rect.height), 1);
+      renderer.setSize(width, height, false);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+    };
+
+    const bone = (name) => currentVrm?.humanoid?.getNormalizedBoneNode?.(name);
+    const setExpression = (name, value) => currentVrm?.expressionManager?.setValue?.(name, value);
+    const resetExpressions = () => {
+      ["happy", "aa", "ih", "ou", "blink", "relaxed", "surprised", "sad", "angry"].forEach((name) => setExpression(name, 0));
+    };
+    const setBoneRotation = (name, x = 0, y = 0, z = 0) => {
+      const target = bone(name);
+      if (target) target.rotation.set(x, y, z);
+    };
+    const applyGuidePose = (time) => {
+      const breathe = Math.sin(time * 1.4) * 0.018;
+      setBoneRotation("hips", 0, Math.sin(time * 0.5) * 0.018, 0);
+      setBoneRotation("spine", breathe, Math.sin(time * 0.45) * 0.026, 0);
+      setBoneRotation("chest", breathe * 0.7, Math.sin(time * 0.55) * 0.022, 0);
+      setBoneRotation("head", Math.sin(time * 1.1) * 0.025, Math.sin(time * 0.8) * 0.045, Math.sin(time * 0.7) * 0.012);
+      setBoneRotation("leftUpperArm", 0.15, 0.02, 1.16 + Math.sin(time * 0.9) * 0.025);
+      setBoneRotation("rightUpperArm", 0.18, -0.03, -1.04 + Math.cos(time * 0.85) * 0.025);
+      setBoneRotation("leftLowerArm", -0.04, 0.08, 0.34);
+      setBoneRotation("rightLowerArm", -0.03, -0.08, -0.34);
+      setBoneRotation("leftUpperLeg", 0.02, 0, 0.035);
+      setBoneRotation("rightUpperLeg", 0.02, 0, -0.035);
+    };
+
+    const prepareMaterials = (vrm) => {
+      vrm.scene.traverse((object) => {
+        object.visible = true;
+        object.frustumCulled = false;
+        if (!object.isMesh && !object.isSkinnedMesh) return;
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        materials.filter(Boolean).forEach((material) => {
+          const name = String(material.name || "").toLowerCase();
+          if (material.map) {
+            material.map.colorSpace = THREE.SRGBColorSpace;
+            material.map.needsUpdate = true;
+          }
+          if (material.color && (name.includes("skin") || name.includes("face") || name.includes("body_mat"))) {
+            material.color.setRGB(0.88, 0.84, 0.82);
+          } else if (material.color) {
+            material.color.setRGB(0.95, 0.95, 0.95);
+          }
+          const shouldBlend = material.transparent || name.includes("hairback") || name.includes("highlight") || name.includes("eyeline") || name.includes("eyelash") || name.includes("brow");
+          const shouldMask = !shouldBlend && (material.alphaTest > 0 || name.includes("hair") || name.includes("eye") || name.includes("face") || name.includes("skin") || name.includes("cloth"));
+          if (shouldBlend) {
+            material.transparent = true;
+            material.alphaTest = 0;
+            material.depthWrite = false;
+            material.depthTest = true;
+          } else if (shouldMask) {
+            material.transparent = false;
+            material.alphaTest = Math.max(material.alphaTest || 0, 0.5);
+            material.depthWrite = true;
+          }
+          material.needsUpdate = true;
+        });
+      });
+    };
+
+    const normalizeAndFrame = (vrm) => {
+      VRMUtils.rotateVRM0(vrm);
+      if (currentVrm?.scene?.parent) scene.remove(currentVrm.scene);
+      currentVrm = vrm;
+      scene.add(vrm.scene);
+      mixer = new THREE.AnimationMixer(vrm.scene);
+      activeAction = null;
+      motionClipCache.clear();
+      prepareMaterials(vrm);
+
+      vrm.scene.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(vrm.scene);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const targetHeight = 2.12;
+      const scale = Number.isFinite(size.y) && size.y > 0 ? targetHeight / size.y : 1;
+      vrm.scene.scale.setScalar(scale);
+      vrm.scene.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+      vrm.scene.updateMatrixWorld(true);
+
+      const fittedBox = new THREE.Box3().setFromObject(vrm.scene);
+      const fittedSize = fittedBox.getSize(new THREE.Vector3());
+      const fittedCenter = fittedBox.getCenter(new THREE.Vector3());
+      const viewDistance = Math.max(2.55, fittedSize.y * 1.28, fittedSize.x * 1.95);
+      camera.position.set(fittedCenter.x, fittedCenter.y + fittedSize.y * 0.08, fittedCenter.z + viewDistance);
+      controls.target.set(fittedCenter.x, fittedCenter.y + fittedSize.y * 0.02, fittedCenter.z);
+      camera.updateProjectionMatrix();
+      controls.update();
+      setStatus(`${activeModel.label} 宸插姞杞絗);
+      playMotion("fullBody").catch(() => {});
+    };
+
+    const loadModel = async () => {
+      const loader = new GLTFLoader();
+      loader.register((parser) => new VRMLoaderPlugin(parser));
+      await new Promise((resolve, reject) => {
+        loader.load(activeModel.url, (gltf) => {
+          try {
+            if (!gltf.userData?.vrm) throw new Error("VRM metadata was not parsed");
+            normalizeAndFrame(gltf.userData.vrm);
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        }, undefined, reject);
+      });
+    };
+
+    const loadMotionClip = async (key) => {
+      if (!currentVrm || !motions[key] || !VRMAnimationLoaderPlugin || !createVRMAnimationClip) return null;
+      const cacheKey = `${activeModelKey}:${key}`;
+      if (motionClipCache.has(cacheKey)) return motionClipCache.get(cacheKey);
+      const loader = new GLTFLoader();
+      loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
+      const clip = await new Promise((resolve, reject) => {
+        loader.load(motions[key].url, (gltf) => {
+          try {
+            const animation = gltf.userData?.vrmAnimations?.[0];
+            if (!animation) throw new Error("No VRMA animation found");
+            resolve(createVRMAnimationClip(animation, currentVrm));
+          } catch (error) {
+            reject(error);
+          }
+        }, undefined, reject);
+      });
+      motionClipCache.set(cacheKey, clip);
+      return clip;
+    };
+
+    const playMotion = async (key) => {
+      if (!motions[key]) return;
+      try {
+        const clip = await loadMotionClip(key);
+        if (!clip || !mixer) {
+          activeAction = null;
+          return;
+        }
+        const nextAction = mixer.clipAction(clip);
+        nextAction.reset().setEffectiveWeight(1).setEffectiveTimeScale(1).fadeIn(0.24).play();
+        if (activeAction && activeAction !== nextAction) activeAction.fadeOut(0.24);
+        activeAction = nextAction;
+      } catch (error) {
+        activeAction = null;
+        console.warn("[VRM] motion failed", error);
+      }
+    };
+
+    const setMode = (nextMode = "idle") => {
+      mode = nextMode;
+      if (mode === "talk") playMotion("greeting").catch(() => {});
+      else if (mode === "think") playMotion("pose").catch(() => {});
+      else if (mode === "happy") playMotion("vSign").catch(() => {});
+      else playMotion("fullBody").catch(() => {});
+    };
+
+    const setModel = async (key) => {
+      if (!models[key] || key === activeModelKey) return;
+      activeModelKey = key;
+      activeModel = models[key];
+      await loadModel();
+    };
+
+    const animate = () => {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      const time = clock.elapsedTime;
+      if (currentVrm) {
+        mixer?.update(delta);
+        resetExpressions();
+        if (!activeAction) applyGuidePose(time);
+        if (mode === "talk") {
+          setExpression("aa", 0.28 + Math.abs(Math.sin(time * 9)) * 0.58);
+          setExpression("happy", 0.18);
+        } else if (mode === "think") {
+          setExpression("relaxed", 0.34);
+        } else if (mode === "happy") {
+          setExpression("happy", 0.86);
+        }
+        if (time > blinkAt) {
+          setExpression("blink", 1);
+          if (time > blinkAt + 0.12) blinkAt = time + 2.4 + Math.random() * 2.2;
+        }
+        currentVrm.update(delta);
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    };
+
+    resize();
+    const resizeObserver = window.ResizeObserver ? new ResizeObserver(resize) : null;
+    resizeObserver?.observe(stage);
+    window.addEventListener("resize", resize);
+    animate();
+    await loadModel();
+    stage.classList.remove("is-debug");
+
+    state.vrmAvatar = { setMode, setModel, playMotion };
+    return state.vrmAvatar;
+  })().catch((error) => {
+    console.warn("[VRM] init failed", error);
+    setStatus(`VRM 鍔犺浇澶辫触锛?{error?.message || error}`, true);
+    state.vrmAvatarInitPromise = null;
+    return null;
+  });
+
+  return state.vrmAvatarInitPromise;
+}
+
 function syncVRMAvatarState({ speaking = false, thinking = false, emotion = "neutral" } = {}) {
-  const frame = $("vrmAvatarFrame");
-  if (!frame?.contentWindow) return;
   const mode = speaking
     ? "talk"
     : thinking || emotion === "thinking"
@@ -962,7 +1255,11 @@ function syncVRMAvatarState({ speaking = false, thinking = false, emotion = "neu
       : emotion === "happy"
         ? "happy"
         : "idle";
-  frame.contentWindow.postMessage({ source: "dg-vrm-avatar-host", type: "mode", payload: mode }, "*");
+  if (state.vrmAvatar) {
+    state.vrmAvatar.setMode(mode);
+    return;
+  }
+  initVRMAvatar().then((avatar) => avatar?.setMode(mode)).catch(() => {});
 }
 
 function setHumanState({ speaking = false, thinking = false, emotion = "neutral" } = {}) {
@@ -978,7 +1275,7 @@ function setHumanState({ speaking = false, thinking = false, emotion = "neutral"
     anchor.classList.remove("neutral", "happy", "thinking-emotion", "sorry");
     anchor.classList.add(emotion === "thinking" ? "thinking-emotion" : emotion || "neutral");
   }
-  $("humanState").textContent = speaking ? "正在讲解" : thinking ? "正在思考" : "在线待命";
+  $("humanState").textContent = speaking ? "姝ｅ湪璁茶В" : thinking ? "姝ｅ湪鎬濊€? : "鍦ㄧ嚎寰呭懡";
   if (state.avatarEngine === "live2d" && state.live2dModel) {
     try {
       if (speaking && !state.live2dSpeaking) {
@@ -1001,10 +1298,10 @@ function setHumanState({ speaking = false, thinking = false, emotion = "neutral"
 }
 
 function describeVoice(cfg = {}) {
-  const gender = cfg.voice_gender === "male" ? "男声" : "女声";
-  const speedMap = { slow: "舒缓", medium: "自然", fast: "轻快" };
-  const expressionMap = { lively: "活泼", calm: "沉稳", warm: "温暖" };
-  return `${gender} · ${speedMap[cfg.voice_speed] || "自然"} · ${expressionMap[cfg.expression_style] || "亲切"}`;
+  const gender = cfg.voice_gender === "male" ? "鐢峰０" : "濂冲０";
+  const speedMap = { slow: "鑸掔紦", medium: "鑷劧", fast: "杞诲揩" };
+  const expressionMap = { lively: "娲绘臣", calm: "娌夌ǔ", warm: "娓╂殩" };
+  return `${gender} 路 ${speedMap[cfg.voice_speed] || "鑷劧"} 路 ${expressionMap[cfg.expression_style] || "浜插垏"}`;
 }
 
 function applyHumanConfig(cfg = {}) {
@@ -1013,7 +1310,7 @@ function applyHumanConfig(cfg = {}) {
   const name = digitalHumanName(merged);
   $("humanName").textContent = name;
   const routeName = $("routeHumanName");
-  if (routeName) routeName.textContent = `${name}路线助手`;
+  if (routeName) routeName.textContent = `${name}璺嚎鍔╂墜`;
   if (state.live2dModel) showDigitalHumanName();
   const human = $("digitalHuman");
   const anchor = $("virtualAnchor");
@@ -1034,7 +1331,7 @@ function applyHumanConfig(cfg = {}) {
   const voiceButton = $("voiceBtn");
   if (voiceButton) {
     voiceButton.disabled = merged.extra_config?.voice_input_enabled === false;
-    voiceButton.title = voiceButton.disabled ? "管理员已关闭语音输入" : "语音输入";
+    voiceButton.title = voiceButton.disabled ? "绠＄悊鍛樺凡鍏抽棴璇煶杈撳叆" : "璇煶杈撳叆";
   }
   const avatar = $("humanAvatarImage");
   if (avatar) {
@@ -1054,7 +1351,7 @@ function applyHumanConfig(cfg = {}) {
 function previewHumanConfigFromForm() {
   const cfg = {
     ...(state.humanConfig || {}),
-    name: $("cfgName").value || "AI 导览员",
+    name: $("cfgName").value || "AI 瀵艰鍛?,
     appearance: $("cfgAppearance").value || "modern",
     voice_gender: $("cfgVoiceGender").value || "female",
     voice_speed: $("cfgVoiceSpeed").value || "medium",
@@ -1232,8 +1529,8 @@ function startLipSync(audio, emotion = "neutral") {
 function normalizeStreamText(text = "") {
   return text
     .replace(/\r\n/g, "\n")
-    .replace(/([。！？；])\s*(\d+[.)、]\s+)/g, "$1\n$2")
-    .replace(/([。！？；])\s*([-*•]\s+)/g, "$1\n$2")
+    .replace(/([銆傦紒锛燂紱])\s*(\d+[.)銆乚\s+)/g, "$1\n$2")
+    .replace(/([銆傦紒锛燂紱])\s*([-*鈥\s+)/g, "$1\n$2")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -1258,13 +1555,13 @@ function renderRichText(target, rawText = "") {
 
   text.split(/\n{2,}/).forEach((block) => {
     const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
-    const isList = lines.length > 1 && lines.every((line) => /^([-*•]|\d+[.)、])\s+/.test(line));
+    const isList = lines.length > 1 && lines.every((line) => /^([-*鈥|\d+[.)銆乚)\s+/.test(line));
     if (isList) {
-      const ordered = lines.every((line) => /^\d+[.)、]\s+/.test(line));
+      const ordered = lines.every((line) => /^\d+[.)銆乚\s+/.test(line));
       const list = document.createElement(ordered ? "ol" : "ul");
       lines.forEach((line) => {
         const item = document.createElement("li");
-        appendFormattedText(item, line.replace(/^([-*•]|\d+[.)、])\s+/, ""));
+        appendFormattedText(item, line.replace(/^([-*鈥|\d+[.)銆乚)\s+/, ""));
         list.appendChild(item);
       });
       target.appendChild(list);
@@ -1293,7 +1590,7 @@ function addMessage(role, content, id, persist = true) {
     name.textContent = digitalHumanName();
     const status = document.createElement("span");
     status.className = "message-status";
-    status.textContent = "已回答";
+    status.textContent = "宸插洖绛?;
     meta.append(dot, name, status);
     box.appendChild(meta);
   }
@@ -1316,7 +1613,7 @@ function setMessageText(messageEl, text) {
 function setMessageStreaming(messageEl, isStreaming) {
   messageEl.classList.toggle("streaming", isStreaming);
   const status = messageEl.querySelector(".message-status");
-  if (status) status.textContent = isStreaming ? "正在组织回答" : "已回答";
+  if (status) status.textContent = isStreaming ? "姝ｅ湪缁勭粐鍥炵瓟" : "宸插洖绛?;
   if (isStreaming && status && !status.querySelector(".typing-dots")) {
     const dots = document.createElement("span");
     dots.className = "typing-dots";
@@ -1332,7 +1629,7 @@ function getCurrentHistoryItem() {
 
 function updateConversationTitle(title = "") {
   const badge = $("conversationBadge");
-  if (badge) badge.textContent = title.trim() || "新的导览会话";
+  if (badge) badge.textContent = title.trim() || "鏂扮殑瀵艰浼氳瘽";
 }
 
 function persistHistory() {
@@ -1345,7 +1642,7 @@ function upsertConversationHistory({ id, title, greeting = "" }) {
   if (!id) return;
   let item = state.history.find((entry) => entry.id === id);
   if (!item) {
-    item = { id, title: title || "新的导览会话", messages: [], updatedAt: new Date().toISOString() };
+    item = { id, title: title || "鏂扮殑瀵艰浼氳瘽", messages: [], updatedAt: new Date().toISOString() };
     state.history.unshift(item);
   }
   item.messages = Array.isArray(item.messages) ? item.messages : [];
@@ -1377,23 +1674,23 @@ function renderHistoryList() {
   if (!list) return;
   state.history = normalizeHistory(state.history);
   if (!state.history.length) {
-    list.innerHTML = '<div class="empty-history">暂无历史会话</div>';
+    list.innerHTML = '<div class="empty-history">鏆傛棤鍘嗗彶浼氳瘽</div>';
     return;
   }
   list.innerHTML = state.history.map((item) => {
-    const last = item.messages[item.messages.length - 1]?.content || "尚无对话内容";
+    const last = item.messages[item.messages.length - 1]?.content || "灏氭棤瀵硅瘽鍐呭";
     const active = item.id === state.conversationId ? " active" : "";
     return `
       <div class="history-item-wrap${active}" data-history-id="${item.id}">
         <button class="history-item" type="button" data-conv-id="${item.id}">
-          <strong>${escapeHTML(item.title || "导览会话")}</strong>
+          <strong>${escapeHTML(item.title || "瀵艰浼氳瘽")}</strong>
           <span>${escapeHTML(last).slice(0, 46)}</span>
           <small>${formatDate(item.updatedAt)}</small>
         </button>
-        <button class="history-more" type="button" data-history-menu="${item.id}" aria-label="更多操作">···</button>
+        <button class="history-more" type="button" data-history-menu="${item.id}" aria-label="鏇村鎿嶄綔">路路路</button>
         <div class="history-menu">
-          <button type="button" data-history-rename="${item.id}">重命名对话</button>
-          <button type="button" class="danger" data-history-delete="${item.id}">删除聊天记录</button>
+          <button type="button" data-history-rename="${item.id}">閲嶅懡鍚嶅璇?/button>
+          <button type="button" class="danger" data-history-delete="${item.id}">鍒犻櫎鑱婂ぉ璁板綍</button>
         </div>
       </div>
     `;
@@ -1432,32 +1729,32 @@ function renameHistoryItem(id) {
   const item = state.history.find((entry) => entry.id === id);
   if (!item) return;
   closeHistoryMenus();
-  const nextTitle = window.prompt("重命名对话", item.title || "导览会话");
+  const nextTitle = window.prompt("閲嶅懡鍚嶅璇?, item.title || "瀵艰浼氳瘽");
   if (nextTitle === null) return;
   const title = nextTitle.trim();
-  if (!title) return toast("名称不能为空");
+  if (!title) return toast("鍚嶇О涓嶈兘涓虹┖");
   item.title = title.slice(0, 40);
   item.updatedAt = new Date().toISOString();
   if (state.conversationId === id) updateConversationTitle(item.title);
   persistHistory();
-  toast("对话已重命名");
+  toast("瀵硅瘽宸查噸鍛藉悕");
 }
 
 function deleteHistoryItem(id) {
   const item = state.history.find((entry) => entry.id === id);
   if (!item) return;
   closeHistoryMenus();
-  const ok = window.confirm(`确定删除“${item.title || "导览会话"}”吗？删除后本地历史记录不可恢复。`);
+  const ok = window.confirm(`纭畾鍒犻櫎鈥?{item.title || "瀵艰浼氳瘽"}鈥濆悧锛熷垹闄ゅ悗鏈湴鍘嗗彶璁板綍涓嶅彲鎭㈠銆俙);
   if (!ok) return;
   state.history = state.history.filter((entry) => entry.id !== id);
   if (state.conversationId === id) {
     state.conversationId = "";
     updateConversationTitle();
     $("chatMessages").innerHTML = "";
-    addMessage("assistant", `您好，我是${digitalHumanName()}。点击“新聊天”，即可开始新的导览会话。`, undefined, false);
+    addMessage("assistant", `鎮ㄥソ锛屾垜鏄?{digitalHumanName()}銆傜偣鍑烩€滄柊鑱婂ぉ鈥濓紝鍗冲彲寮€濮嬫柊鐨勫瑙堜細璇濄€俙, undefined, false);
   }
   persistHistory();
-  toast("聊天记录已删除");
+  toast("鑱婂ぉ璁板綍宸插垹闄?);
 }
 
 async function loadConversationFromHistory(id) {
@@ -1477,7 +1774,7 @@ async function loadConversationFromHistory(id) {
       renderInterests(defaultInterests);
     }
   } catch {
-    toast("已恢复本地历史，后端会话可能已过期");
+    toast("宸叉仮澶嶆湰鍦板巻鍙诧紝鍚庣浼氳瘽鍙兘宸茶繃鏈?);
   }
 }
 
@@ -1517,14 +1814,14 @@ async function createConversation() {
   state.conversationId = data.conversation_id;
   state.interests = [];
   $("chatMessages").innerHTML = "";
-  updateConversationTitle("新的导览会话");
+  updateConversationTitle("鏂扮殑瀵艰浼氳瘽");
   applyHumanConfig(data.digital_human || {});
   if (state.visitorHumanConfig) applyHumanConfig({ ...(data.digital_human || {}), ...state.visitorHumanConfig });
   renderInterests(data.interest_options || defaultInterests);
-  const greeting = data.greeting || `您好，我是${digitalHumanName()}。想了解当前场景内容、路线或服务信息，都可以直接问我。`;
+  const greeting = data.greeting || `鎮ㄥソ锛屾垜鏄?{digitalHumanName()}銆傛兂浜嗚В褰撳墠鍦烘櫙鍐呭銆佽矾绾挎垨鏈嶅姟淇℃伅锛岄兘鍙互鐩存帴闂垜銆俙;
   const configuredGreeting = state.humanConfig?.extra_config?.welcome_message;
   const activeGreeting = state.humanConfig?.extra_config?.welcome_enabled === false ? "" : configuredGreeting || greeting;
-  upsertConversationHistory({ id: state.conversationId, title: "新的导览会话", greeting: activeGreeting });
+  upsertConversationHistory({ id: state.conversationId, title: "鏂扮殑瀵艰浼氳瘽", greeting: activeGreeting });
   if (activeGreeting) addMessage("assistant", activeGreeting, undefined, false);
 }
 
@@ -1545,7 +1842,7 @@ function updateComposerState() {
   resizeChatInput();
 }
 
-function setListeningState(active, message = "正在聆听…") {
+function setListeningState(active, message = "姝ｅ湪鑱嗗惉鈥?) {
   state.isListening = active;
   $("voiceBtn")?.classList.toggle("listening", active);
   const status = $("voiceStatus");
@@ -1592,12 +1889,12 @@ function initSpeechRecognition() {
   };
   recognition.onerror = (event) => {
     const messages = {
-      "not-allowed": "麦克风权限被拒绝，请在浏览器设置中允许访问",
-      "audio-capture": "没有检测到可用麦克风",
-      network: "语音识别网络异常，请稍后再试",
-      "no-speech": "没有识别到语音，请再试一次",
+      "not-allowed": "楹﹀厠椋庢潈闄愯鎷掔粷锛岃鍦ㄦ祻瑙堝櫒璁剧疆涓厑璁歌闂?,
+      "audio-capture": "娌℃湁妫€娴嬪埌鍙敤楹﹀厠椋?,
+      network: "璇煶璇嗗埆缃戠粶寮傚父锛岃绋嶅悗鍐嶈瘯",
+      "no-speech": "娌℃湁璇嗗埆鍒拌闊筹紝璇峰啀璇曚竴娆?,
     };
-    if (event.error !== "aborted") toast(messages[event.error] || "语音识别失败，请稍后再试");
+    if (event.error !== "aborted") toast(messages[event.error] || "璇煶璇嗗埆澶辫触锛岃绋嶅悗鍐嶈瘯");
     if (activeSessionId === state.recognitionSessionId) setListeningState(false);
   };
   recognition.onend = () => {
@@ -1614,18 +1911,18 @@ function toggleVoiceRecognition() {
   }
   const recognition = state.recognition || initSpeechRecognition();
   if (!recognition) {
-    toast("当前浏览器不支持语音识别，建议使用最新版 Chrome");
+    toast("褰撳墠娴忚鍣ㄤ笉鏀寔璇煶璇嗗埆锛屽缓璁娇鐢ㄦ渶鏂扮増 Chrome");
     return;
   }
   try {
     state.recognitionSessionId += 1;
     state.ignoreRecognitionResults = false;
     recognition._dgSessionId = state.recognitionSessionId;
-    setListeningState(true, "正在启动语音识别…");
+    setListeningState(true, "姝ｅ湪鍚姩璇煶璇嗗埆鈥?);
     recognition.start();
   } catch (error) {
     setListeningState(false);
-    if (error.name !== "InvalidStateError") toast("语音识别暂时无法启动，请稍后再试");
+    if (error.name !== "InvalidStateError") toast("璇煶璇嗗埆鏆傛椂鏃犳硶鍚姩锛岃绋嶅悗鍐嶈瘯");
   }
 }
 
@@ -1675,7 +1972,7 @@ function splitCompletedSentences(text, flush = false) {
     let sentenceEnd = -1;
     const inspectLength = Math.min(rest.length, maxLength);
     for (let index = 0; index < inspectLength; index += 1) {
-      if (/[。！？!?]/.test(rest[index]) && index + 1 >= 8) {
+      if (/[銆傦紒锛??]/.test(rest[index]) && index + 1 >= 8) {
         sentenceEnd = index + 1;
         break;
       }
@@ -1911,7 +2208,7 @@ async function sendMessage(presetText = "") {
     }
     setMessageStreaming(assistant, false);
     setAIResponding(false);
-    setMessageText(assistant, "后端服务暂时无法连接，请确认服务地址和后端启动状态。");
+    setMessageText(assistant, "鍚庣鏈嶅姟鏆傛椂鏃犳硶杩炴帴锛岃纭鏈嶅姟鍦板潃鍜屽悗绔惎鍔ㄧ姸鎬併€?);
     setHumanState();
     return;
   }
@@ -1919,7 +2216,7 @@ async function sendMessage(presetText = "") {
   if (!res.ok || !res.body) {
     setMessageStreaming(assistant, false);
     setAIResponding(false);
-    setMessageText(assistant, "问答服务暂时不可用，请稍后再试。");
+    setMessageText(assistant, "闂瓟鏈嶅姟鏆傛椂涓嶅彲鐢紝璇风◢鍚庡啀璇曘€?);
     setHumanState();
     return;
   }
@@ -1970,7 +2267,7 @@ async function sendMessage(presetText = "") {
         setMessageText(assistant, finalText);
       }
       if (payload.type === "error") {
-        finalText = payload.message || payload.content || "服务暂时不可用。";
+        finalText = payload.message || payload.content || "鏈嶅姟鏆傛椂涓嶅彲鐢ㄣ€?;
         emotion = "sorry";
         setMessageText(assistant, finalText);
       }
@@ -2007,11 +2304,11 @@ async function streamVoiceChat(text, options = {}) {
     });
   } catch (error) {
     if (error.name === "AbortError") throw error;
-    throw new Error("后端服务暂时无法连接，请确认服务地址和后端启动状态。");
+    throw new Error("鍚庣鏈嶅姟鏆傛椂鏃犳硶杩炴帴锛岃纭鏈嶅姟鍦板潃鍜屽悗绔惎鍔ㄧ姸鎬併€?);
   }
 
   if (!res.ok || !res.body) {
-    throw new Error("问答服务暂时不可用，请稍后再试。");
+    throw new Error("闂瓟鏈嶅姟鏆傛椂涓嶅彲鐢紝璇风◢鍚庡啀璇曘€?);
   }
 
   const reader = res.body.getReader();
@@ -2048,7 +2345,7 @@ async function streamVoiceChat(text, options = {}) {
         if (!receivedDelta) onDelta?.("", finalText, emotion);
       }
       if (payload.type === "error") {
-        throw new Error(payload.message || payload.content || "服务暂时不可用。");
+        throw new Error(payload.message || payload.content || "鏈嶅姟鏆傛椂涓嶅彲鐢ㄣ€?);
       }
     }
   }
@@ -2060,8 +2357,8 @@ function normalizeSpotName(value = "") {
   return String(value)
     .trim()
     .toLowerCase()
-    .replace(/[\s·•\-—_（）()]/g, "")
-    .replace(/(?:景区|景点|文化园)$/g, "");
+    .replace(/[\s路鈥-鈥擾锛堬級()]/g, "")
+    .replace(/(?:鏅尯|鏅偣|鏂囧寲鍥?$/g, "");
 }
 
 function locationFromSpot(spot = {}) {
@@ -2112,7 +2409,7 @@ function hydrateScenicSpotsFromBackend() {
           if (location) Object.assign(existing, location);
           if (item.description) existing.intro = item.description;
           if (Array.isArray(item.tags) && item.tags.length) existing.tags = item.tags;
-          if (item.visit_duration_min) existing.duration = `${item.visit_duration_min}分钟`;
+          if (item.visit_duration_min) existing.duration = `${item.visit_duration_min}鍒嗛挓`;
           if (item.image_url) existing.imageUrl = resolveMediaURL(item.image_url);
           return;
         }
@@ -2122,8 +2419,8 @@ function hydrateScenicSpotsFromBackend() {
           aliases: item.name_en ? [item.name_en] : [],
           lat: location?.lat,
           lng: location?.lng,
-          intro: item.description || "该景点的详细介绍正在补充中。",
-          duration: item.visit_duration_min ? `${item.visit_duration_min}分钟` : "建议 20 分钟",
+          intro: item.description || "璇ユ櫙鐐圭殑璇︾粏浠嬬粛姝ｅ湪琛ュ厖涓€?,
+          duration: item.visit_duration_min ? `${item.visit_duration_min}鍒嗛挓` : "寤鸿 20 鍒嗛挓",
           tags: Array.isArray(item.tags) ? item.tags : [],
           imageUrl: resolveMediaURL(item.image_url),
         });
@@ -2200,7 +2497,7 @@ function renderFallbackRouteMap(spots = []) {
     <div class="fallback-route-map">
       <div class="fallback-map-grid"></div>
       <div class="fallback-map-path"></div>
-      ${points || '<div class="fallback-map-empty">路线景点暂无坐标，仍可在左侧查看推荐顺序</div>'}
+      ${points || '<div class="fallback-map-empty">璺嚎鏅偣鏆傛棤鍧愭爣锛屼粛鍙湪宸︿晶鏌ョ湅鎺ㄨ崘椤哄簭</div>'}
     </div>
   `;
   map.querySelectorAll("[data-fallback-route-index]").forEach((btn) => {
@@ -2224,17 +2521,17 @@ function clearRouteLayer() {
 
 function formatRouteDuration(data, spots) {
   if (data.duration) return String(data.duration);
-  if (data.duration_hours) return `约 ${data.duration_hours} 小时`;
+  if (data.duration_hours) return `绾?${data.duration_hours} 灏忔椂`;
   const minutes = spots.reduce((sum, spot) => {
     const value = Number.parseInt(spot.duration, 10);
     return sum + (Number.isFinite(value) ? value : 0);
   }, 0);
-  return minutes ? `约 ${Math.max(1, Math.round(minutes / 30) / 2)} 小时` : "时长可调整";
+  return minutes ? `绾?${Math.max(1, Math.round(minutes / 30) / 2)} 灏忔椂` : "鏃堕暱鍙皟鏁?;
 }
 
 function normalizeRouteSpot(item, index) {
   const source = typeof item === "string" ? { name: item } : (item || {});
-  const name = source.name || source.spot_name || `景点 ${index + 1}`;
+  const name = source.name || source.spot_name || `鏅偣 ${index + 1}`;
   const matched = matchSpotByName(name);
   const sourceLocation = locationFromSpot(source);
   const matchedLocation = locationFromSpot(matched || {});
@@ -2247,8 +2544,8 @@ function normalizeRouteSpot(item, index) {
     requestedName: name,
     lat: location?.lat,
     lng: location?.lng,
-    intro: source.intro || source.description || matched?.intro || "该景点的详细介绍正在补充中。",
-    duration: source.duration || (source.visit_duration_min ? `${source.visit_duration_min}分钟` : matched?.duration || "建议 20 分钟"),
+    intro: source.intro || source.description || matched?.intro || "璇ユ櫙鐐圭殑璇︾粏浠嬬粛姝ｅ湪琛ュ厖涓€?,
+    duration: source.duration || (source.visit_duration_min ? `${source.visit_duration_min}鍒嗛挓` : matched?.duration || "寤鸿 20 鍒嗛挓"),
     tags: Array.isArray(source.tags) && source.tags.length ? source.tags : (matched?.tags || []),
     imageUrl: resolveMediaURL(source.image_url || source.imageUrl || matched?.imageUrl),
     hasCoordinates: Boolean(location),
@@ -2262,9 +2559,9 @@ function renderRouteResult(data) {
 function renderRoutePlan(aiRouteResult = {}) {
   const rawSpots = Array.isArray(aiRouteResult.spots) ? aiRouteResult.spots : [];
   const spots = rawSpots.map(normalizeRouteSpot);
-  const routeName = aiRouteResult.routeName || aiRouteResult.route_name || aiRouteResult.name || "AI 推荐路线";
+  const routeName = aiRouteResult.routeName || aiRouteResult.route_name || aiRouteResult.name || "AI 鎺ㄨ崘璺嚎";
   const duration = formatRouteDuration(aiRouteResult, spots);
-  const reason = aiRouteResult.reason || aiRouteResult.description || "已根据你的游览时间和兴趣偏好生成路线。";
+  const reason = aiRouteResult.reason || aiRouteResult.description || "宸叉牴鎹綘鐨勬父瑙堟椂闂村拰鍏磋叮鍋忓ソ鐢熸垚璺嚎銆?;
   const normalizedPlan = { ...aiRouteResult, routeName, duration, reason, spots };
 
   state.latestRoutePlan = {
@@ -2280,9 +2577,9 @@ function renderRoutePlan(aiRouteResult = {}) {
   if (!spots.length) {
     $("routeResult").innerHTML = `
       <div class="route-empty-state">
-        <span class="route-empty-icon" aria-hidden="true">⌁</span>
-        <strong>暂无推荐路线</strong>
-        <p>请先在导览对话中生成路线，或设置游览时长后点击“生成推荐路线”。</p>
+        <span class="route-empty-icon" aria-hidden="true">鈱?/span>
+        <strong>鏆傛棤鎺ㄨ崘璺嚎</strong>
+        <p>璇峰厛鍦ㄥ瑙堝璇濅腑鐢熸垚璺嚎锛屾垨璁剧疆娓歌鏃堕暱鍚庣偣鍑烩€滅敓鎴愭帹鑽愯矾绾库€濄€?/p>
       </div>`;
     $("routeSpotList").innerHTML = "";
     return;
@@ -2292,14 +2589,14 @@ function renderRoutePlan(aiRouteResult = {}) {
   $("routeResult").innerHTML = `
     <div class="route-overview-head">
       <div>
-        <span>当前路线</span>
+        <span>褰撳墠璺嚎</span>
         <strong>${escapeHTML(routeName)}</strong>
       </div>
-      <span class="route-count">${spots.length} 个景点</span>
+      <span class="route-count">${spots.length} 涓櫙鐐?/span>
     </div>
     <div class="route-meta">
       <span>${escapeHTML(duration)}</span>
-      <span>${mappedCount} 个可地图定位</span>
+      <span>${mappedCount} 涓彲鍦板浘瀹氫綅</span>
     </div>
     <p>${escapeHTML(reason)}</p>
   `;
@@ -2330,7 +2627,7 @@ function renderSpotList(spots) {
         <span class="route-spot-tags">
           ${(spot.tags || []).slice(0, 3).map((tag) => `<em>${escapeHTML(tag)}</em>`).join("")}
         </span>
-        ${spot.hasCoordinates ? "" : '<span class="route-coordinate-warning">该景点暂无坐标信息</span>'}
+        ${spot.hasCoordinates ? "" : '<span class="route-coordinate-warning">璇ユ櫙鐐规殏鏃犲潗鏍囦俊鎭?/span>'}
       </span>
     </button>
   `).join("");
@@ -2343,7 +2640,7 @@ function renderSpotList(spots) {
 function routePopupHTML(spot, index) {
   return `
     <div class="route-popup">
-      <span class="route-popup-step">第 ${index + 1} 站</span>
+      <span class="route-popup-step">绗?${index + 1} 绔?/span>
       <strong>${escapeHTML(spot.name)}</strong>
       <p>${escapeHTML(spot.intro)}</p>
       <div class="route-popup-meta"><span>${escapeHTML(spot.duration)}</span></div>
@@ -2367,14 +2664,14 @@ function showRouteSpotDetail(spot, index) {
   const imageUrl = resolveMediaURL(spot.imageUrl || spot.image_url);
   media.innerHTML = imageUrl
     ? `<img src="${escapeHTML(imageUrl)}" alt="${escapeHTML(spot.name)}" />`
-    : `<div class="route-spot-detail-placeholder"><span>DG</span><small>暂无景点图片</small></div>`;
-  $("routeSpotDetailStep").textContent = `路线第 ${index + 1} 站`;
+    : `<div class="route-spot-detail-placeholder"><span>DG</span><small>鏆傛棤鏅偣鍥剧墖</small></div>`;
+  $("routeSpotDetailStep").textContent = `璺嚎绗?${index + 1} 绔檂;
   $("routeSpotDetailName").textContent = spot.name;
   $("routeSpotDetailMeta").innerHTML = `
-    <span>${escapeHTML(spot.duration || "建议 20 分钟")}</span>
-    <span>${spot.hasCoordinates ? "已定位到地图" : "暂无坐标"}</span>
+    <span>${escapeHTML(spot.duration || "寤鸿 20 鍒嗛挓")}</span>
+    <span>${spot.hasCoordinates ? "宸插畾浣嶅埌鍦板浘" : "鏆傛棤鍧愭爣"}</span>
   `;
-  $("routeSpotDetailIntro").textContent = spot.intro || "该景点的详细介绍正在补充中。";
+  $("routeSpotDetailIntro").textContent = spot.intro || "璇ユ櫙鐐圭殑璇︾粏浠嬬粛姝ｅ湪琛ュ厖涓€?;
   $("routeSpotDetailTags").innerHTML = (spot.tags || [])
     .slice(0, 6)
     .map((tag) => `<span>${escapeHTML(tag)}</span>`)
@@ -2464,43 +2761,43 @@ function selectSpot(index, options = {}) {
 
 function getRoutePreferenceProfile(text = "", interests = []) {
   const source = `${text} ${interests.join(" ")}`;
-  if (/(老人|长辈|父母|爸妈|爷爷|奶奶|外公|外婆|腿脚|体力有限|少爬|不爬|少走)/.test(source)) {
+  if (/(鑰佷汉|闀胯緢|鐖舵瘝|鐖稿|鐖风埛|濂跺ザ|澶栧叕|澶栧﹩|鑵胯剼|浣撳姏鏈夐檺|灏戠埇|涓嶇埇|灏戣蛋)/.test(source)) {
     return {
-      intent: "长辈同行舒缓路线推荐",
-      requirement: "节奏舒缓，优先平缓区域、可停留观赏和室内参观，不安排连续登高",
-      reference: "资料中的亲子家庭路线（4小时轻松游）",
-      candidates: ["九龙灌浴", "佛手广场", "百子戏弥勒", "灵山梵宫", "五印坛城"],
+      intent: "闀胯緢鍚岃鑸掔紦璺嚎鎺ㄨ崘",
+      requirement: "鑺傚鑸掔紦锛屼紭鍏堝钩缂撳尯鍩熴€佸彲鍋滅暀瑙傝祻鍜屽鍐呭弬瑙傦紝涓嶅畨鎺掕繛缁櫥楂?,
+      reference: "璧勬枡涓殑浜插瓙瀹跺涵璺嚎锛?灏忔椂杞绘澗娓革級",
+      candidates: ["涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐧惧瓙鎴忓讥鍕?, "鐏靛北姊靛", "浜斿嵃鍧涘煄"],
     };
   }
-  if (/(孩子|儿童|亲子|宝宝|小朋友|轻松|有趣|互动|表演)/.test(source)) {
+  if (/(瀛╁瓙|鍎跨|浜插瓙|瀹濆疂|灏忔湅鍙媩杞绘澗|鏈夎叮|浜掑姩|琛ㄦ紨)/.test(source)) {
     return {
-      intent: "亲子轻松有趣路线推荐",
-      requirement: "体验生动有趣，优先动态表演、互动景观和室内艺术参观",
-      reference: "资料中的亲子家庭路线（4小时轻松游）",
-      candidates: ["九龙灌浴", "佛手广场", "百子戏弥勒", "灵山梵宫", "五印坛城"],
+      intent: "浜插瓙杞绘澗鏈夎叮璺嚎鎺ㄨ崘",
+      requirement: "浣撻獙鐢熷姩鏈夎叮锛屼紭鍏堝姩鎬佽〃婕斻€佷簰鍔ㄦ櫙瑙傚拰瀹ゅ唴鑹烘湳鍙傝",
+      reference: "璧勬枡涓殑浜插瓙瀹跺涵璺嚎锛?灏忔椂杞绘澗娓革級",
+      candidates: ["涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐧惧瓙鎴忓讥鍕?, "鐏靛北姊靛", "浜斿嵃鍧涘煄"],
     };
   }
-  if (/(自然|风景|风光|拍照|摄影|打卡)/.test(source)) {
+  if (/(鑷劧|椋庢櫙|椋庡厜|鎷嶇収|鎽勫奖|鎵撳崱)/.test(source)) {
     return {
-      intent: "自然风光与摄影路线推荐",
-      requirement: "兼顾自然景观、开阔视野和拍照体验",
-      reference: "资料中的自然风光爱好者路线（5小时全景游）",
-      candidates: ["佛足坛", "九龙灌浴", "菩提大道", "灵山大佛", "曼飞龙塔", "灵山精舍", "梵宫广场"],
+      intent: "鑷劧椋庡厜涓庢憚褰辫矾绾挎帹鑽?,
+      requirement: "鍏奸【鑷劧鏅銆佸紑闃旇閲庡拰鎷嶇収浣撻獙",
+      reference: "璧勬枡涓殑鑷劧椋庡厜鐖卞ソ鑰呰矾绾匡紙5灏忔椂鍏ㄦ櫙娓革級",
+      candidates: ["浣涜冻鍧?, "涔濋緳鐏屾荡", "鑿╂彁澶ч亾", "鐏靛北澶т經", "鏇奸榫欏", "鐏靛北绮捐垗", "姊靛骞垮満"],
     };
   }
-  if (/(历史|文化|建筑|佛教|祈福|禅)/.test(source)) {
+  if (/(鍘嗗彶|鏂囧寲|寤虹瓚|浣涙暀|绁堢|绂?/.test(source)) {
     return {
-      intent: "历史文化经典路线推荐",
-      requirement: "突出佛教文化、历史建筑和代表性艺术景观",
-      reference: "资料中的历史文化爱好者路线（6小时深度游）",
-      candidates: ["灵山大照壁", "佛手广场", "祥符禅寺", "佛前广场", "灵山大佛", "灵山梵宫", "五印坛城"],
+      intent: "鍘嗗彶鏂囧寲缁忓吀璺嚎鎺ㄨ崘",
+      requirement: "绐佸嚭浣涙暀鏂囧寲銆佸巻鍙插缓绛戝拰浠ｈ〃鎬ц壓鏈櫙瑙?,
+      reference: "璧勬枡涓殑鍘嗗彶鏂囧寲鐖卞ソ鑰呰矾绾匡紙6灏忔椂娣卞害娓革級",
+      candidates: ["鐏靛北澶х収澹?, "浣涙墜骞垮満", "绁ョ绂呭", "浣涘墠骞垮満", "鐏靛北澶т經", "鐏靛北姊靛", "浜斿嵃鍧涘煄"],
     };
   }
   return {
-    intent: "经典精华路线推荐",
-    requirement: text || "路线紧凑、体验丰富、游览顺序合理",
-    reference: "资料中的灵山胜境历史文化、自然风光和亲子家庭路线",
-    candidates: ["灵山大照壁", "九龙灌浴", "佛手广场", "百子戏弥勒", "灵山大佛", "灵山梵宫", "五印坛城"],
+    intent: "缁忓吀绮惧崕璺嚎鎺ㄨ崘",
+    requirement: text || "璺嚎绱у噾銆佷綋楠屼赴瀵屻€佹父瑙堥『搴忓悎鐞?,
+    reference: "璧勬枡涓殑鐏靛北鑳滃鍘嗗彶鏂囧寲銆佽嚜鐒堕鍏夊拰浜插瓙瀹跺涵璺嚎",
+    candidates: ["鐏靛北澶х収澹?, "涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐧惧瓙鎴忓讥鍕?, "鐏靛北澶т經", "鐏靛北姊靛", "浜斿嵃鍧涘煄"],
   };
 }
 
@@ -2512,25 +2809,25 @@ function buildRoutePlanningPrompt({ preferenceText = "" } = {}) {
   const profile = getRoutePreferenceProfile(guideText, interests);
   const conditions = [];
 
-  if (area) conditions.push(`当前位置${area}`);
-  if (hours > 0) conditions.push(`游览时长${hours}小时`);
-  if (interests.length) conditions.push(`游览偏好${interests.join("、")}`);
-  conditions.push(`路线要求${profile.requirement}`);
+  if (area) conditions.push(`褰撳墠浣嶇疆${area}`);
+  if (hours > 0) conditions.push(`娓歌鏃堕暱${hours}灏忔椂`);
+  if (interests.length) conditions.push(`娓歌鍋忓ソ${interests.join("銆?)}`);
+  conditions.push(`璺嚎瑕佹眰${profile.requirement}`);
 
   if (!conditions.length) return "";
 
   state.latestRoutePreference = `${guideText} ${interests.join(" ")}`.trim();
-  const candidateNames = profile.candidates.join("、");
-  return `灵山胜境${profile.intent}。游客条件：${conditions.join("，")}。请参考${profile.reference}，在时间较短时从完整路线中合理截取精华段。只能从以下资料已有景点中选择：${candidateNames}。请直接回答，不要要求用户再次说明景区或偏好。输出第一行必须使用“路线顺序：景点A → 景点B → 景点C”的格式，按顺序列出3至5个完整景点名称；随后逐站简要说明推荐理由。不要虚构精确步行时间、接驳方式、通行与服务条件、演出时间或官方政策；如资料不支持完整官方路线，请说明这是基于现有资料整理的参考顺序，但仍需给出可用路线。`;
+  const candidateNames = profile.candidates.join("銆?);
+  return `鐏靛北鑳滃${profile.intent}銆傛父瀹㈡潯浠讹細${conditions.join("锛?)}銆傝鍙傝€?{profile.reference}锛屽湪鏃堕棿杈冪煭鏃朵粠瀹屾暣璺嚎涓悎鐞嗘埅鍙栫簿鍗庢銆傚彧鑳戒粠浠ヤ笅璧勬枡宸叉湁鏅偣涓€夋嫨锛?{candidateNames}銆傝鐩存帴鍥炵瓟锛屼笉瑕佽姹傜敤鎴峰啀娆¤鏄庢櫙鍖烘垨鍋忓ソ銆傝緭鍑虹涓€琛屽繀椤讳娇鐢ㄢ€滆矾绾块『搴忥細鏅偣A 鈫?鏅偣B 鈫?鏅偣C鈥濈殑鏍煎紡锛屾寜椤哄簭鍒楀嚭3鑷?涓畬鏁存櫙鐐瑰悕绉帮紱闅忓悗閫愮珯绠€瑕佽鏄庢帹鑽愮悊鐢便€備笉瑕佽櫄鏋勭簿纭琛屾椂闂淬€佹帴椹虫柟寮忋€侀€氳涓庢湇鍔℃潯浠躲€佹紨鍑烘椂闂存垨瀹樻柟鏀跨瓥锛涘璧勬枡涓嶆敮鎸佸畬鏁村畼鏂硅矾绾匡紝璇疯鏄庤繖鏄熀浜庣幇鏈夎祫鏂欐暣鐞嗙殑鍙傝€冮『搴忥紝浣嗕粛闇€缁欏嚭鍙敤璺嚎銆俙;
 }
 
 function extractRouteReasonFromAIText(text = "") {
   const line = String(text)
     .split("\n")
     .map((item) => item.trim())
-    .find((item) => item && !/^(?:第\s*)?\d+[\.、\)）]/.test(item) && !/^第[一二三四五六七八九十\d]+站/.test(item));
-  if (!line) return "已根据你的游览时间和偏好生成路线。";
-  return line.length > 140 ? `${line.slice(0, 140)}…` : line;
+    .find((item) => item && !/^(?:绗琝s*)?\d+[\.銆乗)锛塢/.test(item) && !/^绗琜涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+绔?.test(item));
+  if (!line) return "宸叉牴鎹綘鐨勬父瑙堟椂闂村拰鍋忓ソ鐢熸垚璺嚎銆?;
+  return line.length > 140 ? `${line.slice(0, 140)}鈥 : line;
 }
 
 function buildFallbackRoutePlan() {
@@ -2540,25 +2837,25 @@ function buildFallbackRoutePlan() {
   let spots;
   let routeName;
 
-  if (profile.intent.includes("长辈")) {
-    routeName = "长辈同行舒缓路线";
-    spots = ["九龙灌浴", "佛手广场", "灵山梵宫", "五印坛城"];
-  } else if (profile.intent.includes("亲子")) {
-    routeName = "亲子轻松体验路线";
-    spots = ["九龙灌浴", "百子戏弥勒", "佛手广场", "灵山梵宫"];
-  } else if (profile.intent.includes("自然")) {
-    routeName = "自然风光打卡路线";
-    spots = ["佛足坛", "九龙灌浴", "菩提大道", "灵山大佛", "梵宫广场"];
+  if (profile.intent.includes("闀胯緢")) {
+    routeName = "闀胯緢鍚岃鑸掔紦璺嚎";
+    spots = ["涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐏靛北姊靛", "浜斿嵃鍧涘煄"];
+  } else if (profile.intent.includes("浜插瓙")) {
+    routeName = "浜插瓙杞绘澗浣撻獙璺嚎";
+    spots = ["涔濋緳鐏屾荡", "鐧惧瓙鎴忓讥鍕?, "浣涙墜骞垮満", "鐏靛北姊靛"];
+  } else if (profile.intent.includes("鑷劧")) {
+    routeName = "鑷劧椋庡厜鎵撳崱璺嚎";
+    spots = ["浣涜冻鍧?, "涔濋緳鐏屾荡", "鑿╂彁澶ч亾", "鐏靛北澶т經", "姊靛骞垮満"];
   } else {
-    routeName = "灵山文化精华路线";
-    spots = ["灵山大照壁", "九龙灌浴", "佛手广场", "灵山大佛", "灵山梵宫"];
+    routeName = "鐏靛北鏂囧寲绮惧崕璺嚎";
+    spots = ["鐏靛北澶х収澹?, "涔濋緳鐏屾荡", "浣涙墜骞垮満", "鐏靛北澶т經", "鐏靛北姊靛"];
   }
 
   const count = hours > 0 && hours <= 1.5 ? 3 : hours > 0 && hours <= 3 ? 4 : spots.length;
   return {
     routeName,
-    duration: hours > 0 ? `约 ${hours} 小时` : "约 3 小时",
-    reason: "AI 本轮未返回可定位的景点名称，地图已根据当前时长和兴趣生成保底路线，可继续询问 AI 导览员调整。",
+    duration: hours > 0 ? `绾?${hours} 灏忔椂` : "绾?3 灏忔椂",
+    reason: "AI 鏈疆鏈繑鍥炲彲瀹氫綅鐨勬櫙鐐瑰悕绉帮紝鍦板浘宸叉牴鎹綋鍓嶆椂闀垮拰鍏磋叮鐢熸垚淇濆簳璺嚎锛屽彲缁х画璇㈤棶 AI 瀵艰鍛樿皟鏁淬€?,
     spots: spots.slice(0, count),
   };
 }
@@ -2572,9 +2869,9 @@ function parseRouteSpotsFromAIText(text = "") {
   const addName = (rawName) => {
     const cleaned = String(rawName || "")
       .trim()
-      .replace(/^[\*\-•\s]+/, "")
-      .replace(/[：:].*$/, "")
-      .replace(/[（(].*?[)）]/g, "")
+      .replace(/^[\*\-鈥s]+/, "")
+      .replace(/[锛?].*$/, "")
+      .replace(/[锛?].*?[)锛塢/g, "")
       .trim();
     if (!cleaned || cleaned.length > 40) return;
     const matched = matchSpotByName(cleaned);
@@ -2591,11 +2888,11 @@ function parseRouteSpotsFromAIText(text = "") {
   const routeLine = String(text)
     .split(/\r?\n/)
     .map((line) => line.trim().replace(/^\*+|\*+$/g, ""))
-    .find((line) => /^路线顺序\s*[：:]/.test(line));
+    .find((line) => /^璺嚎椤哄簭\s*[锛?]/.test(line));
   if (routeLine) {
-    const sequence = routeLine.replace(/^路线顺序\s*[：:]\s*/, "");
+    const sequence = routeLine.replace(/^璺嚎椤哄簭\s*[锛?]\s*/, "");
     sequence
-      .split(/\s*(?:→|->|—>|⇒|➜)\s*/)
+      .split(/\s*(?:鈫抾->|鈥?|鈬抾鉃?\s*/)
       .forEach(addName);
     if (ordered.length >= 2) return ordered;
     ordered.length = 0;
@@ -2603,7 +2900,7 @@ function parseRouteSpotsFromAIText(text = "") {
   }
 
   const positiveText = String(text).split(
-    /(?:舍弃|排除|不推荐|未选择|不纳入|无需前往|不建议前往)/,
+    /(?:鑸嶅純|鎺掗櫎|涓嶆帹鑽恷鏈€夋嫨|涓嶇撼鍏鏃犻渶鍓嶅線|涓嶅缓璁墠寰€)/,
     1,
   )[0];
 
@@ -2624,26 +2921,26 @@ function parseRouteSpotsFromAIText(text = "") {
   ordered.length = 0;
   seen.clear();
   const numbered = [];
-  const numberedRe = /(?:^|\n)\s*(?:第\s*)?(\d+)[\.、\)）]\s*([^\n]+)/g;
+  const numberedRe = /(?:^|\n)\s*(?:绗琝s*)?(\d+)[\.銆乗)锛塢\s*([^\n]+)/g;
   let match;
   while ((match = numberedRe.exec(positiveText)) !== null) {
     numbered.push({ order: Number(match[1]), line: match[2] });
   }
   if (numbered.length >= 2) {
     numbered.sort((a, b) => a.order - b.order);
-    numbered.forEach(({ line }) => addName(line.split(/[，,、；;]/)[0]));
+    numbered.forEach(({ line }) => addName(line.split(/[锛?銆侊紱;]/)[0]));
     if (ordered.length >= 2) return ordered;
     ordered.length = 0;
     seen.clear();
   }
 
-  const stationRe = /第\s*[一二三四五六七八九十\d]+\s*站[：:\s]+([^\n，,；;]+)/g;
+  const stationRe = /绗琝s*[涓€浜屼笁鍥涗簲鍏竷鍏節鍗乗d]+\s*绔橻锛?\s]+([^\n锛?锛?]+)/g;
   while ((match = stationRe.exec(positiveText)) !== null) addName(match[1]);
   if (ordered.length >= 2) return ordered;
 
   positiveText.split("\n").forEach((line) => {
-    if (/[→\->—]+/.test(line)) {
-      line.split(/[→\->—]+/).forEach((part) => addName(part));
+    if (/[鈫抃->鈥擼+/.test(line)) {
+      line.split(/[鈫抃->鈥擼+/).forEach((part) => addName(part));
     }
   });
   if (ordered.length >= 2) return ordered;
@@ -2653,13 +2950,13 @@ function parseRouteSpotsFromAIText(text = "") {
 
 function renderRouteNoMatchState(message, aiText = "") {
   const excerpt = aiText
-    ? `<p class="route-ai-excerpt">${escapeHTML(aiText.slice(0, 180))}${aiText.length > 180 ? "…" : ""}</p>`
+    ? `<p class="route-ai-excerpt">${escapeHTML(aiText.slice(0, 180))}${aiText.length > 180 ? "鈥? : ""}</p>`
     : "";
   clearRouteLayer();
   $("routeResult").innerHTML = `
     <div class="route-empty-state">
-      <span class="route-empty-icon" aria-hidden="true">⌁</span>
-      <strong>暂未识别到可匹配景点</strong>
+      <span class="route-empty-icon" aria-hidden="true">鈱?/span>
+      <strong>鏆傛湭璇嗗埆鍒板彲鍖归厤鏅偣</strong>
       <p>${escapeHTML(message)}</p>
       ${excerpt}
     </div>`;
@@ -2676,7 +2973,7 @@ function extractAndRenderRouteFromAIText(text = "", meta = {}) {
   if (!namesForPlan.length || !matchedNames.length) {
     if (meta.showNoMatch) {
       renderRouteNoMatchState(
-        "AI 回复已同步到游客对话，但暂未从中识别到可定位的景区景点。请补充具体景点名称或调整路线条件。",
+        "AI 鍥炲宸插悓姝ュ埌娓稿瀵硅瘽锛屼絾鏆傛湭浠庝腑璇嗗埆鍒板彲瀹氫綅鐨勬櫙鍖烘櫙鐐广€傝琛ュ厖鍏蜂綋鏅偣鍚嶇О鎴栬皟鏁磋矾绾挎潯浠躲€?,
       );
     }
     return null;
@@ -2684,8 +2981,8 @@ function extractAndRenderRouteFromAIText(text = "", meta = {}) {
 
   const hours = Number($("availableHours")?.value || 0);
   const plan = {
-    routeName: meta.routeName || "AI 智能推荐路线",
-    duration: meta.duration || (hours > 0 ? `约 ${hours} 小时` : undefined),
+    routeName: meta.routeName || "AI 鏅鸿兘鎺ㄨ崘璺嚎",
+    duration: meta.duration || (hours > 0 ? `绾?${hours} 灏忔椂` : undefined),
     reason: meta.reason || extractRouteReasonFromAIText(text),
     spots: namesForPlan,
   };
@@ -2716,7 +3013,7 @@ async function requestAIRoutePlan(prompt, options = {}) {
   const trimmedPrompt = String(prompt || "").trim();
   const visibleUserMessage = String(userMessage || trimmedPrompt).trim();
   if (!trimmedPrompt) {
-    toast("请先填写游览时长、当前位置或路线偏好");
+    toast("璇峰厛濉啓娓歌鏃堕暱銆佸綋鍓嶄綅缃垨璺嚎鍋忓ソ");
     return null;
   }
 
@@ -2726,7 +3023,7 @@ async function requestAIRoutePlan(prompt, options = {}) {
   const previousLabel = button?.textContent;
   if (button) {
     button.disabled = true;
-    button.textContent = "正在规划…";
+    button.textContent = "姝ｅ湪瑙勫垝鈥?;
   }
 
   setHumanState({ thinking: true, emotion: "thinking" });
@@ -2768,7 +3065,7 @@ async function requestAIRoutePlan(prompt, options = {}) {
         : undefined,
     });
 
-    const replyText = content.trim() || "AI 导览员暂时没有返回有效内容，请稍后再试。";
+    const replyText = content.trim() || "AI 瀵艰鍛樻殏鏃舵病鏈夎繑鍥炴湁鏁堝唴瀹癸紝璇风◢鍚庡啀璇曘€?;
     if (speakResponse && responseRunId === state.speechRunId) {
       if (!receivedSpeechDelta) routeSpeechBuffer = replyText;
       splitCompletedSentences(routeSpeechBuffer, true).sentences
@@ -2825,7 +3122,7 @@ function syncRouteFromAIText(text = "") {
 async function recommendRoute() {
   const prompt = buildRoutePlanningPrompt({});
   if (!prompt) {
-    toast("请先填写游览时长、当前位置，或在助手窗口说明同行人员与偏好");
+    toast("璇峰厛濉啓娓歌鏃堕暱銆佸綋鍓嶄綅缃紝鎴栧湪鍔╂墜绐楀彛璇存槑鍚岃浜哄憳涓庡亸濂?);
     return;
   }
   const result = await requestAIRoutePlan(prompt, {
@@ -2835,7 +3132,7 @@ async function recommendRoute() {
     showNoMatch: true,
   });
   if (result?.usedFallback) {
-    toast("AI 回复已同步；地图已生成一条可调整的保底路线");
+    toast("AI 鍥炲宸插悓姝ワ紱鍦板浘宸茬敓鎴愪竴鏉″彲璋冩暣鐨勪繚搴曡矾绾?);
   }
 }
 
@@ -2855,20 +3152,20 @@ function renderRatingButtons() {
 }
 
 async function submitFeedback() {
-  if (!state.conversationId) return toast("请先创建会话");
+  if (!state.conversationId) return toast("璇峰厛鍒涘缓浼氳瘽");
   await request(`/api/conversations/${state.conversationId}/feedback`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ rating: state.selectedRating, comment: $("feedbackComment").value || null }),
   });
   $("feedbackComment").value = "";
-  toast("反馈已提交");
+  toast("鍙嶉宸叉彁浜?);
 }
 
 async function askRouteGuide() {
   const input = $("routeGuideInput");
   const text = input.value.trim();
-  if (!text) return toast("先输入想问 AI 导览员的路线问题");
+  if (!text) return toast("鍏堣緭鍏ユ兂闂?AI 瀵艰鍛樼殑璺嚎闂");
   input.value = "";
   const prompt = buildRoutePlanningPrompt({ preferenceText: text });
   try {
@@ -2879,9 +3176,9 @@ async function askRouteGuide() {
       showNoMatch: true,
     });
     if (result?.usedFallback) {
-      toast("AI 回复已同步；地图已生成一条可调整的保底路线");
+      toast("AI 鍥炲宸插悓姝ワ紱鍦板浘宸茬敓鎴愪竴鏉″彲璋冩暣鐨勪繚搴曡矾绾?);
     } else if (result?.plan) {
-      toast("对话已同步，推荐路线已更新到地图");
+      toast("瀵硅瘽宸插悓姝ワ紝鎺ㄨ崘璺嚎宸叉洿鏂板埌鍦板浘");
     }
   } catch (error) {
     toast(error.message);
@@ -2991,7 +3288,7 @@ async function adminLogin(event) {
   });
   state.token = data.access_token;
   localStorage.setItem("dg_admin_token", state.token);
-  toast(`已登录：${data.admin?.username || "admin"}`);
+  toast(`宸茬櫥褰曪細${data.admin?.username || "admin"}`);
   enterApp("admin");
 }
 
@@ -2999,29 +3296,29 @@ const adminDemoData = {
   overview: { total_conversations: 1286, total_messages: 4932, avg_response_ms: 1680, avg_satisfaction: 4.7, rag_hit_rate: 0.92 },
   satisfaction: {
     trend: [
-      { date: "周一", avg_rating: 4.3, count: 18 }, { date: "周二", avg_rating: 4.5, count: 22 },
-      { date: "周三", avg_rating: 4.6, count: 25 }, { date: "周四", avg_rating: 4.4, count: 19 },
-      { date: "周五", avg_rating: 4.8, count: 31 }, { date: "周六", avg_rating: 4.9, count: 42 },
-      { date: "周日", avg_rating: 4.7, count: 37 },
+      { date: "鍛ㄤ竴", avg_rating: 4.3, count: 18 }, { date: "鍛ㄤ簩", avg_rating: 4.5, count: 22 },
+      { date: "鍛ㄤ笁", avg_rating: 4.6, count: 25 }, { date: "鍛ㄥ洓", avg_rating: 4.4, count: 19 },
+      { date: "鍛ㄤ簲", avg_rating: 4.8, count: 31 }, { date: "鍛ㄥ叚", avg_rating: 4.9, count: 42 },
+      { date: "鍛ㄦ棩", avg_rating: 4.7, count: 37 },
     ],
     distribution: { 1: 3, 2: 5, 3: 18, 4: 61, 5: 107 },
   },
   emotions: { happy: 64, neutral: 25, thinking: 8, sorry: 3 },
   hotQuestions: [
-    { question_pattern: "灵山大佛怎么游览？", count: 86 },
-    { question_pattern: "九龙灌浴表演有什么特色？", count: 71 },
-    { question_pattern: "适合老人游玩的路线", count: 54 },
-    { question_pattern: "梵宫需要游览多久？", count: 38 },
-    { question_pattern: "停车场和餐饮在哪里？", count: 29 },
+    { question_pattern: "鐏靛北澶т經鎬庝箞娓歌锛?, count: 86 },
+    { question_pattern: "涔濋緳鐏屾荡琛ㄦ紨鏈変粈涔堢壒鑹诧紵", count: 71 },
+    { question_pattern: "閫傚悎鑰佷汉娓哥帺鐨勮矾绾?, count: 54 },
+    { question_pattern: "姊靛闇€瑕佹父瑙堝涔咃紵", count: 38 },
+    { question_pattern: "鍋滆溅鍦哄拰椁愰ギ鍦ㄥ摢閲岋紵", count: 29 },
   ],
-  interests: { 自然风光: 26, 历史文化: 38, 佛教文化: 44, 休闲娱乐: 18, 拍照打卡: 25, 亲子游览: 17, 餐饮购物: 12 },
+  interests: { 鑷劧椋庡厜: 26, 鍘嗗彶鏂囧寲: 38, 浣涙暀鏂囧寲: 44, 浼戦棽濞变箰: 18, 鎷嶇収鎵撳崱: 25, 浜插瓙娓歌: 17, 椁愰ギ璐墿: 12 },
   hotSpots: [
-    { spot_name: "灵山大佛", mention_count: 236 },
-    { spot_name: "九龙灌浴", mention_count: 198 },
-    { spot_name: "灵山梵宫", mention_count: 174 },
-    { spot_name: "五印坛城", mention_count: 126 },
-    { spot_name: "五明桥", mention_count: 93 },
-    { spot_name: "阿育王柱", mention_count: 61 },
+    { spot_name: "鐏靛北澶т經", mention_count: 236 },
+    { spot_name: "涔濋緳鐏屾荡", mention_count: 198 },
+    { spot_name: "鐏靛北姊靛", mention_count: 174 },
+    { spot_name: "浜斿嵃鍧涘煄", mention_count: 126 },
+    { spot_name: "浜旀槑妗?, mention_count: 93 },
+    { spot_name: "闃胯偛鐜嬫煴", mention_count: 61 },
   ],
 };
 
@@ -3060,13 +3357,13 @@ function setDashboardSource(source) {
   const badge = $("dashboardDataSource");
   if (!badge) return;
   const labels = {
-    loading: "正在读取数据",
-    backend: "后端实时数据",
-    mixed: "部分演示数据",
+    loading: "姝ｅ湪璇诲彇鏁版嵁",
+    backend: "鍚庣瀹炴椂鏁版嵁",
+    mixed: "閮ㄥ垎婕旂ず鏁版嵁",
   };
   badge.className = `data-source-badge ${source === "backend" ? "live" : source === "mixed" ? "demo" : "loading"}`;
   badge.textContent = labels[source] || labels.loading;
-  badge.title = source === "mixed" ? "部分统计接口不可用，相关图表已使用集中定义的演示数据。" : "数据来自管理后台统计接口。";
+  badge.title = source === "mixed" ? "閮ㄥ垎缁熻鎺ュ彛涓嶅彲鐢紝鐩稿叧鍥捐〃宸蹭娇鐢ㄩ泦涓畾涔夌殑婕旂ず鏁版嵁銆? : "鏁版嵁鏉ヨ嚜绠＄悊鍚庡彴缁熻鎺ュ彛銆?;
 }
 
 function metricIcon(name) {
@@ -3082,10 +3379,10 @@ function metricIcon(name) {
 
 function formatResponseTime(value) {
   const milliseconds = Number(value);
-  if (!Number.isFinite(milliseconds)) return { display: "-", raw: "暂无响应耗时数据" };
+  if (!Number.isFinite(milliseconds)) return { display: "-", raw: "鏆傛棤鍝嶅簲鑰楁椂鏁版嵁" };
   return {
     display: milliseconds >= 1000 ? `${(milliseconds / 1000).toFixed(1)}s` : `${Math.round(milliseconds)}ms`,
-    raw: `原始平均值 ${Math.round(milliseconds)}ms`,
+    raw: `鍘熷骞冲潎鍊?${Math.round(milliseconds)}ms`,
   };
 }
 
@@ -3094,25 +3391,25 @@ function renderStats(data = {}, usesDemo = false) {
   const satisfaction = data.avg_satisfaction == null ? "-" : Number(data.avg_satisfaction).toFixed(1);
   const ragRate = data.rag_hit_rate == null ? null : Math.round(Number(data.rag_hit_rate) * 100);
   const items = [
-    { label: "总会话", value: data.total_conversations ?? 0, icon: "conversations", note: "今日创建的游客会话" },
-    { label: "总消息", value: data.total_messages ?? 0, icon: "messages", note: "今日游客与 AI 消息" },
-    { label: "平均响应时间", value: response.display, icon: "response", note: response.raw },
-    { label: "满意度", value: satisfaction, icon: "satisfaction", note: satisfaction === "-" ? "今日暂无反馈评分" : `满分 5 分 · ${renderStars(Number(satisfaction))}` },
-    { label: "RAG 命中率", value: ragRate == null ? "-" : `${ragRate}%`, icon: "rag", note: "AI 回复中命中知识库的比例", status: ragRate >= 80 ? "healthy" : "" },
+    { label: "鎬讳細璇?, value: data.total_conversations ?? 0, icon: "conversations", note: "浠婃棩鍒涘缓鐨勬父瀹細璇? },
+    { label: "鎬绘秷鎭?, value: data.total_messages ?? 0, icon: "messages", note: "浠婃棩娓稿涓?AI 娑堟伅" },
+    { label: "骞冲潎鍝嶅簲鏃堕棿", value: response.display, icon: "response", note: response.raw },
+    { label: "婊℃剰搴?, value: satisfaction, icon: "satisfaction", note: satisfaction === "-" ? "浠婃棩鏆傛棤鍙嶉璇勫垎" : `婊″垎 5 鍒?路 ${renderStars(Number(satisfaction))}` },
+    { label: "RAG 鍛戒腑鐜?, value: ragRate == null ? "-" : `${ragRate}%`, icon: "rag", note: "AI 鍥炲涓懡涓煡璇嗗簱鐨勬瘮渚?, status: ragRate >= 80 ? "healthy" : "" },
   ];
   $("statsCards").innerHTML = items.map((item) => `
     <article class="stat-card ${item.status || ""}" title="${escapeHTML(item.note)}">
       <div class="stat-card-top"><span>${escapeHTML(item.label)}</span><i>${metricIcon(item.icon)}</i></div>
       <strong>${escapeHTML(item.value)}</strong>
       <small>${escapeHTML(item.note)}</small>
-      ${usesDemo ? '<em>接口异常时使用演示兜底</em>' : ""}
+      ${usesDemo ? '<em>鎺ュ彛寮傚父鏃朵娇鐢ㄦ紨绀哄厹搴?/em>' : ""}
     </article>
   `).join("");
 }
 
 function renderStars(score) {
   const rounded = Math.max(0, Math.min(5, Math.round(score)));
-  return `${"★".repeat(rounded)}${"☆".repeat(5 - rounded)}`;
+  return `${"鈽?.repeat(rounded)}${"鈽?.repeat(5 - rounded)}`;
 }
 
 function renderSatisfactionCharts(items, distribution) {
@@ -3123,7 +3420,7 @@ function renderSatisfactionCharts(items, distribution) {
 function renderLineChart(id, items) {
   const root = $(id);
   if (!items.length) {
-    root.innerHTML = '<div class="admin-empty">暂无反馈评分数据</div>';
+    root.innerHTML = '<div class="admin-empty">鏆傛棤鍙嶉璇勫垎鏁版嵁</div>';
     return;
   }
   const width = 600;
@@ -3143,13 +3440,13 @@ function renderLineChart(id, items) {
     return `<line x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}" class="chart-grid-line"/><text x="8" y="${y + 4}" class="chart-axis-label">${value}</text>`;
   }).join("");
   root.innerHTML = `
-    <svg class="admin-svg-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="满意度每日平均分折线图">
+    <svg class="admin-svg-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="婊℃剰搴︽瘡鏃ュ钩鍧囧垎鎶樼嚎鍥?>
       ${grid}
       <polygon points="${area}" class="line-chart-area"/>
       <polyline points="${polyline}" class="line-chart-path"/>
       ${points.map(({ x, y, item }) => `
         <g class="chart-point">
-          <circle cx="${x}" cy="${y}" r="5"><title>${escapeHTML(item.date)}：${item.avg_rating} 分，${item.count || 0} 条反馈</title></circle>
+          <circle cx="${x}" cy="${y}" r="5"><title>${escapeHTML(item.date)}锛?{item.avg_rating} 鍒嗭紝${item.count || 0} 鏉″弽棣?/title></circle>
           <text x="${x}" y="${height - 12}" text-anchor="middle" class="chart-axis-label">${escapeHTML(shortDate(item.date))}</text>
         </g>
       `).join("")}
@@ -3167,7 +3464,7 @@ function renderDonutChart(id, distribution) {
   const values = [1, 2, 3, 4, 5].map((rating) => Number(distribution[String(rating)] || distribution[rating] || 0));
   const total = values.reduce((sum, value) => sum + value, 0);
   if (!total) {
-    root.innerHTML = '<div class="admin-empty">暂无评分占比</div>';
+    root.innerHTML = '<div class="admin-empty">鏆傛棤璇勫垎鍗犳瘮</div>';
     return;
   }
   const colors = ["#cf6f6b", "#d99c63", "#dcc36e", "#73aa97", "#16856f"];
@@ -3175,26 +3472,26 @@ function renderDonutChart(id, distribution) {
   const segments = values.map((value, index) => {
     const percentage = (value / total) * 100;
     const dash = `${percentage} ${100 - percentage}`;
-    const segment = `<circle cx="70" cy="70" r="48" pathLength="100" stroke="${colors[index]}" stroke-dasharray="${dash}" stroke-dashoffset="${-offset}" class="donut-segment"><title>${index + 1} 星：${value} 条（${Math.round(percentage)}%）</title></circle>`;
+    const segment = `<circle cx="70" cy="70" r="48" pathLength="100" stroke="${colors[index]}" stroke-dasharray="${dash}" stroke-dashoffset="${-offset}" class="donut-segment"><title>${index + 1} 鏄燂細${value} 鏉★紙${Math.round(percentage)}%锛?/title></circle>`;
     offset += percentage;
     return segment;
   }).join("");
   const average = values.reduce((sum, value, index) => sum + value * (index + 1), 0) / total;
   root.innerHTML = `
     <div class="donut-wrap">
-      <svg viewBox="0 0 140 140" class="donut-chart" role="img" aria-label="满意度评分占比">
+      <svg viewBox="0 0 140 140" class="donut-chart" role="img" aria-label="婊℃剰搴﹁瘎鍒嗗崰姣?>
         <circle cx="70" cy="70" r="48" pathLength="100" class="donut-track"/>
         ${segments}
         <text x="70" y="66" text-anchor="middle" class="donut-value">${average.toFixed(1)}</text>
-        <text x="70" y="84" text-anchor="middle" class="donut-label">平均评分</text>
+        <text x="70" y="84" text-anchor="middle" class="donut-label">骞冲潎璇勫垎</text>
       </svg>
-      <div class="donut-legend">${values.map((value, index) => `<span><i style="background:${colors[index]}"></i>${index + 1} 星 <b>${value}</b></span>`).join("")}</div>
+      <div class="donut-legend">${values.map((value, index) => `<span><i style="background:${colors[index]}"></i>${index + 1} 鏄?<b>${value}</b></span>`).join("")}</div>
     </div>`;
 }
 
 function renderInterestDistribution(data) {
-  const dimensions = ["自然风光", "历史文化", "佛教文化", "休闲娱乐", "拍照打卡", "亲子游览", "餐饮购物"];
-  const aliases = { 摄影打卡: "拍照打卡", 亲子游: "亲子游览" };
+  const dimensions = ["鑷劧椋庡厜", "鍘嗗彶鏂囧寲", "浣涙暀鏂囧寲", "浼戦棽濞变箰", "鎷嶇収鎵撳崱", "浜插瓙娓歌", "椁愰ギ璐墿"];
+  const aliases = { 鎽勫奖鎵撳崱: "鎷嶇収鎵撳崱", 浜插瓙娓? "浜插瓙娓歌" };
   const normalized = {};
   Object.entries(data).forEach(([key, value]) => {
     const target = aliases[key] || key;
@@ -3204,7 +3501,7 @@ function renderInterestDistribution(data) {
   const max = Math.max(...values, 0);
   const root = $("interestDistribution");
   if (!max) {
-    root.innerHTML = '<div class="admin-empty">暂无兴趣分布数据</div>';
+    root.innerHTML = '<div class="admin-empty">鏆傛棤鍏磋叮鍒嗗竷鏁版嵁</div>';
     return;
   }
   const size = 330;
@@ -3221,19 +3518,19 @@ function renderInterestDistribution(data) {
   }).join("");
   const valuePoints = values.map((value, index) => pointAt(index, value / max));
   root.innerHTML = `
-    <svg class="admin-svg-chart radar-chart" viewBox="0 0 ${size} ${size}" role="img" aria-label="游客兴趣分布雷达图">
+    <svg class="admin-svg-chart radar-chart" viewBox="0 0 ${size} ${size}" role="img" aria-label="娓稿鍏磋叮鍒嗗竷闆疯揪鍥?>
       ${rings}${axes}
       <polygon points="${valuePoints.map((point) => point.join(",")).join(" ")}" class="radar-value"/>
       ${dimensions.map((label, index) => {
         const [x, y] = pointAt(index, 1.22);
         const [px, py] = valuePoints[index];
-        return `<text x="${x}" y="${y}" text-anchor="middle" class="radar-label">${label}</text><circle cx="${px}" cy="${py}" r="4" class="radar-point"><title>${label}：${values[index]}</title></circle>`;
+        return `<text x="${x}" y="${y}" text-anchor="middle" class="radar-label">${label}</text><circle cx="${px}" cy="${py}" r="4" class="radar-point"><title>${label}锛?{values[index]}</title></circle>`;
       }).join("")}
     </svg>`;
 }
 
 function renderEmotionTrend(data) {
-  const labels = { happy: "积极", neutral: "平稳", thinking: "思考", sorry: "负向" };
+  const labels = { happy: "绉瀬", neutral: "骞崇ǔ", thinking: "鎬濊€?, sorry: "璐熷悜" };
   const colors = { happy: "#22a17f", neutral: "#7193a1", thinking: "#d9a229", sorry: "#d76b68" };
   const entries = Object.entries(data);
   $("emotionTrend").innerHTML = entries.length ? entries.map(([key, value]) => `
@@ -3241,17 +3538,17 @@ function renderEmotionTrend(data) {
       <span><i style="background:${colors[key] || "#7193a1"}"></i>${labels[key] || escapeHTML(key)}</span>
       <div><b style="width:${Math.min(100, Number(value) || 0)}%;background:${colors[key] || "#7193a1"}"></b></div>
       <strong>${value}</strong>
-    </div>`).join("") : '<div class="admin-empty">暂无情绪数据</div>';
+    </div>`).join("") : '<div class="admin-empty">鏆傛棤鎯呯华鏁版嵁</div>';
 }
 
 function extractQuestionKeywords(items) {
-  const catalog = ["灵山大佛", "五明桥", "梵宫", "九龙灌浴", "五印坛城", "游览路线", "路线", "门票", "停车", "餐饮", "开放时间", "老人", "亲子", "拍照"];
+  const catalog = ["鐏靛北澶т經", "浜旀槑妗?, "姊靛", "涔濋緳鐏屾荡", "浜斿嵃鍧涘煄", "娓歌璺嚎", "璺嚎", "闂ㄧエ", "鍋滆溅", "椁愰ギ", "寮€鏀炬椂闂?, "鑰佷汉", "浜插瓙", "鎷嶇収"];
   const counts = new Map();
   items.forEach((item) => {
     const text = item.question_pattern || "";
     const weight = Number(item.count || 1);
     catalog.forEach((keyword) => {
-      if (text.includes(keyword)) counts.set(keyword === "路线" ? "游览路线" : keyword, (counts.get(keyword === "路线" ? "游览路线" : keyword) || 0) + weight);
+      if (text.includes(keyword)) counts.set(keyword === "璺嚎" ? "娓歌璺嚎" : keyword, (counts.get(keyword === "璺嚎" ? "娓歌璺嚎" : keyword) || 0) + weight);
     });
   });
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14);
@@ -3262,26 +3559,26 @@ function renderHotQuestions(items) {
   const keywords = extractQuestionKeywords(items);
   const root = $("hotQuestionCloud");
   if (!keywords.length) {
-    root.innerHTML = '<div class="admin-empty">暂无关键词数据</div>';
+    root.innerHTML = '<div class="admin-empty">鏆傛棤鍏抽敭璇嶆暟鎹?/div>';
     return;
   }
   const max = Math.max(...keywords.map(([, count]) => count), 1);
   root.innerHTML = keywords.map(([word, count], index) => {
     const level = 0.82 + (count / max) * 0.72;
-    return `<span style="font-size:${level.toFixed(2)}rem;--word-index:${index}" title="${escapeHTML(word)}：${count} 次">${escapeHTML(word)}</span>`;
+    return `<span style="font-size:${level.toFixed(2)}rem;--word-index:${index}" title="${escapeHTML(word)}锛?{count} 娆?>${escapeHTML(word)}</span>`;
   }).join("");
 }
 
 function renderRankedList(id, items, labelGetter, valueGetter) {
   $(id).innerHTML = items.length ? items.map((item, index) => `
     <div class="ranked-item"><span>${index + 1}</span><strong>${escapeHTML(labelGetter(item) || "-")}</strong><em>${valueGetter(item) || 0}</em></div>
-  `).join("") : '<div class="admin-empty">暂无数据</div>';
+  `).join("") : '<div class="admin-empty">鏆傛棤鏁版嵁</div>';
 }
 
 function renderHotSpots(items) {
   const root = $("hotSpots");
   if (!items.length) {
-    root.innerHTML = '<div class="admin-empty">暂无景点热度数据</div>';
+    root.innerHTML = '<div class="admin-empty">鏆傛棤鏅偣鐑害鏁版嵁</div>';
     return;
   }
   const max = Math.max(...items.map((item) => Number(item.mention_count || 0)), 1);
@@ -3289,7 +3586,7 @@ function renderHotSpots(items) {
     const value = Number(item.mention_count || 0);
     const width = Math.max(4, (value / max) * 100);
     return `
-      <div class="horizontal-rank-item" title="${escapeHTML(item.spot_name)}：${value} 次提及">
+      <div class="horizontal-rank-item" title="${escapeHTML(item.spot_name)}锛?{value} 娆℃彁鍙?>
         <span>${index + 1}</span>
         <strong>${escapeHTML(item.spot_name || "-")}</strong>
         <div><i style="--rank-width:${width}%"></i></div>
@@ -3316,7 +3613,7 @@ function formatDate(value) {
 }
 
 function renderList(id, items, mapper) {
-  $(id).innerHTML = items.length ? items.map((item) => `<div class="list-item">${mapper(item)}</div>`).join("") : '<div class="list-item">暂无数据</div>';
+  $(id).innerHTML = items.length ? items.map((item) => `<div class="list-item">${mapper(item)}</div>`).join("") : '<div class="list-item">鏆傛棤鏁版嵁</div>';
 }
 
 async function loadKnowledge() {
@@ -3326,8 +3623,8 @@ async function loadKnowledge() {
     request("/api/admin/knowledge/faq?page=1&page_size=20", { headers: authHeaders() }),
     requestAdminData("/api/admin/knowledge/blind-spots?range=week", {
       items: [
-        { question_pattern: "轮椅租借点在哪里？", count: 6, last_asked_at: new Date().toISOString(), confidence: 0.31 },
-        { question_pattern: "梵宫今天的演出时间？", count: 4, last_asked_at: new Date().toISOString(), confidence: 0.42 },
+        { question_pattern: "杞绉熷€熺偣鍦ㄥ摢閲岋紵", count: 6, last_asked_at: new Date().toISOString(), confidence: 0.31 },
+        { question_pattern: "姊靛浠婂ぉ鐨勬紨鍑烘椂闂达紵", count: 4, last_asked_at: new Date().toISOString(), confidence: 0.42 },
       ],
     }),
   ]);
@@ -3338,51 +3635,51 @@ async function loadKnowledge() {
   const badge = document.querySelector("#knowledgeBlindPanel .data-source-badge");
   if (badge) {
     badge.className = `data-source-badge ${blindResult.source === "backend" ? "live" : "demo"}`;
-    badge.textContent = blindResult.source === "backend" ? "后端实时数据" : "前端演示数据";
+    badge.textContent = blindResult.source === "backend" ? "鍚庣瀹炴椂鏁版嵁" : "鍓嶇婕旂ず鏁版嵁";
   }
 }
 
 function renderAdminConversations() {
   const messages = state.history.flatMap((conversation) => (
     (conversation.messages || []).slice(-4).map((message) => ({
-      conversation: conversation.title || "导览会话",
+      conversation: conversation.title || "瀵艰浼氳瘽",
       role: message.role,
       content: message.content,
       time: conversation.updatedAt,
     }))
   )).slice(0, 20);
   $("adminConversationList").innerHTML = messages.length ? `
-    <table class="admin-table"><thead><tr><th>会话</th><th>角色</th><th>内容</th><th>时间</th></tr></thead><tbody>
-      ${messages.map((item) => `<tr><td>${escapeHTML(item.conversation)}</td><td><span class="status-pill ${item.role === "assistant" ? "success" : "pending"}">${item.role === "assistant" ? "AI" : "游客"}</span></td><td>${escapeHTML(item.content).slice(0, 90)}</td><td>${formatDate(item.time)}</td></tr>`).join("")}
-    </tbody></table>` : '<div class="admin-empty">暂无本地游客对话。后端尚未提供管理员会话列表接口。</div>';
+    <table class="admin-table"><thead><tr><th>浼氳瘽</th><th>瑙掕壊</th><th>鍐呭</th><th>鏃堕棿</th></tr></thead><tbody>
+      ${messages.map((item) => `<tr><td>${escapeHTML(item.conversation)}</td><td><span class="status-pill ${item.role === "assistant" ? "success" : "pending"}">${item.role === "assistant" ? "AI" : "娓稿"}</span></td><td>${escapeHTML(item.content).slice(0, 90)}</td><td>${formatDate(item.time)}</td></tr>`).join("")}
+    </tbody></table>` : '<div class="admin-empty">鏆傛棤鏈湴娓稿瀵硅瘽銆傚悗绔皻鏈彁渚涚鐞嗗憳浼氳瘽鍒楄〃鎺ュ彛銆?/div>';
 }
 
 function renderKnowledgeBlindSpots(items, source = "backend") {
   $("knowledgeBlindSpots").innerHTML = items.length ? `
-    <table class="admin-table"><thead><tr><th>用户问题</th><th>状态</th><th>置信度</th><th>建议类型</th><th>操作</th></tr></thead><tbody>
+    <table class="admin-table"><thead><tr><th>鐢ㄦ埛闂</th><th>鐘舵€?/th><th>缃俊搴?/th><th>寤鸿绫诲瀷</th><th>鎿嶄綔</th></tr></thead><tbody>
       ${items.map((item, index) => {
         const confidence = item.confidence;
         return `<tr>
-          <td><strong>${escapeHTML(item.question_pattern || item.question || "-")}</strong><small>${formatDate(item.last_asked_at || item.created_at)} · 出现 ${item.count || 1} 次</small></td>
-          <td><span class="status-pill danger">未命中</span></td>
-          <td>${confidence == null ? '<span title="后端当前未返回置信度">-</span>' : `${Math.round(confidence * 100)}%`}</td>
-          <td>${/时间|几点|开放/.test(item.question_pattern || "") ? "开放与演出时间" : "服务设施"}</td>
-          <td><div class="table-actions"><button type="button" data-blind-faq="${index}">加入 FAQ</button><button type="button" data-blind-done="${index}" ${source !== "backend" ? "disabled" : ""}>标记已处理</button></div></td>
+          <td><strong>${escapeHTML(item.question_pattern || item.question || "-")}</strong><small>${formatDate(item.last_asked_at || item.created_at)} 路 鍑虹幇 ${item.count || 1} 娆?/small></td>
+          <td><span class="status-pill danger">鏈懡涓?/span></td>
+          <td>${confidence == null ? '<span title="鍚庣褰撳墠鏈繑鍥炵疆淇″害">-</span>' : `${Math.round(confidence * 100)}%`}</td>
+          <td>${/鏃堕棿|鍑犵偣|寮€鏀?.test(item.question_pattern || "") ? "寮€鏀句笌婕斿嚭鏃堕棿" : "鏈嶅姟璁炬柦"}</td>
+          <td><div class="table-actions"><button type="button" data-blind-faq="${index}">鍔犲叆 FAQ</button><button type="button" data-blind-done="${index}" ${source !== "backend" ? "disabled" : ""}>鏍囪宸插鐞?/button></div></td>
         </tr>`;
       }).join("")}
-    </tbody></table>` : '<div class="admin-empty">本周暂无知识盲点。</div>';
+    </tbody></table>` : '<div class="admin-empty">鏈懆鏆傛棤鐭ヨ瘑鐩茬偣銆?/div>';
   $("knowledgeBlindSpots").querySelectorAll("[data-blind-faq]").forEach((button) => {
     button.onclick = () => {
       const item = items[Number(button.dataset.blindFaq)];
       $("faqQuestion").value = item.question_pattern || item.question || "";
       switchAdminSubtab("knowledge", "knowledgeFaqPanel");
       $("faqAnswer").focus();
-      toast("问题已带入 FAQ 表单");
+      toast("闂宸插甫鍏?FAQ 琛ㄥ崟");
     };
   });
   $("knowledgeBlindSpots").querySelectorAll("[data-blind-done]").forEach((button) => {
     button.onclick = () => {
-      toast("后端尚未提供知识盲点处理状态接口，当前不会伪装保存成功");
+      toast("鍚庣灏氭湭鎻愪緵鐭ヨ瘑鐩茬偣澶勭悊鐘舵€佹帴鍙ｏ紝褰撳墠涓嶄細浼淇濆瓨鎴愬姛");
     };
   });
 }
@@ -3394,15 +3691,15 @@ function renderKnowledgeDocuments(items) {
       <div class="list-item knowledge-item">
         <div>
           <strong>${escapeHTML(item.original_name)}</strong>
-          <small>${escapeHTML(item.category)} · ${escapeHTML(item.file_type)} · ${Math.ceil((item.file_size || 0) / 1024)} KB · ${formatDate(item.created_at)}</small>
+          <small>${escapeHTML(item.category)} 路 ${escapeHTML(item.file_type)} 路 ${Math.ceil((item.file_size || 0) / 1024)} KB 路 ${formatDate(item.created_at)}</small>
           ${item.error_message ? `<small class="error-text">${escapeHTML(item.error_message)}</small>` : ""}
         </div>
         <div class="item-actions">
-          <span class="status-pill ${statusClass}">${escapeHTML(item.status)} · ${item.chunk_count || 0} chunks</span>
-          <button type="button" data-delete-doc="${item.id}">删除</button>
+          <span class="status-pill ${statusClass}">${escapeHTML(item.status)} 路 ${item.chunk_count || 0} chunks</span>
+          <button type="button" data-delete-doc="${item.id}">鍒犻櫎</button>
         </div>
       </div>`;
-  }).join("") : '<div class="list-item">暂无文档，上传 txt / pdf / docx 后会显示入库状态。</div>';
+  }).join("") : '<div class="list-item">鏆傛棤鏂囨。锛屼笂浼?txt / pdf / docx 鍚庝細鏄剧ず鍏ュ簱鐘舵€併€?/div>';
   $("documentsList").querySelectorAll("[data-delete-doc]").forEach((btn) => {
     btn.onclick = () => deleteDocument(btn.dataset.deleteDoc).catch((err) => toast(err.message));
   });
@@ -3414,11 +3711,11 @@ function renderKnowledgeFAQ(items) {
       <div>
         <strong>${escapeHTML(item.question)}</strong>
         <p>${escapeHTML(item.answer)}</p>
-        <small>${escapeHTML(item.category)} · ${item.is_active ? "启用" : "停用"} · ${formatDate(item.updated_at)}</small>
+        <small>${escapeHTML(item.category)} 路 ${item.is_active ? "鍚敤" : "鍋滅敤"} 路 ${formatDate(item.updated_at)}</small>
       </div>
-      <div class="item-actions"><button type="button" data-edit-faq="${item.id}">编辑</button><button type="button" data-delete-faq="${item.id}">删除</button></div>
+      <div class="item-actions"><button type="button" data-edit-faq="${item.id}">缂栬緫</button><button type="button" data-delete-faq="${item.id}">鍒犻櫎</button></div>
     </div>
-  `).join("") : '<div class="list-item">暂无 FAQ，新增后会同步到 AI 知识库。</div>';
+  `).join("") : '<div class="list-item">鏆傛棤 FAQ锛屾柊澧炲悗浼氬悓姝ュ埌 AI 鐭ヨ瘑搴撱€?/div>';
   $("faqList").querySelectorAll("[data-edit-faq]").forEach((btn) => {
     btn.onclick = () => {
       const item = items.find((entry) => String(entry.id) === String(btn.dataset.editFaq));
@@ -3427,7 +3724,7 @@ function renderKnowledgeFAQ(items) {
       $("faqQuestion").value = item.question || "";
       $("faqAnswer").value = item.answer || "";
       $("faqCategory").value = item.category || "general";
-      $("faqSubmitBtn").textContent = "保存修改";
+      $("faqSubmitBtn").textContent = "淇濆瓨淇敼";
       $("faqCancelEditBtn").classList.remove("hidden");
       $("faqQuestion").focus();
     };
@@ -3440,10 +3737,10 @@ function renderKnowledgeFAQ(items) {
 async function uploadDocument(event) {
   event.preventDefault();
   const file = $("docFile").files[0];
-  if (!file) return toast("请选择文档");
+  if (!file) return toast("璇烽€夋嫨鏂囨。");
   const extension = file.name.split(".").pop().toLowerCase();
   if (["md", "markdown"].includes(extension)) {
-    toast("后端当前仅支持 PDF、DOCX、TXT，Markdown 尚不能真实入库");
+    toast("鍚庣褰撳墠浠呮敮鎸?PDF銆丏OCX銆乀XT锛孧arkdown 灏氫笉鑳界湡瀹炲叆搴?);
     return;
   }
   const form = new FormData();
@@ -3452,7 +3749,7 @@ async function uploadDocument(event) {
   await request("/api/admin/knowledge/documents", { method: "POST", headers: authHeaders(), body: form });
   event.target.reset();
   $("docCategory").value = "general";
-  toast("文档已上传，正在入库");
+  toast("鏂囨。宸蹭笂浼狅紝姝ｅ湪鍏ュ簱");
   loadKnowledge().catch(() => {});
   window.setTimeout(() => loadKnowledge().catch(() => {}), 3000);
 }
@@ -3466,19 +3763,19 @@ async function createFAQ(event) {
     body: JSON.stringify({ question: $("faqQuestion").value, answer: $("faqAnswer").value, category: $("faqCategory").value || "general" }),
   });
   resetFAQForm();
-  toast(faqId ? "FAQ 已更新并同步知识库" : "FAQ 已新增并同步知识库");
+  toast(faqId ? "FAQ 宸叉洿鏂板苟鍚屾鐭ヨ瘑搴? : "FAQ 宸叉柊澧炲苟鍚屾鐭ヨ瘑搴?);
   loadKnowledge().catch(() => {});
 }
 
 async function deleteDocument(id) {
   await request(`/api/admin/knowledge/documents/${id}`, { method: "DELETE", headers: authHeaders() });
-  toast("文档已删除");
+  toast("鏂囨。宸插垹闄?);
   loadKnowledge().catch(() => {});
 }
 
 async function deleteFAQ(id) {
   await request(`/api/admin/knowledge/faq/${id}`, { method: "DELETE", headers: authHeaders() });
-  toast("FAQ 已删除");
+  toast("FAQ 宸插垹闄?);
   loadKnowledge().catch(() => {});
 }
 
@@ -3486,7 +3783,7 @@ function resetFAQForm() {
   $("faqForm").reset();
   $("faqId").value = "";
   $("faqCategory").value = "general";
-  $("faqSubmitBtn").textContent = "新增 FAQ";
+  $("faqSubmitBtn").textContent = "鏂板 FAQ";
   $("faqCancelEditBtn").classList.add("hidden");
 }
 
@@ -3497,7 +3794,7 @@ async function loadScenic() {
     request("/api/admin/routes", { headers: authHeaders() }),
   ]);
   renderScenicSpots(spots || []);
-  renderList("routesList", routes || [], (item) => `${escapeHTML(item.name)}<br><small>${escapeHTML((item.target_tags || []).join("、"))} · ${item.duration_hours || "-"} 小时</small>`);
+  renderList("routesList", routes || [], (item) => `${escapeHTML(item.name)}<br><small>${escapeHTML((item.target_tags || []).join("銆?))} 路 ${item.duration_hours || "-"} 灏忔椂</small>`);
 }
 
 function scenicLocalMeta() {
@@ -3507,7 +3804,7 @@ function scenicLocalMeta() {
 function renderScenicSpots(items) {
   const meta = scenicLocalMeta();
   $("spotsList").innerHTML = items.length ? `
-    <table class="admin-table"><thead><tr><th>图片</th><th>景点</th><th>标签</th><th>开放时间</th><th>时长</th><th>位置</th><th>状态</th><th>操作</th></tr></thead><tbody>
+    <table class="admin-table"><thead><tr><th>鍥剧墖</th><th>鏅偣</th><th>鏍囩</th><th>寮€鏀炬椂闂?/th><th>鏃堕暱</th><th>浣嶇疆</th><th>鐘舵€?/th><th>鎿嶄綔</th></tr></thead><tbody>
       ${items.map((item) => {
         const local = meta[item.id] || {};
         const location = locationFromSpot(item);
@@ -3516,19 +3813,19 @@ function renderScenicSpots(items) {
         return `<tr>
           <td>${item.image_url
             ? `<img class="admin-spot-thumb" src="${escapeHTML(resolveMediaURL(item.image_url))}" alt="${escapeHTML(item.name)}" loading="lazy" />`
-            : '<span class="admin-spot-thumb empty">暂无</span>'}</td>
+            : '<span class="admin-spot-thumb empty">鏆傛棤</span>'}</td>
           <td><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.description || "").slice(0, 70)}</small></td>
           <td>${(item.tags || []).map((tag) => `<span class="mini-tag">${escapeHTML(tag)}</span>`).join("")}</td>
-          <td>${escapeHTML(local.open_hours || "待补充")}</td>
-          <td>${item.visit_duration_min || 30} 分钟</td>
+          <td>${escapeHTML(local.open_hours || "寰呰ˉ鍏?)}</td>
+          <td>${item.visit_duration_min || 30} 鍒嗛挓</td>
           <td>${displayLocation
-            ? `${displayLocation.lat.toFixed(6)}, ${displayLocation.lng.toFixed(6)}${location ? "" : '<small class="coordinate-fallback-note">待保存修复</small>'}`
-            : "暂无坐标"}</td>
-          <td><span class="status-pill ${item.is_active ? "success" : "pending"}">${local.is_hot ? "热门" : item.is_active ? "展示中" : "停用"}</span></td>
-          <td><div class="table-actions"><button type="button" data-edit-spot="${item.id}">编辑</button><button type="button" class="danger" data-delete-spot="${item.id}">删除</button></div></td>
+            ? `${displayLocation.lat.toFixed(6)}, ${displayLocation.lng.toFixed(6)}${location ? "" : '<small class="coordinate-fallback-note">寰呬繚瀛樹慨澶?/small>'}`
+            : "鏆傛棤鍧愭爣"}</td>
+          <td><span class="status-pill ${item.is_active ? "success" : "pending"}">${local.is_hot ? "鐑棬" : item.is_active ? "灞曠ず涓? : "鍋滅敤"}</span></td>
+          <td><div class="table-actions"><button type="button" data-edit-spot="${item.id}">缂栬緫</button><button type="button" class="danger" data-delete-spot="${item.id}">鍒犻櫎</button></div></td>
         </tr>`;
       }).join("")}
-    </tbody></table>` : '<div class="admin-empty">暂无景点，请先新增景点资料。</div>';
+    </tbody></table>` : '<div class="admin-empty">鏆傛棤鏅偣锛岃鍏堟柊澧炴櫙鐐硅祫鏂欍€?/div>';
   $("spotsList").querySelectorAll("[data-edit-spot]").forEach((button) => {
     button.onclick = () => fillSpotForm(items.find((item) => String(item.id) === button.dataset.editSpot));
   });
@@ -3547,7 +3844,7 @@ function fillSpotForm(item) {
   $("spotId").value = item.id;
   $("spotName").value = item.name || "";
   $("spotDesc").value = item.description || "";
-  $("spotTags").value = (item.tags || []).join("、");
+  $("spotTags").value = (item.tags || []).join("銆?);
   $("spotDuration").value = item.visit_duration_min || 30;
   $("spotLat").value = Number.isFinite(location.lat) ? location.lat.toFixed(6) : "";
   $("spotLng").value = Number.isFinite(location.lng) ? location.lng.toFixed(6) : "";
@@ -3564,17 +3861,17 @@ function resetSpotForm() {
   renderSpotImagePreview();
 }
 
-function renderSpotImagePreview(url = "", name = "景点图片") {
+function renderSpotImagePreview(url = "", name = "鏅偣鍥剧墖") {
   const preview = $("spotImagePreview");
   if (!preview) return;
   preview.innerHTML = url
-    ? `<img src="${escapeHTML(url)}" alt="${escapeHTML(name)}" /><span>图片将同步展示在游客端景点详情中</span>`
-    : "<span>上传图片后将在这里预览</span>";
+    ? `<img src="${escapeHTML(url)}" alt="${escapeHTML(name)}" /><span>鍥剧墖灏嗗悓姝ュ睍绀哄湪娓稿绔櫙鐐硅鎯呬腑</span>`
+    : "<span>涓婁紶鍥剧墖鍚庡皢鍦ㄨ繖閲岄瑙?/span>";
   preview.classList.toggle("has-image", Boolean(url));
 }
 
 function splitTags(value) {
-  return value.split(/[,，、]/).map((item) => item.trim()).filter(Boolean);
+  return value.split(/[,锛屻€乚/).map((item) => item.trim()).filter(Boolean);
 }
 
 async function createSpot(event) {
@@ -3585,9 +3882,9 @@ async function createSpot(event) {
   const lat = latText === "" ? Number.NaN : Number(latText);
   const lng = lngText === "" ? Number.NaN : Number(lngText);
   const hasLocation = Number.isFinite(lat) && Number.isFinite(lng);
-  if ((latText || lngText) && !hasLocation) return toast("请同时填写有效的纬度和经度");
+  if ((latText || lngText) && !hasLocation) return toast("璇峰悓鏃跺～鍐欐湁鏁堢殑绾害鍜岀粡搴?);
   if (hasLocation && !locationFromSpot({ lat, lng })) {
-    return toast("经纬度无效，请检查是否填反或输入了 0,0");
+    return toast("缁忕含搴︽棤鏁堬紝璇锋鏌ユ槸鍚﹀～鍙嶆垨杈撳叆浜?0,0");
   }
   const saved = await request(spotId ? `/api/admin/spots/${spotId}` : "/api/admin/spots", {
     method: spotId ? "PUT" : "POST",
@@ -3611,17 +3908,17 @@ async function createSpot(event) {
   localStorage.setItem("dg_scenic_admin_meta", JSON.stringify(meta));
   state.routeCatalogLoaded = false;
   resetSpotForm();
-  toast(spotId ? "景点已更新" : "景点已新增");
+  toast(spotId ? "鏅偣宸叉洿鏂? : "鏅偣宸叉柊澧?);
   loadScenic().catch(() => {});
 }
 
 async function deleteSpot(id) {
-  if (!window.confirm("确定删除这个景点吗？")) return;
+  if (!window.confirm("纭畾鍒犻櫎杩欎釜鏅偣鍚楋紵")) return;
   await request(`/api/admin/spots/${id}`, { method: "DELETE", headers: authHeaders() });
   const meta = scenicLocalMeta();
   delete meta[id];
   localStorage.setItem("dg_scenic_admin_meta", JSON.stringify(meta));
-  toast("景点已删除");
+  toast("鏅偣宸插垹闄?);
   loadScenic().catch(() => {});
 }
 
@@ -3631,7 +3928,7 @@ async function createRoute(event) {
   try {
     spotSequence = $("routeSpots").value ? JSON.parse($("routeSpots").value) : [];
   } catch {
-    return toast("景点序列 JSON 格式不正确");
+    return toast("鏅偣搴忓垪 JSON 鏍煎紡涓嶆纭?);
   }
   await request("/api/admin/routes", {
     method: "POST",
@@ -3646,7 +3943,7 @@ async function createRoute(event) {
   });
   event.target.reset();
   $("routeHours").value = 2;
-  toast("路线已新增");
+  toast("璺嚎宸叉柊澧?);
   loadScenic().catch(() => {});
 }
 
@@ -3660,8 +3957,8 @@ async function loadHumanConfig() {
   $("cfgVoiceSpeed").value = cfg.voice_speed || "medium";
   $("cfgExpression").value = cfg.expression_style || "lively";
   const extra = cfg.extra_config || {};
-  $("cfgRole").value = extra.role || "知识库数字人讲解员";
-  $("cfgWelcome").value = extra.welcome_message || "您好，我是当前场景的 AI 导览员，很高兴为你提供讲解与路线服务。";
+  $("cfgRole").value = extra.role || "鐭ヨ瘑搴撴暟瀛椾汉璁茶В鍛?;
+  $("cfgWelcome").value = extra.welcome_message || "鎮ㄥソ锛屾垜鏄綋鍓嶅満鏅殑 AI 瀵艰鍛橈紝寰堥珮鍏翠负浣犳彁渚涜瑙ｄ笌璺嚎鏈嶅姟銆?;
   $("cfgVolume").value = extra.volume ?? 85;
   $("cfgVolumeValue").value = `${extra.volume ?? 85}%`;
   $("cfgModelType").value = extra.model_type || "live2d";
@@ -3675,8 +3972,8 @@ async function loadHumanConfig() {
   $("cfgModelPath").value = extra.live2d_model_path || "";
   $("cfgThemeColor").value = extra.theme_color || "#168f91";
   $("cfgPosition").value = extra.position || "left";
-  $("adminHumanPreviewName").textContent = cfg.name || "AI 导览员";
-  $("adminHumanPreviewRole").textContent = extra.role || "知识库数字人讲解员";
+  $("adminHumanPreviewName").textContent = cfg.name || "AI 瀵艰鍛?;
+  $("adminHumanPreviewRole").textContent = extra.role || "鐭ヨ瘑搴撴暟瀛椾汉璁茶В鍛?;
   renderAvatarPreview(cfg.avatar_url, cfg);
   applyHumanConfig(cfg);
 }
@@ -3685,27 +3982,27 @@ function renderAvatarPreview(url, cfg = state.humanConfig || {}) {
   const preview = $("avatarPreview");
   const modelType = cfg.extra_config?.model_type || "live2d";
   const appearance = cfg.appearance || "modern";
-  const roleNames = { modern: "Mark", hanfu: "椿", nature: "参数控制角色", custom: "自定义模型" };
+  const roleNames = { modern: "Mark", hanfu: "妞?, nature: "鍙傛暟鎺у埗瑙掕壊", custom: "鑷畾涔夋ā鍨? };
   const stateBadge = $("adminHumanLoadState");
   const modelInfo = $("adminHumanModelInfo");
   if (modelType === "static" && url) {
     preview.className = "avatar-image";
-    preview.innerHTML = `<img src="${escapeHTML(url)}" alt="数字人头像" />`;
+    preview.innerHTML = `<img src="${escapeHTML(url)}" alt="鏁板瓧浜哄ご鍍? />`;
     if (stateBadge) {
       stateBadge.className = "status-pill success";
-      stateBadge.textContent = "静态头像已加载";
+      stateBadge.textContent = "闈欐€佸ご鍍忓凡鍔犺浇";
     }
   } else {
     preview.className = `avatar-live2d-preview ${appearance}`;
-    preview.innerHTML = `<span>Live2D</span><strong>${escapeHTML(roleNames[appearance] || "自定义模型")}</strong><small>${escapeHTML(cfg.extra_config?.live2d_model_path || live2dModels[appearance] || "未配置模型路径")}</small>`;
+    preview.innerHTML = `<span>Live2D</span><strong>${escapeHTML(roleNames[appearance] || "鑷畾涔夋ā鍨?)}</strong><small>${escapeHTML(cfg.extra_config?.live2d_model_path || live2dModels[appearance] || "鏈厤缃ā鍨嬭矾寰?)}</small>`;
     if (stateBadge) {
       stateBadge.className = `status-pill ${live2dModels[appearance] || cfg.extra_config?.live2d_model_path ? "success" : "danger"}`;
-      stateBadge.textContent = live2dModels[appearance] || cfg.extra_config?.live2d_model_path ? "模型路径已配置" : "模型路径缺失";
+      stateBadge.textContent = live2dModels[appearance] || cfg.extra_config?.live2d_model_path ? "妯″瀷璺緞宸查厤缃? : "妯″瀷璺緞缂哄け";
     }
   }
   if (modelInfo) modelInfo.textContent = modelType === "static"
-    ? "当前使用静态图片，不启用 Live2D 动作与口型参数。"
-    : `${roleNames[appearance] || "自定义模型"} · ${cfg.extra_config?.live2d_model_path || live2dModels[appearance] || "未配置路径"}`;
+    ? "褰撳墠浣跨敤闈欐€佸浘鐗囷紝涓嶅惎鐢?Live2D 鍔ㄤ綔涓庡彛鍨嬪弬鏁般€?
+    : `${roleNames[appearance] || "鑷畾涔夋ā鍨?} 路 ${cfg.extra_config?.live2d_model_path || live2dModels[appearance] || "鏈厤缃矾寰?}`;
 }
 
 async function uploadAvatarIfNeeded() {
@@ -3753,10 +4050,10 @@ async function saveHumanConfig(event) {
   localStorage.setItem("dg_admin_human_settings", JSON.stringify(extraConfig));
   applyHumanConfig(cfg);
   renderAvatarPreview(cfg.avatar_url, cfg);
-  $("adminHumanPreviewName").textContent = cfg.name || "AI 导览员";
+  $("adminHumanPreviewName").textContent = cfg.name || "AI 瀵艰鍛?;
   $("adminHumanPreviewRole").textContent = extraConfig.role;
   document.documentElement.style.setProperty("--brand", extraConfig.theme_color);
-  toast("数字人配置已保存");
+  toast("鏁板瓧浜洪厤缃凡淇濆瓨");
 }
 
 function previewAdminHumanState(stateName) {
@@ -3767,33 +4064,49 @@ function previewAdminHumanState(stateName) {
   preview?.classList.remove("is-idle", "is-thinking", "is-speaking");
   preview?.classList.add(`is-${stateName}`);
   const badge = $("adminHumanLoadState");
-  if (badge) badge.textContent = stateName === "speaking" ? "speaking · 口型动画" : stateName === "thinking" ? "thinking · 思考中" : "idle · 在线待命";
+  if (badge) badge.textContent = stateName === "speaking" ? "speaking 路 鍙ｅ瀷鍔ㄧ敾" : stateName === "thinking" ? "thinking 路 鎬濊€冧腑" : "idle 路 鍦ㄧ嚎寰呭懡";
 }
 
 function bindEvents() {
+  const bindClick = (id, handler) => {
+    const el = $(id);
+    if (el) el.onclick = handler;
+  };
+  const bindSubmit = (id, handler) => {
+    const el = $(id);
+    if (el) el.onsubmit = handler;
+  };
+  const bindInput = (id, handler) => {
+    const el = $(id);
+    if (el) el.oninput = handler;
+  };
+  const bindKeydown = (id, handler) => {
+    const el = $(id);
+    if (el) el.onkeydown = handler;
+  };
+  const bindChange = (id, handler) => {
+    const el = $(id);
+    if (el) el.onchange = handler;
+  };
+
   if ($("apiBase")) $("apiBase").value = state.apiBase;
-  if ($("visitorRoleBtn")) $("visitorRoleBtn").onclick = () => setRoleForm("visitor");
-  if ($("adminRoleBtn")) $("adminRoleBtn").onclick = () => setRoleForm("admin");
+  bindClick("visitorRoleBtn", () => setRoleForm("visitor"));
+  bindClick("adminRoleBtn", () => setRoleForm("admin"));
   if ($("visitorLoginForm")) {
     $("visitorLoginForm").onsubmit = (event) => {
       event.preventDefault();
-      state.visitorName = $("visitorNameInput")?.value.trim() || "临时游客";
+      state.visitorName = $("visitorNameInput")?.value.trim() || "涓存椂娓稿";
       localStorage.setItem("dg_visitor_name", state.visitorName);
       enterApp("visitor");
     };
   }
-  if ($("adminLoginForm")) {
-    $("adminLoginForm").onsubmit = (event) => adminLogin(event).catch((err) => toast(err.message));
-  }
-  if ($("homeBtn")) $("homeBtn").onclick = goHome;
-  $("logoutBtn").onclick = logout;
-  $("sidebarToggle").onclick = toggleSidebar;
-  if ($("vrmAvatarFrame")) {
-    $("vrmAvatarFrame").onload = () => syncVRMAvatarState({ emotion: "neutral" });
-  }
+  bindSubmit("adminLoginForm", (event) => adminLogin(event).catch((err) => toast(err.message)));
+  bindClick("homeBtn", goHome);
+  bindClick("logoutBtn", logout);
+  bindClick("sidebarToggle", toggleSidebar);
   const historyToggle = $("historyToggleBtn");
   if (historyToggle) historyToggle.onclick = () => setHistoryOpen(!document.body.classList.contains("history-open"));
-  $("historyCloseBtn").onclick = () => setHistoryOpen(!document.body.classList.contains("history-open"));
+  bindClick("historyCloseBtn", () => setHistoryOpen(!document.body.classList.contains("history-open")));
 
   document.querySelectorAll(".nav-item").forEach((btn) => {
     btn.onclick = () => switchView(btn.dataset.view);
@@ -3805,66 +4118,63 @@ function bindEvents() {
     btn.onclick = () => sendMessage(btn.dataset.question).catch((err) => toast(err.message));
   });
 
-  $("newConversationBtn").onclick = () => createConversation().catch((err) => toast(err.message));
-  $("sendBtn").onclick = handleSendAction;
-  $("attachmentBtn").onclick = () => toast("附件入口已预留，可继续接入图片识别与文档提问");
-  $("chatInput").oninput = updateComposerState;
-  $("chatInput").onkeydown = (event) => {
+  bindClick("newConversationBtn", () => createConversation().catch((err) => toast(err.message)));
+  bindClick("sendBtn", handleSendAction);
+  bindClick("attachmentBtn", () => toast("闄勪欢鍏ュ彛宸查鐣欙紝鍙户缁帴鍏ュ浘鐗囪瘑鍒笌鏂囨。鎻愰棶"));
+  bindInput("chatInput", updateComposerState);
+  bindKeydown("chatInput", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       handleSendAction();
     }
-  };
-  $("voiceBtn").onclick = toggleVoiceRecognition;
-  $("stopReplyBtn").onclick = () => stopReply();
-  $("recommendBtn").onclick = () => recommendRoute().catch((err) => toast(err.message));
-  $("feedbackBtn").onclick = () => submitFeedback().catch((err) => toast(err.message));
-  $("routeGuideBtn").onclick = askRouteGuide;
-  $("routeStopReplyBtn").onclick = () => stopReply();
-  $("routeSpotDetailClose").onclick = closeRouteSpotDetail;
-  $("routeGuideInput").onkeydown = (event) => {
+  });
+  bindClick("voiceBtn", toggleVoiceRecognition);
+  bindClick("stopReplyBtn", () => stopReply());
+  bindClick("recommendBtn", () => recommendRoute().catch((err) => toast(err.message)));
+  bindClick("feedbackBtn", () => submitFeedback().catch((err) => toast(err.message)));
+  bindClick("routeGuideBtn", askRouteGuide);
+  bindClick("routeStopReplyBtn", () => stopReply());
+  bindClick("routeSpotDetailClose", closeRouteSpotDetail);
+  bindKeydown("routeGuideInput", (event) => {
     if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
       askRouteGuide();
     }
-  };
-  $("refreshStatsBtn").onclick = () => loadDashboard().catch((err) => toast(err.message));
-  $("docForm").onsubmit = (event) => uploadDocument(event).catch((err) => toast(err.message));
-  $("faqForm").onsubmit = (event) => createFAQ(event).catch((err) => toast(err.message));
-  $("faqCancelEditBtn").onclick = resetFAQForm;
-  $("spotForm").onsubmit = (event) => createSpot(event).catch((err) => toast(err.message));
-  $("spotFormReset").onclick = resetSpotForm;
-  $("spotImage").onchange = () => {
+  });
+  bindClick("refreshStatsBtn", () => loadDashboard().catch((err) => toast(err.message)));
+  bindSubmit("docForm", (event) => uploadDocument(event).catch((err) => toast(err.message)));
+  bindSubmit("faqForm", (event) => createFAQ(event).catch((err) => toast(err.message)));
+  bindClick("faqCancelEditBtn", resetFAQForm);
+  bindSubmit("spotForm", (event) => createSpot(event).catch((err) => toast(err.message)));
+  bindClick("spotFormReset", resetSpotForm);
+  bindChange("spotImage", () => {
     const file = $("spotImage").files[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
       $("spotImage").value = "";
-      toast("景点图片最大支持 10 MB");
+      toast("鏅偣鍥剧墖鏈€澶ф敮鎸?10 MB");
       return;
     }
     const reader = new FileReader();
     reader.onload = () => renderSpotImagePreview(String(reader.result || ""), file.name);
     reader.readAsDataURL(file);
-  };
-  $("routeForm").onsubmit = (event) => createRoute(event).catch((err) => toast(err.message));
-  $("humanForm").onsubmit = (event) => saveHumanConfig(event).catch((err) => toast(err.message));
-  ["cfgName", "cfgAppearance", "cfgVoiceGender", "cfgVoiceSpeed", "cfgExpression", "cfgModelType", "cfgModelPath"].forEach((id) => {
-    $(id).oninput = previewHumanConfigFromForm;
   });
-  $("cfgVolume").oninput = () => {
-    $("cfgVolumeValue").value = `${$("cfgVolume").value}%`;
-  };
+  bindSubmit("routeForm", (event) => createRoute(event).catch((err) => toast(err.message)));
+  bindSubmit("humanForm", (event) => saveHumanConfig(event).catch((err) => toast(err.message)));
+  ["cfgName", "cfgAppearance", "cfgVoiceGender", "cfgVoiceSpeed", "cfgExpression", "cfgModelType", "cfgModelPath"].forEach((id) => {
+    bindInput(id, previewHumanConfigFromForm);
+  });
+  bindInput("cfgVolume", () => {
+    if ($("cfgVolumeValue") && $("cfgVolume")) $("cfgVolumeValue").value = `${$("cfgVolume").value}%`;
+  });
   document.querySelectorAll("[data-human-preview-state]").forEach((button) => {
     button.onclick = () => previewAdminHumanState(button.dataset.humanPreviewState);
   });
   ["cfgName", "cfgRole"].forEach((id) => {
-    $(id).addEventListener("input", () => {
-      $("adminHumanPreviewName").textContent = $("cfgName").value || "AI 导览员";
-      $("adminHumanPreviewRole").textContent = $("cfgRole").value || "知识库数字人讲解员";
-    });
+    const el = $(id); if (el) el.addEventListener("input", () => { if ($("adminHumanPreviewName")) $("adminHumanPreviewName").textContent = $("cfgName")?.value || "AI 导览员"; if ($("adminHumanPreviewRole")) $("adminHumanPreviewRole").textContent = $("cfgRole")?.value || "知识库数字人讲解员"; });
   });
   ["visitorAvatarEngine", "visitorAppearance", "visitorVoiceGender", "visitorVoiceSpeed", "visitorExpression"].forEach((id) => {
-    $(id).oninput = previewVisitorHumanConfig;
+    bindInput(id, previewVisitorHumanConfig);
   });
   document.addEventListener("click", (event) => {
     if (!event.target.closest(".history-item-wrap")) closeHistoryMenus();
@@ -3887,7 +4197,7 @@ export async function bootstrapLegacyApp() {
   setHistoryOpen(true);
   updateComposerState();
   applyHumanConfig({
-    name: "AI 导览员",
+    name: "AI 瀵艰鍛?,
     appearance: "modern",
     voice_gender: "female",
     voice_speed: "medium",
@@ -3896,9 +4206,10 @@ export async function bootstrapLegacyApp() {
     ...(state.visitorHumanConfig || {}),
   });
   setAvatarEngine(state.avatarEngine || "live2d", false);
-  addMessage("assistant", `您好，我是${digitalHumanName()}。点击“新建会话”，即可开始询问当前场景内容、路线和服务信息。`, undefined, false);
+  initVRMAvatar().then((avatar) => avatar?.setMode("idle")).catch(() => {});
+  addMessage("assistant", `鎮ㄥソ锛屾垜鏄?{digitalHumanName()}銆傜偣鍑烩€滄柊寤轰細璇濃€濓紝鍗冲彲寮€濮嬭闂綋鍓嶅満鏅唴瀹广€佽矾绾垮拰鏈嶅姟淇℃伅銆俙, undefined, false);
   if (!state.visitorName) {
-    state.visitorName = localStorage.getItem("dg_visitor_name") || "访客";
+    state.visitorName = localStorage.getItem("dg_visitor_name") || "璁垮";
   }
   localStorage.setItem("dg_visitor_name", state.visitorName);
   if ($("visitorNameInput")) $("visitorNameInput").value = state.visitorName;
@@ -3911,3 +4222,4 @@ export async function bootstrapLegacyApp() {
   if (state.role === "admin" && state.token) enterApp("admin");
   if (state.role === "visitor") enterApp("visitor");
 }
+

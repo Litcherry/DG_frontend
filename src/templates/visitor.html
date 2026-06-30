@@ -1,22 +1,24 @@
-<section id="visitorView" class="view active">
+﻿<section id="visitorView" class="view active">
           <div class="visitor-layout">
             <section class="guide-column">
               <div class="human-panel">
-                <iframe
-                  id="vrmAvatarFrame"
-                  class="vrm-avatar-frame"
-                  src="/vrm-avatar?model=model7533"
-                  title="AI VRM 数字人"
-                  allow="autoplay"
-                ></iframe>
+                <div id="vrmAvatarStage" class="vrm-avatar-stage" aria-label="AI VRM avatar">
+                  <div class="vrm-background-layer" aria-hidden="true">
+                    <div class="vrm-bg-title">SCENIC GUIDE DISCOVER EXPLORE</div>
+                    <div class="vrm-bg-bottom">ROAM</div>
+                    <div class="vrm-bg-mark">DG</div>
+                  </div>
+                  <canvas id="vrmAvatarCanvas" class="vrm-avatar-canvas"></canvas>
+                  <div id="vrmAvatarStatus" class="vrm-avatar-status">Loading VRM avatar</div>
+                </div>
                 <div class="stage-glow"></div>
                 <div id="live2dHomeDock" class="live2d-home-dock">
                   <div id="openAvatarStage" class="open-avatar-stage">
                     <canvas id="live2dCanvas" class="live2d-canvas"></canvas>
-                    <div id="avatarEngineStatus" class="avatar-engine-status">Live2D 加载中</div>
+                    <div id="avatarEngineStatus" class="avatar-engine-status">Live2D 鍔犺浇涓?/div>
                   </div>
                 </div>
-                <div id="virtualAnchor" class="virtual-anchor modern" aria-label="虚拟主播数字人">
+                <div id="virtualAnchor" class="virtual-anchor modern" aria-label="铏氭嫙涓绘挱鏁板瓧浜?>
                   <div class="anchor-aura"></div>
                   <div class="anchor-hair back"></div>
                   <div class="anchor-head">
@@ -78,8 +80,8 @@
               <div class="tool-panel">
                 <div class="section-title">
                   <div>
-                    <h2>兴趣偏好</h2>
-                    <span>影响讲解重点与路线推荐</span>
+                    <h2>鍏磋叮鍋忓ソ</h2>
+                    <span>褰卞搷璁茶В閲嶇偣涓庤矾绾挎帹鑽?/span>
                   </div>
                 </div>
                 <div id="interestChips" class="chips"></div>
@@ -88,41 +90,41 @@
               <div class="tool-panel visitor-human-config">
                 <div class="section-title">
                   <div>
-                    <h2>数字人形象</h2>
-                    <span>游客端临时调节，立即预览</span>
+                    <h2>鏁板瓧浜哄舰璞?/h2>
+                    <span>娓稿绔复鏃惰皟鑺傦紝绔嬪嵆棰勮</span>
                   </div>
                 </div>
                 <div class="visitor-human-grid">
-                  <label>引擎
+                  <label>寮曟搸
                     <select id="visitorAvatarEngine">
-                      <option value="live2d">Mark Live2D 导游</option>
+                      <option value="live2d">Mark Live2D 瀵兼父</option>
                     </select>
                   </label>
-                  <label>外观
+                  <label>澶栬
                     <select id="visitorAppearance">
-                      <option value="modern">Mark · 现代智慧导游</option>
-                      <option value="hanfu">椿 · 文化讲解员</option>
-                      <option value="nature" disabled>参数控制角色 · 待导出运行模型</option>
+                      <option value="modern">Mark 路 鐜颁唬鏅烘収瀵兼父</option>
+                      <option value="hanfu">妞?路 鏂囧寲璁茶В鍛?/option>
+                      <option value="nature" disabled>鍙傛暟鎺у埗瑙掕壊 路 寰呭鍑鸿繍琛屾ā鍨?/option>
                     </select>
                   </label>
-                  <label>声音
+                  <label>澹伴煶
                     <select id="visitorVoiceGender">
-                      <option value="female">女声</option>
-                      <option value="male">男声</option>
+                      <option value="female">濂冲０</option>
+                      <option value="male">鐢峰０</option>
                     </select>
                   </label>
-                  <label>语速
+                  <label>璇€?
                     <select id="visitorVoiceSpeed">
-                      <option value="slow">舒缓</option>
-                      <option value="medium">自然</option>
-                      <option value="fast">轻快</option>
+                      <option value="slow">鑸掔紦</option>
+                      <option value="medium">鑷劧</option>
+                      <option value="fast">杞诲揩</option>
                     </select>
                   </label>
-                  <label>表情
+                  <label>琛ㄦ儏
                     <select id="visitorExpression">
-                      <option value="lively">活泼</option>
-                      <option value="calm">沉稳</option>
-                      <option value="warm">温暖</option>
+                      <option value="lively">娲绘臣</option>
+                      <option value="calm">娌夌ǔ</option>
+                      <option value="warm">娓╂殩</option>
                     </select>
                   </label>
                 </div>
@@ -140,15 +142,15 @@
               </div>
               <div id="chatMessages" class="chat-messages"></div>
               <div class="quick-questions">
-                <button type="button" data-question="有什么景点推荐">热门景点</button>
+                <button type="button" data-question="有什么景点推荐？">热门景点</button>
                 <button type="button" data-question="我对历史文化感兴趣，帮我规划一条路线">历史路线</button>
-                <button type="button" data-question="适合亲子游的路线怎么走">亲子游</button>
-                <button type="button" data-question="附近有哪些服务设施需要注意">服务设施</button>
+                <button type="button" data-question="适合亲子游的路线怎么走？">亲子游</button>
+                <button type="button" data-question="附近有哪些服务设施需要注意？">服务设施</button>
               </div>
               <div class="composer-wrap">
                 <div id="voiceStatus" class="voice-status" aria-live="polite">
                   <span class="voice-wave"><i></i><i></i><i></i><i></i></span>
-                  <span>正在聆听…</span>
+                  <span>正在聆听...</span>
                 </div>
                 <button id="stopReplyBtn" class="stop-reply-btn" type="button" title="停止语音回复">
                   <span class="stop-icon"></span>
@@ -195,3 +197,4 @@
             </aside>
           </div>
         </section>
+
